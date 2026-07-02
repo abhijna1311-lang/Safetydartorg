@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Vite Dev Server",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --dir safety_061126 dev"
+    },
+    {
+      "name": "Debug Vite App in Edge",
+      "type": "pwa-msedge",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/safety_061126"
+    }
+  ]
+}

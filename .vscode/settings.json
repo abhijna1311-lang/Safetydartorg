@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/bedcdc36-8cf9-4d36-8ad8-685dc1a2147e/resourceGroups/safety_group/providers/Microsoft.Web/sites/safety",
+    "appService.deploySubpath": "safety_061126"
+}

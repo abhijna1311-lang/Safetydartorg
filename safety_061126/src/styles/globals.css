@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+:root {
+  --dart-brand-navy: #00205B;
+  --dart-brand-blue: #0078AE;
+  --dart-brand-gray: #A7A8AA;
+  --dart-surface-soft: #F5F7FB;
+  --dart-surface-muted: #EEF3F7;
+  --dart-text-strong: #0F172A;
+  --dart-text-muted: #64748B;
+
+  /* UI state hierarchy tokens — blue communicates only: primary action, focus, selected */
+  --color-text-strong: #0F172A;
+  --color-text-default: #334155;
+  --color-text-muted: #64748B;
+
+  --color-label: #475569;
+
+  --color-field-bg: #FFFFFF;
+  --color-field-border: #CBD5E1;
+  --color-field-border-hover: #94A3B8;
+  --color-placeholder: #94A3B8;
+
+  --color-primary-bg: #0078AE;
+  --color-primary-bg-hover: #006491;
+  --color-primary-text: #FFFFFF;
+  --color-primary-focus-ring: rgba(0, 120, 174, 0.30);
+
+  --color-selected-bg: #EAF1F8;
+  --color-selected-border: #00205B;
+  --color-selected-text: #00205B;
+
+  --color-focus-border: #00205B;
+  --color-focus-ring: rgba(0, 32, 91, 0.16);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dart-field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  color: var(--color-label);
+}
+
+.dart-input-base {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dart-input-base::placeholder {
+  color: var(--color-placeholder);
+}
+
+.dart-input-base:focus {
+  outline: none;
+  border-color: var(--color-focus-border);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.dart-input-compact {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dart-input-compact:focus {
+  outline: none;
+  border-color: var(--color-focus-border);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.dart-action-link {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--dart-brand-blue);
+  transition: color 0.2s ease;
+}
+
+.dart-action-link:hover {
+  color: var(--dart-brand-navy);
+}
+
+/* ============================================
+   Modern Custom Scrollbars
+   ============================================ */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.4);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.3) 0%, rgba(0, 164, 181, 0.3) 100%);
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.6) 0%, rgba(0, 164, 181, 0.6) 100%);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.8) 0%, rgba(0, 164, 181, 0.8) 100%);
+  background-clip: padding-box;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 125, 186, 0.3) rgba(241, 245, 249, 0.4);
+}
+
+/* Sleeker scrollbars for dropdown menus and small containers */
+.scroll-area::-webkit-scrollbar,
+[role="listbox"]::-webkit-scrollbar,
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb,
+[role="listbox"]::-webkit-scrollbar-thumb,
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.25) 0%, rgba(0, 164, 181, 0.25) 100%);
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.scroll-area::-webkit-scrollbar-thumb:hover,
+[role="listbox"]::-webkit-scrollbar-thumb:hover,
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.5) 0%, rgba(0, 164, 181, 0.5) 100%);
+  background-clip: padding-box;
+}
+
+/* Hide scrollbar for elements that should not show it */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================
+   Date & Time Native Input Fixes
+   ============================================ */
+
+/*
+  Make the invisible calendar/clock indicator span the full input
+  so clicking anywhere on the field opens the native picker.
+  This works across Chromium-based browsers.
+*/
+input[type="date"],
+input[type="time"] {
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* ============================================
+   Hero Card Breathing Animation
+   ============================================ */
+
+@keyframes heroBreathing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes heroBreathingBrighten {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+
+.hero-card {
+  animation: heroBreathing 4800ms ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #00244F 0%, #005BA9 45%, #0067B3 100%);
+  opacity: 0;
+  transition: opacity 2400ms ease-in-out;
+  pointer-events: none;
+  animation: heroBreathingBrighten 4800ms ease-in-out infinite;
+  border-radius: inherit;
+}
+
+.hero-card:hover {
+  animation: none;
+  transform: scale(1.03) !important;
+  box-shadow: 0 24px 60px 0 rgba(0, 16, 40, 0.55) !important;
+  transition: all 200ms ease-out;
+}
+
+.hero-card:hover::before {
+  animation: none;
+  opacity: 0.3;
+  transition: opacity 200ms ease-out;
+}
+
+/* Button micro-interactions on hero hover */
+.hero-card:hover .hero-button {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
+  transition: all 200ms ease-out;
+}
+
+/* Icon tile micro-interactions on hero hover */
+.hero-card:hover .hero-icon {
+  transform: scale(1.04);
+  box-shadow: inset 0 2px 12px rgba(255, 255, 255, 0.28) !important;
+  transition: all 200ms ease-out;
+}
+
+/* Icon glyph micro-interactions on hero hover */
+.hero-card:hover .hero-icon-glyph {
+  transform: scale(1.06);
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35)) !important;
+  transition: all 200ms ease-out;
+}

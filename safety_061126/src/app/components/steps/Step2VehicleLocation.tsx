@@ -1,0 +1,238 @@
+import { useState } from 'react';
+import { Info } from 'lucide-react';
+import { StepContainer } from '../StepContainer';
+import { GlassButton } from '../GlassButton';
+import { BusCollisionSection } from './sections/BusCollisionSection';
+import { LRVCollisionSection } from './sections/LRVCollisionSection';
+import { BasicIncidentSection } from './sections/BasicIncidentSection';
+import { WeatherSection } from './sections/WeatherSection';
+import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
+import { DatePickerInput } from '../DatePickerInput';
+import { TimePickerInput } from '../TimePickerInput';
+import type { AccidentReportData } from '../../types/accident-report';
+import type { UserRole } from '../../context/UserRoleContext';
+import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
+
+interface Props {
+  data: AccidentReportData;
+  onUpdate: (d: Partial<AccidentReportData>) => void;
+  onNext: () => void;
+  onBack: () => void;
+  onSaveDraft: () => void;
+  workflowStage?: 'initiation' | 'operator-completion' | 'supervisor-review' | 'program-manager-review' | 'closed';
+  initiatedBy?: UserRole;
+  activeSectionKey?: WorkflowSectionKey;
+  sectionStatuses?: WorkflowSections;
+  isOperatorNarrativeLocked?: boolean;
+}
+
+// Modes that follow the LRV form path
+const LRV_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
+const inputCls = 'dart-input-base';
+
+function IntakeCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
+        <div className="w-2 h-2 rounded-full flex-shrink-0 bg-[#0078AE]" />
+        <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">{title}</h3>
+      </div>
+      <div className="px-6 py-5 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function IntakeField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="dart-field-label">
+        {label}{required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+export function Step2VehicleLocation({
+  data,
+  onUpdate,
+  onNext,
+  onBack,
+  onSaveDraft,
+  workflowStage = 'operator-completion',
+  initiatedBy,
+  activeSectionKey = 'operator',
+  sectionStatuses,
+  isOperatorNarrativeLocked = false,
+}: Props) {
+  const isLRV = LRV_MODES.includes(data.mode || '');
+  const isBus = !isLRV; // Bus + Non-Revenue Vehicle
+  const isInitiationStage = workflowStage === 'initiation';
+  const isSupervisorReview = activeSectionKey === 'supervisor';
+  const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
+  const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
+
+  // Check if this is a collision event
+  const isCollision = data.event_type === 'Collision';
+
+  // Dynamic title and description based on event type
+  const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
+  const stepDescription = isCollision
+    ? `Vehicle and collision details for the ${data.mode || 'selected mode'}.`
+    : `Vehicle and event details for the ${data.mode || 'selected mode'}.`;
+  const narrativeRequirementMet = isOperatorNarrativeLocked ? true : Boolean(data.description_of_event);
+
+  // Minimum required to proceed
+  const canProceed = isInitiationStage
+    ? !!(
+        data.incident_date &&
+        data.incident_time &&
+        (isBus
+          ? data.vehicle_number && data.street_on && data.cross_street && data.city && data.zip && data.route_number && data.block_number
+          : data.train_number && (data.address_of_event || data.station_applicable || data.grade_crossing_applicable))
+      )
+    : !!(
+        narrativeRequirementMet &&
+        data.incident_date &&
+        data.incident_time &&
+        (isBus ? data.street_on && data.city : data.train_number) &&
+        (isCollision && isBus ? data.vehicle_number : true)
+      );
+
+  const contextTone = isSupervisorReview
+    ? {
+        container: 'border-[#0078AE]/30 bg-[#0078AE]/10',
+        icon: 'text-[#0078AE]',
+        text: 'text-[#00205B]',
+      }
+    : isInitiationStage
+    ? {
+        container: 'border-slate-300 bg-slate-50',
+        icon: 'text-slate-500',
+        text: 'text-slate-700',
+      }
+    : {
+        container: 'border-slate-200 bg-slate-50',
+        icon: 'text-slate-500',
+        text: 'text-slate-700',
+      };
+
+  return (
+    <StepContainer
+      stepNumber={2}
+      title={stepTitle}
+      description={stepDescription}
+    >
+      {/* Context banner */}
+      <div className={`mb-5 flex items-center gap-2 rounded-lg border px-4 py-2.5 ${contextTone.container}`}>
+        <Info className={`h-4 w-4 flex-shrink-0 ${contextTone.icon}`} />
+        <p className={`text-xs leading-5 font-['Poppins'] ${contextTone.text}`}>
+          {isInitiationStage
+            ? <>Showing the <strong>intake-only</strong> field set for a {initiatedBy === 'Program Manager' ? 'program manager' : 'supervisor'}-started case.</>
+            : isSupervisorReview
+            ? <>Complete supervisor fields and refer to the operator report when needed. The operator description is <strong>read-only</strong>.</>
+            : <>Showing <strong>{data.mode}</strong> {isCollision ? 'collision' : 'incident'} form for a <strong>{data.event_type}</strong> event.</>}
+        </p>
+      </div>
+
+      {canOpenOperatorReport && (
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setIsOperatorReportOpen(true)}
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+          >
+            Open operator report (read-only)
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-5">
+          {isInitiationStage ? (
+            <>
+            <IntakeCard title="Starter intake required before handoff">
+              <p className="text-sm text-slate-600 font-['Poppins']">
+                Leader-started cases only capture the minimum intake needed to open the case. The operator completes the narrative, injury, and impact details in their section.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <IntakeField label="Event date" required>
+                  <DatePickerInput value={data.incident_date || ''} onChange={(value) => onUpdate({ incident_date: value })} />
+                </IntakeField>
+                <IntakeField label="Event time" required>
+                  <TimePickerInput value={data.incident_time || ''} onChange={(value) => onUpdate({ incident_time: value })} />
+                </IntakeField>
+                {isBus ? (
+                  <>
+                    <IntakeField label="Vehicle number" required>
+                      <input type="text" value={data.vehicle_number || ''} onChange={(e) => onUpdate({ vehicle_number: e.target.value })} placeholder="Enter vehicle number" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Route" required>
+                      <input type="text" value={data.route_number || ''} onChange={(e) => onUpdate({ route_number: e.target.value })} placeholder="Enter route" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Block" required>
+                      <input type="text" value={data.block_number || ''} onChange={(e) => onUpdate({ block_number: e.target.value })} placeholder="Enter block number" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Street on" required>
+                      <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="Enter street" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Cross street" required>
+                      <input type="text" value={data.cross_street || ''} onChange={(e) => onUpdate({ cross_street: e.target.value })} placeholder="Enter cross street" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="City" required>
+                      <input type="text" value={data.city || ''} onChange={(e) => onUpdate({ city: e.target.value })} placeholder="Enter city" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="ZIP code" required>
+                      <input type="text" value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value })} placeholder="Enter ZIP code" className={inputCls} />
+                    </IntakeField>
+                  </>
+                ) : (
+                  <>
+                    <IntakeField label="Train number" required>
+                      <input type="text" value={data.train_number || ''} onChange={(e) => onUpdate({ train_number: e.target.value })} placeholder="Enter train number" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Event location" required>
+                      <input type="text" value={data.address_of_event || ''} onChange={(e) => onUpdate({ address_of_event: e.target.value })} placeholder="Enter location" className={inputCls} />
+                    </IntakeField>
+                  </>
+                )}
+              </div>
+            </IntakeCard>
+            </>
+          ) : (
+            <>
+              {isCollision ? (
+                <>
+                  {isBus  && <BusCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} />}
+                  {isLRV  && <LRVCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} />}
+                </>
+              ) : (
+                <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} />
+              )}
+              <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />
+            </>
+          )}
+      </div>
+
+      <OperatorReportDrawer
+        open={canOpenOperatorReport && isOperatorReportOpen}
+        onClose={() => setIsOperatorReportOpen(false)}
+        data={data}
+        operatorStatus={sectionStatuses?.operator.status}
+      />
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
+        <button
+          onClick={onBack}
+          className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+        >
+          ← Back
+        </button>
+        <div className="flex items-center gap-4">
+          <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
+          <GlassButton variant="primary" onClick={onNext} disabled={!canProceed}>Next</GlassButton>
+        </div>
+      </div>
+    </StepContainer>
+  );
+}
