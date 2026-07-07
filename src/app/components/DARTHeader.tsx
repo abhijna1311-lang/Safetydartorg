@@ -1,4 +1,4 @@
-import { Bell, Check, ChevronDown, Users, Shield, Briefcase } from 'lucide-react';
+import { Bell, Check, ChevronDown, Users, Shield, Briefcase, Menu, X } from 'lucide-react';
 import { NotificationPanel, Notification } from './NotificationPanel';
 import dartLogo from 'figma:asset/596faef70915e56e9eb4660104f6daec380e23d0.png';
 import { useState, useRef, useEffect } from 'react';
@@ -8,6 +8,8 @@ import { createPortal } from 'react-dom';
 interface DARTHeaderProps {
   activeNav?: 'home' | 'new-report' | 'drafts' | 'submissions';
   onNavigate?: (view: 'home' | 'new-report' | 'drafts' | 'submissions') => void;
+  onMobileMenuToggle?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
@@ -22,7 +24,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   'Program Manager': '#0F7B6C',
 };
 
-export function DARTHeader({ activeNav = 'home', onNavigate }: DARTHeaderProps) {
+export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle, isMobileMenuOpen }: DARTHeaderProps) {
   const { roleConfig, setRole } = useUserRole();
 
   const navItems = [
@@ -135,7 +137,8 @@ export function DARTHeader({ activeNav = 'home', onNavigate }: DARTHeaderProps) 
         top:   dropPos.top,
         right: dropPos.right,
         zIndex: 10000,
-        minWidth: 300,
+        minWidth: 260,
+      maxWidth: 'calc(100vw - 16px)',
       }}
       className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_20px_48px_-8px_rgba(0,0,0,0.10)] overflow-hidden"
     >
@@ -238,14 +241,26 @@ export function DARTHeader({ activeNav = 'home', onNavigate }: DARTHeaderProps) 
             {/* Left: Logo + Title */}
             <div className="flex items-center gap-4 flex-shrink-0">
               <img src={dartLogo} alt="DART Logo" className="h-11 w-auto object-contain" />
-              <div className="w-px h-6 flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.32)' }} />
-              <h1 className="text-base text-[#073366] font-semibold font-['Poppins'] whitespace-nowrap">
+              <div className="hidden sm:block w-px h-6 flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.32)' }} />
+              <h1 className="hidden sm:block text-base text-[#073366] font-semibold font-['Poppins'] whitespace-nowrap">
                 DART Accident Reporting
               </h1>
             </div>
 
-            {/* Right: Bell + User chip */}
-            <div className="flex items-center gap-4 flex-shrink-0">
+            {/* Right: Hamburger (mobile) + Bell + User chip */}
+            <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+              {/* Hamburger — only rendered when a handler is provided (AppShell) */}
+              {onMobileMenuToggle && (
+                <button
+                  type="button"
+                  className="block sm:hidden p-2 rounded-lg text-[#1F4C85] hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+                  onClick={onMobileMenuToggle}
+                  aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                  aria-expanded={isMobileMenuOpen}
+                >
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              )}
               {/* Notification Bell */}
               <div className="relative">
                 <button
@@ -298,11 +313,11 @@ export function DARTHeader({ activeNav = 'home', onNavigate }: DARTHeaderProps) 
                   {roleConfig.initials}
                 </div>
 
-                {/* Name + role */}
+                {/* Name + role (role hidden on mobile) */}
                 <div className="text-sm font-['Poppins'] text-slate-700 leading-tight whitespace-nowrap">
                   <span className="font-medium text-[#0B3466]">{roleConfig.name}</span>
-                  <span className="text-slate-400 mx-1.5">·</span>
-                  <span className="text-slate-500">{roleConfig.role}</span>
+                  <span className="hidden sm:inline text-slate-400 mx-1.5">·</span>
+                  <span className="hidden sm:inline text-slate-500">{roleConfig.role}</span>
                 </div>
 
                 {/* Chevron */}
@@ -316,9 +331,9 @@ export function DARTHeader({ activeNav = 'home', onNavigate }: DARTHeaderProps) 
       </div>
 
       {/* Main Nav */}
-      <div className="mx-auto px-6 mt-6">
-        <div className="max-w-[1200px] mx-auto h-12 px-6 bg-slate-50/40 border-b border-slate-200/60 rounded-t-lg">
-          <nav className="flex items-center justify-center gap-8 h-full">
+      <div className="mx-auto px-4 sm:px-6 mt-4 sm:mt-6">
+        <div className="max-w-[1200px] mx-auto h-12 px-2 sm:px-6 bg-slate-50/40 border-b border-slate-200/60 rounded-t-lg overflow-x-auto no-scrollbar">
+          <nav className="flex items-center justify-start sm:justify-center gap-3 sm:gap-8 h-full min-w-max sm:min-w-0">
             {navItems.map(item => {
               const isActive = activeNav === item.id;
               return (

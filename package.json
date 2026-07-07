@@ -141,7 +141,11 @@
   "pnpm": {
     "overrides": {
       "vite": "6.3.5"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "esbuild"
+    ]
   },
   "readme": "ERROR: No README data found!",
   "_id": "@figma/my-make-file@0.0.1"

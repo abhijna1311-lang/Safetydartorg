@@ -249,7 +249,7 @@ export function Step3PeopleImpact({
       />
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-y-3 mt-8 pt-6 border-t border-slate-200">
         <button
           onClick={onBack}
           className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"

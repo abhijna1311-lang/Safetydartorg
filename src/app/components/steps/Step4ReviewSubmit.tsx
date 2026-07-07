@@ -2252,7 +2252,7 @@ export function Step4ReviewSubmit({
 
       {/* Footer Actions */}
       {(!isSupervisorReview || supervisorReviewStep === 3) && (
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-y-3 mt-8 pt-6 border-t border-slate-200">
         {isSupervisorReview && supervisorReviewStep === 3 ? (
           <button
             type="button"

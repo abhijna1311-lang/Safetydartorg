@@ -416,7 +416,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
     <div className="min-h-screen bg-[#F5F7FB] flex flex-col">
       <DARTHeader activeNav="home" onNavigate={onNavigate} />
 
-      <div className="max-w-[1400px] mx-auto px-8 pt-3 pb-6 flex-1 w-full">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-6 flex-1 w-full">
         <div className="mb-6">
           <h1 className="text-xl text-[#00205B] font-semibold text-[20px]">Welcome back, {firstName}</h1>
           <p className="text-xs text-slate-600 mt-1">{copy.intro}</p>
@@ -426,7 +426,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
           <div className="lg:w-[57%] flex-shrink-0">
             <button
               onClick={() => onStartNewReport?.()}
-              className="hero-card w-full rounded-2xl transition-all duration-200 p-5 relative overflow-hidden text-left focus:outline-none focus:ring-2 focus:ring-[#007DBA] focus:ring-offset-2 active:brightness-95 group cursor-pointer h-[174px]"
+              className="hero-card w-full rounded-2xl transition-all duration-200 p-5 relative overflow-hidden text-left focus:outline-none focus:ring-2 focus:ring-[#007DBA] focus:ring-offset-2 active:brightness-95 group cursor-pointer min-h-[140px] sm:min-h-[174px]"
               style={{
                 background: 'linear-gradient(135deg, #00244F 0%, #00458F 45%, #0067B3 100%)',
                 boxShadow: '0 12px 30px 0 rgba(5, 33, 74, 0.18)',
@@ -547,8 +547,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
               {queueReports.map((report) => (
                 <div
                   key={report.eventId}
-                  className="w-full bg-[#FFF9F1] rounded-2xl border border-[#E3E7EE] shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-200"
-                  style={{ padding: '24px 32px' }}
+                  className="w-full bg-[#FFF9F1] rounded-2xl border border-[#E3E7EE] shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-200 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-6"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 mb-5">
                     <div className="flex items-center gap-6">
@@ -561,7 +560,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-3 gap-y-2">
                       <span className="inline-flex px-3 py-1.5 text-[11px] text-[#C57311] bg-[#FFE6C4] rounded-full font-medium">{report.priorityLabel}</span>
                       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50/60 rounded-lg border border-red-100/60">
                         <span className="text-[10px] text-slate-600 uppercase tracking-wide font-medium">Due</span>
@@ -570,7 +569,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                       </div>
                       <button
                         onClick={() => openReport(report.eventId)}
-                        className="group/btn relative px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-br from-[#005A8F] to-[#007DBA] hover:from-[#006BA0] hover:to-[#0088CC] rounded-xl shadow-md hover:shadow-lg ease-in-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#005A8F] focus:ring-offset-2"
+                        className="group/btn relative w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-br from-[#005A8F] to-[#007DBA] hover:from-[#006BA0] hover:to-[#0088CC] rounded-xl shadow-md hover:shadow-lg ease-in-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#005A8F] focus:ring-offset-2"
                       >
                         <span className="relative flex items-center gap-2">
                           {report.ctaLabel || 'Open case'}

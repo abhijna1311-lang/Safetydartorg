@@ -3,8 +3,8 @@ import { Mail } from 'lucide-react';
 export function DARTFooter() {
   return (
     <footer className="bg-slate-100/60 border-t border-slate-200/60 mt-auto">
-      <div className="max-w-[1920px] mx-auto px-8 py-8">
-        <div className="flex items-start justify-between gap-12">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-12">
           {/* Left Side: Contact Information */}
           <div className="flex-1">
             <h3 className="text-sm text-[#00205B] font-semibold font-['Poppins'] mb-3">
@@ -39,7 +39,7 @@ export function DARTFooter() {
           </div>
 
           {/* Right Side: Copyright and Links */}
-          <div className="flex flex-col items-end text-right">
+          <div className="flex flex-col sm:items-end sm:text-right">
             <p className="text-sm text-slate-700 font-['Poppins'] mb-2">
               © 2024 Dallas Area Rapid Transit
             </p>

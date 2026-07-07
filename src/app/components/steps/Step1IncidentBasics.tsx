@@ -360,7 +360,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
               </motion.div>
             )}
             {data.regular_day_off_type === 'Split' && (
-              <motion.div {...fade} key="rdo-split" className="mt-3 grid grid-cols-2 gap-3">
+              <motion.div {...fade} key="rdo-split" className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="dart-field-label">RDO Split – Day 1</label>
                   <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />

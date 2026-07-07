@@ -70,7 +70,7 @@ export function Step2CollisionInformation({ data, onUpdate, onNext, onBack, onSa
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-y-3 mt-8 pt-6 border-t border-slate-200">
         <button
           onClick={onBack}
           className="text-sm text-[#007DBA] hover:text-[#00205B] transition-colors font-['Poppins'] min-h-[44px] px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] rounded-lg"
