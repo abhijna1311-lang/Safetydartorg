@@ -11,10 +11,11 @@ import { SearchableCombobox, type ComboboxOption } from '../SearchableCombobox';
 import { CustomSelect } from '../CustomSelect';
 import { DatePickerInput } from '../DatePickerInput';
 import { TimePickerInput } from '../TimePickerInput';
-import type { AccidentReportData, SupervisorDemographicRecord, SupervisorOtherVehicleRecord } from '../../types/accident-report';
+import type { AccidentReportData, PMClassification, PMInjuryBodyPart, PMInjuryRecord, PMInjurySeverity, SupervisorDemographicRecord, SupervisorOtherVehicleRecord } from '../../types/accident-report';
 import { useUserRole, type UserRole } from '../../context/UserRoleContext';
 import { EMPLOYEE_DB } from '../../data/employeeDatabase';
-import { type WorkflowSectionKey, type WorkflowSectionStatus, type WorkflowSections } from '../../types/workflow-report';
+import { type WorkflowSectionKey, type WorkflowSectionState, type WorkflowSectionStatus, type WorkflowSections } from '../../types/workflow-report';
+import { PMReviewActionBar } from '../PMReviewActionBar';
 
 interface Step4Props {
   data: AccidentReportData;
@@ -54,6 +55,20 @@ interface Step4Props {
   supervisorSectionStep?: number;
   supervisorSectionStepCount?: number;
   onSupervisorSectionStepChange?: (step: number) => void;
+  programManagerSectionStep?: number;
+  programManagerSectionStepCount?: number;
+  onProgramManagerSectionStepChange?: (step: number) => void;
+  // Program Manager reviewer action props
+  pmReviewEnabled?: boolean;
+  pmSupervisorSection?: WorkflowSectionState;
+  pmOnOpenOperatorReport?: () => void;
+  pmOnOpenSupervisorReport?: () => void;
+  pmOnOpenActivity?: () => void;
+  pmOnComment?: (note: string) => void;
+  pmOnReturn?: (note: string) => void;
+  pmOnReassign?: (payload: { toBadge: string; toName: string; note: string }) => void;
+  pmOnReject?: (reason: string) => void;
+  pmOnApproveAndClose?: (note: string) => void;
 }
 
 const SUPERVISOR_TEMPLATE_DOWNLOADS = [
@@ -114,6 +129,64 @@ const PROGRAM_MANAGER_COLLISION_WITH_OPTIONS = [
   'Collision – with Non-Fixed Object',
   'Collision – with Animal',
 ].map(value => ({ value, label: value }));
+
+const PROGRAM_MANAGER_CONTRIBUTING_FACTORS = [
+  'Cell Phone',
+  'Consuming Food',
+  'Speeding',
+  'Failure to obey a stop sign',
+  'Disregarded a red traffic signal',
+  'Earpiece',
+  'Grooming/Personal Hygiene',
+  'Drowsy/ Falling Asleep',
+  'No Seatbelt',
+  'Paper',
+  'Unsafe following',
+  'Unsafe Lane Change/Merging/Passing',
+  'Unsafe Railroad Crossing',
+  'Competitive/Aggressive driving',
+  'Unsafe Braking',
+  'Failure to Yield to Pedestrian(s)',
+  'Failure to Yield to Vehicle(s)',
+  'Unsafe Turning',
+  'Driving with two hands off the wheel',
+];
+
+const PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS = [
+  'Head On',
+  'Sideswipe',
+  'Rear-Ending',
+  'Rear-Ended',
+  'Other Front Impact',
+  'Right Side Impact',
+  'Left Side Impact',
+  'Other Rear Impact',
+  'Roof/top of vehicle',
+].map(value => ({ value, label: value }));
+
+const PROGRAM_MANAGER_DERAIL_CONFIG_OPTIONS = [
+  'Switch',
+  'Curve',
+  'Tangent (Straight) Track',
+  'Interlocking',
+].map(value => ({ value, label: value }));
+
+const PROGRAM_MANAGER_CLASSIFICATION_OPTIONS: { value: PMClassification; label: PMClassification }[] = [
+  { value: 'Preventable', label: 'Preventable' },
+  { value: 'Non-Preventable', label: 'Non-Preventable' },
+  { value: 'Preventable Incident', label: 'Preventable Incident' },
+  { value: 'Non-Preventable Incident', label: 'Non-Preventable Incident' },
+  { value: 'Not Reportable', label: 'Not Reportable' },
+];
+
+const PM_TOW_AWAY_VEHICLE_OPTIONS = [
+  { value: 'DART vehicle only', label: 'DART vehicle only' },
+  { value: 'Other vehicle only', label: 'Other vehicle only' },
+  { value: 'Both DART and other vehicle', label: 'Both DART and other vehicle' },
+];
+
+const PM_INJURY_SEVERITY_OPTIONS: PMInjurySeverity[] = ['Injured – Non-Serious', 'Injured - Serious'];
+const PM_INJURY_BODY_PART_OPTIONS: PMInjuryBodyPart[] = ['Head', 'Upper body', 'Lower body'];
 const AGE_GROUP_OPTIONS: NonNullable<SupervisorDemographicRecord['age_group']>[] = [
   'Child (12 and under)',
   'Teen (13 to 18)',
@@ -211,6 +284,10 @@ function resizeDemographicRecords(records: SupervisorDemographicRecord[] | undef
 
 function resizeOtherVehicleRecords(records: SupervisorOtherVehicleRecord[] | undefined, count?: number) {
   return Array.from({ length: Math.max(0, count || 0) }, (_, index) => records?.[index] || { id: `other-vehicle-${index + 2}` });
+}
+
+function resizePMInjuryRecords(records: PMInjuryRecord[] | undefined, count?: number) {
+  return Array.from({ length: Math.max(0, count || 0) }, (_, index) => records?.[index] || {});
 }
 
 function YesNoButtons({ value, onChange }: { value?: boolean; onChange: (value: boolean) => void }) {
@@ -330,6 +407,19 @@ export function Step4ReviewSubmit({
   supervisorSectionStep,
   supervisorSectionStepCount = DEFAULT_SUPERVISOR_REVIEW_STEP_COUNT,
   onSupervisorSectionStepChange,
+  programManagerSectionStep,
+  programManagerSectionStepCount = 3,
+  onProgramManagerSectionStepChange,
+  pmReviewEnabled = false,
+  pmSupervisorSection,
+  pmOnOpenOperatorReport,
+  pmOnOpenSupervisorReport,
+  pmOnOpenActivity,
+  pmOnComment,
+  pmOnReturn,
+  pmOnReassign,
+  pmOnReject,
+  pmOnApproveAndClose,
 }: Step4Props) {
   const { roleConfig } = useUserRole();
   const [isDragging, setIsDragging] = useState(false);
@@ -337,6 +427,7 @@ export function Step4ReviewSubmit({
   const [smartCheckIssues, setSmartCheckIssues] = useState<Array<{ id: string; message: string }>>([]);
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
   const [localSupervisorReviewStep, setLocalSupervisorReviewStep] = useState(1);
+  const [localPmReviewStep, setLocalPmReviewStep] = useState(1);
   const attachments = data.attachments || [];
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
@@ -350,6 +441,18 @@ export function Step4ReviewSubmit({
     setLocalSupervisorReviewStep(nextStep);
   };
   const isProgramManagerReview = activeSectionKey === 'programManager';
+  const pmReviewStep = programManagerSectionStep ?? localPmReviewStep;
+  const setPmReviewStep = (step: number) => {
+    const nextStep = Math.max(1, Math.min(programManagerSectionStepCount, step));
+    if (onProgramManagerSectionStepChange) {
+      onProgramManagerSectionStepChange(nextStep);
+      return;
+    }
+    setLocalPmReviewStep(nextStep);
+  };
+  const isPmStep1 = isProgramManagerReview && pmReviewStep === 1;
+  const isPmStep2 = isProgramManagerReview && pmReviewStep === 2;
+  const isPmStep3 = isProgramManagerReview && pmReviewStep === 3;
   const isSectionAlreadySubmitted = activeSectionStatus === 'submitted' || activeSectionStatus === 'accepted';
   const showInlineReferenceSummaries = !isSupervisorReview && !isProgramManagerReview;
   const showRoleAttachments = isSupervisorReview || isProgramManagerReview;
@@ -652,6 +755,14 @@ export function Step4ReviewSubmit({
     if (data.supervisor_name !== supervisorWorkdayRecord.name) {
       nextIdentity.supervisor_name = supervisorWorkdayRecord.name;
     }
+    const [derivedFirst, ...restName] = supervisorWorkdayRecord.name.trim().split(/\s+/);
+    const derivedLast = restName.join(' ');
+    if (derivedFirst && data.supervisor_first_name !== derivedFirst) {
+      nextIdentity.supervisor_first_name = derivedFirst;
+    }
+    if (derivedLast && data.supervisor_last_name !== derivedLast) {
+      nextIdentity.supervisor_last_name = derivedLast;
+    }
     if (data.supervisor_division !== supervisorWorkdayRecord.division) {
       nextIdentity.supervisor_division = supervisorWorkdayRecord.division;
     }
@@ -659,7 +770,41 @@ export function Step4ReviewSubmit({
     if (Object.keys(nextIdentity).length > 0) {
       onUpdate(nextIdentity);
     }
-  }, [data.supervisor_badge_number, data.supervisor_division, data.supervisor_name, isSupervisorReview, onUpdate, supervisorWorkdayRecord]);
+  }, [data.supervisor_badge_number, data.supervisor_division, data.supervisor_name, data.supervisor_first_name, data.supervisor_last_name, isSupervisorReview, onUpdate, supervisorWorkdayRecord]);
+
+  const programManagerWorkdayRecord = roleConfig.role === 'Program Manager' ? EMPLOYEE_DB[roleConfig.badge] : undefined;
+
+  useEffect(() => {
+    if (!isProgramManagerReview || !programManagerWorkdayRecord) {
+      return;
+    }
+
+    const nextIdentity: Partial<AccidentReportData> = {};
+    if (data.program_manager_badge_number !== programManagerWorkdayRecord.badge) {
+      nextIdentity.program_manager_badge_number = programManagerWorkdayRecord.badge;
+    }
+    const [pmFirst, ...pmRest] = programManagerWorkdayRecord.name.trim().split(/\s+/);
+    const pmLast = pmRest.join(' ');
+    if (pmFirst && data.program_manager_first_name !== pmFirst) {
+      nextIdentity.program_manager_first_name = pmFirst;
+    }
+    if (pmLast && data.program_manager_last_name !== pmLast) {
+      nextIdentity.program_manager_last_name = pmLast;
+    }
+    if (programManagerWorkdayRecord.department && data.program_manager_department !== programManagerWorkdayRecord.department) {
+      nextIdentity.program_manager_department = programManagerWorkdayRecord.department;
+    }
+    if (data.program_manager_classified_by_name !== programManagerWorkdayRecord.name) {
+      nextIdentity.program_manager_classified_by_name = programManagerWorkdayRecord.name;
+    }
+    if (data.program_manager_classified_by_badge !== programManagerWorkdayRecord.badge) {
+      nextIdentity.program_manager_classified_by_badge = programManagerWorkdayRecord.badge;
+    }
+
+    if (Object.keys(nextIdentity).length > 0) {
+      onUpdate(nextIdentity);
+    }
+  }, [data.program_manager_badge_number, data.program_manager_first_name, data.program_manager_last_name, data.program_manager_department, data.program_manager_classified_by_name, data.program_manager_classified_by_badge, isProgramManagerReview, onUpdate, programManagerWorkdayRecord]);
 
   const renderDemographicRecords = (
     records: SupervisorDemographicRecord[],
@@ -973,7 +1118,7 @@ export function Step4ReviewSubmit({
 
   const reviewCanSubmit = Boolean(
     isRoleAllowedToAdvance &&
-    confirmationChecked &&
+    (isProgramManagerReview || confirmationChecked) &&
     (!isSupervisorReview || (
       supervisorRequiredReviewItems.length === 0
     )) &&
@@ -981,9 +1126,22 @@ export function Step4ReviewSubmit({
       data.operator_datetime_correct !== undefined &&
       data.employee_contacted_program_manager_date &&
       data.field_supervisor_statement &&
-      data.program_manager_classification
+      data.program_manager_classification_value &&
+      data.program_manager_classification_date &&
+      data.program_manager_classification_justification
     ))
   );
+
+  // Compute exactly which PM fields are missing so we can point the reviewer to the right step
+  const pmMissingFields: Array<{ label: string; step: number; stepName: string }> = [];
+  if (isProgramManagerReview) {
+    if (data.operator_datetime_correct === undefined) pmMissingFields.push({ label: 'Confirm operator date/time is correct', step: 1, stepName: 'Review' });
+    if (!data.employee_contacted_program_manager_date) pmMissingFields.push({ label: 'Date employee contacted program manager', step: 1, stepName: 'Review' });
+    if (!data.field_supervisor_statement) pmMissingFields.push({ label: 'Field supervisor statement', step: 1, stepName: 'Review' });
+    if (!data.program_manager_classification_value) pmMissingFields.push({ label: 'Classification value', step: 3, stepName: 'Classify' });
+    if (!data.program_manager_classification_date) pmMissingFields.push({ label: 'Date classified', step: 3, stepName: 'Classify' });
+    if (!data.program_manager_classification_justification) pmMissingFields.push({ label: 'Justification of classification', step: 3, stepName: 'Classify' });
+  }
 
   const submitDisabled = isSectionAlreadySubmitted || (isSupervisorReview || isProgramManagerReview ? !reviewCanSubmit : !canSubmit);
   const stepDescription = description || (isSupervisorReview ? 'Complete supervisor-owned fields and submit to the program manager.' : 'Check your section details, then attach any photos or documents.');
@@ -1935,173 +2093,744 @@ export function Step4ReviewSubmit({
           operatorStatus={sectionStatuses?.operator.status}
         />
 
-        {isProgramManagerReview && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-              <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Program manager review section</h4>
-              <p className="mt-1 text-xs leading-relaxed text-slate-600 font-['Poppins']">Complete the classification and oversight fields required before closing the case.</p>
+        {isProgramManagerReview && (() => {
+          const modeIsBus = data.mode === 'Bus';
+          const modeIsRail = data.mode === 'Light Rail Vehicle' || data.mode === 'Streetcar' || data.mode === 'Hi-Rail';
+          const modeIsLRV = data.mode === 'Light Rail Vehicle';
+          const isEventCollision = data.event_type === 'Collision';
+          const isEventDerailment = data.event_type === 'Derailment';
+          const derailmentApplies = isEventDerailment || (isEventCollision && data.supervisor_derailment_confirmed === true);
+          const invalidDerailmentMode = isEventDerailment && !modeIsRail;
+          const contributingFactorsList = data.program_manager_contributing_factors_list || [];
+          const toggleContributingFactor = (factor: string) => {
+            const set = new Set(contributingFactorsList);
+            if (set.has(factor)) {
+              set.delete(factor);
+            } else {
+              set.add(factor);
+            }
+            onUpdate({ program_manager_contributing_factors_list: Array.from(set) });
+          };
+
+          const pmEmployeeInjuryRecords = resizePMInjuryRecords(data.program_manager_employee_injury_records, data.program_manager_employee_injury_count);
+          const pmPassengerFatalityRecords = resizeDemographicRecords(data.program_manager_passenger_fatality_records, data.program_manager_passenger_fatality_count);
+          const pmPassengerInjuryRecords = resizePMInjuryRecords(data.program_manager_passenger_injury_records, data.program_manager_passenger_injury_count);
+          const pmPedestrianFatalityRecords = resizeDemographicRecords(data.program_manager_pedestrian_fatality_records, data.program_manager_pedestrian_fatality_count);
+          const pmPedestrianInjuryRecords = resizePMInjuryRecords(data.program_manager_pedestrian_injury_records, data.program_manager_pedestrian_injury_count);
+          const pmOtherVehicleFatalityRecords = resizeDemographicRecords(data.program_manager_other_vehicle_fatality_records, data.program_manager_other_vehicle_fatality_count);
+          const pmOtherVehicleInjuryRecords = resizePMInjuryRecords(data.program_manager_other_vehicle_injury_records, data.program_manager_other_vehicle_injury_count);
+
+          const updatePMInjuryRecord = (
+            field:
+              | 'program_manager_employee_injury_records'
+              | 'program_manager_passenger_injury_records'
+              | 'program_manager_pedestrian_injury_records'
+              | 'program_manager_other_vehicle_injury_records',
+            records: PMInjuryRecord[],
+            index: number,
+            patch: Partial<PMInjuryRecord>
+          ) => {
+            onUpdate({ [field]: records.map((record, i) => (i === index ? { ...record, ...patch } : record)) } as Partial<AccidentReportData>);
+          };
+
+          const updatePMFatalityRecord = (
+            field:
+              | 'program_manager_passenger_fatality_records'
+              | 'program_manager_pedestrian_fatality_records'
+              | 'program_manager_other_vehicle_fatality_records',
+            records: SupervisorDemographicRecord[],
+            index: number,
+            patch: Partial<SupervisorDemographicRecord>
+          ) => {
+            onUpdate({ [field]: records.map((record, i) => (i === index ? { ...record, ...patch } : record)) } as Partial<AccidentReportData>);
+          };
+
+          const renderPMFatalityRecords = (
+            records: SupervisorDemographicRecord[],
+            field:
+              | 'program_manager_passenger_fatality_records'
+              | 'program_manager_pedestrian_fatality_records'
+              | 'program_manager_other_vehicle_fatality_records',
+            title: string,
+          ) => (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {records.map((record, index) => (
+                <div key={`${field}-${index}`} className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-2">
+                  <div className="md:col-span-2 text-xs font-semibold text-slate-700 font-['Poppins']">{title} #{index + 1}</div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Age</div>
+                    <select
+                      value={record.age_group || ''}
+                      onChange={(e) => updatePMFatalityRecord(field, records, index, { age_group: (e.target.value || undefined) as SupervisorDemographicRecord['age_group'] })}
+                      className={INPUT_CLASS}
+                    >
+                      <option value="">Select age</option>
+                      {AGE_GROUP_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Gender</div>
+                    <select
+                      value={record.gender || ''}
+                      onChange={(e) => updatePMFatalityRecord(field, records, index, { gender: (e.target.value || undefined) as SupervisorDemographicRecord['gender'] })}
+                      className={INPUT_CLASS}
+                    >
+                      <option value="">Select gender</option>
+                      {GENDER_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="p-6 md:p-7 space-y-5">
-              <div>
-                <div className={FIELD_LABEL_CLASS}>Is the operator date/time correct?</div>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => onUpdate({ operator_datetime_correct: true })}
-                    className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.operator_datetime_correct === true, 'yes')}`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdate({ operator_datetime_correct: false })}
-                    className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.operator_datetime_correct === false, 'no')}`}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Date employee contacted program manager</div>
-                  <DatePickerInput value={data.employee_contacted_program_manager_date || ''} onChange={(value) => onUpdate({ employee_contacted_program_manager_date: value })} />
-                </div>
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Employee contact method</div>
-                  <input type="text" value={data.employee_contact_method || ''} onChange={(e) => onUpdate({ employee_contact_method: e.target.value })} placeholder="Phone, radio, in person" className={INPUT_CLASS} />
-                </div>
-              </div>
-              <div>
-                <div className={FIELD_LABEL_CLASS}>Collision with</div>
-                <CustomSelect
-                  value={data.program_manager_collision_with || ''}
-                  onChange={(value) => onUpdate({ program_manager_collision_with: value })}
-                  options={PROGRAM_MANAGER_COLLISION_WITH_OPTIONS}
-                  placeholder="Select collision type"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Shared corridor?</div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ shared_corridor: true })}
-                      className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.shared_corridor === true, 'yes')}`}
+          );
+
+          const renderPMInjuryRecords = (
+            records: PMInjuryRecord[],
+            field:
+              | 'program_manager_employee_injury_records'
+              | 'program_manager_passenger_injury_records'
+              | 'program_manager_pedestrian_injury_records'
+              | 'program_manager_other_vehicle_injury_records',
+            title: string,
+            includeDemographics: boolean,
+          ) => (
+            <div className="grid grid-cols-1 gap-3">
+              {records.map((record, index) => (
+                <div key={`${field}-${index}`} className={`grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 ${includeDemographics ? 'md:grid-cols-3' : 'md:grid-cols-3'}`}>
+                  <div className={`text-xs font-semibold text-slate-700 font-['Poppins'] ${includeDemographics ? 'md:col-span-3' : 'md:col-span-3'}`}>{title} #{index + 1}</div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Injury severity</div>
+                    <select
+                      value={record.severity || ''}
+                      onChange={(e) => updatePMInjuryRecord(field, records, index, { severity: (e.target.value || undefined) as PMInjurySeverity })}
+                      className={INPUT_CLASS}
                     >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ shared_corridor: false })}
-                      className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.shared_corridor === false, 'no')}`}
-                    >
-                      No
-                    </button>
+                      <option value="">Select severity</option>
+                      {PM_INJURY_SEVERITY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
                   </div>
-                </div>
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Equipment malfunction?</div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ equipment_malfunction: true })}
-                      className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.equipment_malfunction === true, 'yes')}`}
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Injured body part</div>
+                    <select
+                      value={record.body_part || ''}
+                      onChange={(e) => updatePMInjuryRecord(field, records, index, { body_part: (e.target.value || undefined) as PMInjuryBodyPart })}
+                      className={INPUT_CLASS}
                     >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ equipment_malfunction: false })}
-                      className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.equipment_malfunction === false, 'no')}`}
-                    >
-                      No
-                    </button>
+                      <option value="">Select body part</option>
+                      {PM_INJURY_BODY_PART_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
                   </div>
-                </div>
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Damage to property?</div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ damage_to_property: true })}
-                      className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.damage_to_property === true, 'yes')}`}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ damage_to_property: false })}
-                      className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.damage_to_property === false, 'no')}`}
-                    >
-                      No
-                    </button>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Transported to hospital</div>
+                    <YesNoButtons value={record.transported_to_hospital} onChange={(value) => updatePMInjuryRecord(field, records, index, { transported_to_hospital: value })} />
                   </div>
+                  {includeDemographics && (
+                    <>
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Age</div>
+                        <select
+                          value={record.age_group || ''}
+                          onChange={(e) => updatePMInjuryRecord(field, records, index, { age_group: (e.target.value || undefined) as SupervisorDemographicRecord['age_group'] })}
+                          className={INPUT_CLASS}
+                        >
+                          <option value="">Select age</option>
+                          {AGE_GROUP_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Gender</div>
+                        <select
+                          value={record.gender || ''}
+                          onChange={(e) => updatePMInjuryRecord(field, records, index, { gender: (e.target.value || undefined) as SupervisorDemographicRecord['gender'] })}
+                          className={INPUT_CLASS}
+                        >
+                          <option value="">Select gender</option>
+                          {GENDER_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
+              ))}
+            </div>
+          );
+
+          const eventLocationSummary = [data.street_on, data.cross_street].filter(Boolean).join(' & ') || data.address_of_event || '—';
+          const incidentDateTimeSummary = data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : data.incident_date || '—';
+
+          return (
+          <div className="space-y-5">
+            {pmReviewEnabled && pmSupervisorSection && pmOnComment && pmOnReturn && pmOnReassign && pmOnReject && pmOnApproveAndClose && (
+              <PMReviewActionBar
+                data={data}
+                supervisorSection={pmSupervisorSection}
+                canApprove={Boolean(reviewCanSubmit)}
+                approveDisabledReason={reviewCanSubmit ? undefined : 'Complete required classification fields to enable approval.'}
+                missingFields={pmMissingFields}
+                onJumpToStep={setPmReviewStep}
+                onOpenOperatorReport={pmOnOpenOperatorReport || (() => {})}
+                onOpenSupervisorReport={pmOnOpenSupervisorReport || (() => {})}
+                onOpenActivity={pmOnOpenActivity}
+                onComment={pmOnComment}
+                onReturn={pmOnReturn}
+                onReassign={pmOnReassign}
+                onReject={pmOnReject}
+                onApprove={pmOnApproveAndClose}
+              />
+            )}
+            <div className="dart-card dart-card--primary overflow-hidden">
+            <div className="dart-card-header">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h4 className="dart-h3">
+                  Step {pmReviewStep} of {programManagerSectionStepCount} · {pmReviewStep === 1 ? 'Review' : pmReviewStep === 2 ? 'Impact' : 'Classify'}
+                </h4>
+                <span className="dart-eyebrow">Program manager section</span>
               </div>
-              {data.damage_to_property && (
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Damage to property description</div>
-                  <textarea rows={3} value={data.damage_to_property_description || ''} onChange={(e) => onUpdate({ damage_to_property_description: e.target.value })} placeholder="Describe damaged property" className={TEXTAREA_CLASS} />
+              <p className="dart-body mt-1.5">
+                {pmReviewStep === 1 && 'Confirm the case context and record your investigation notes. Field supervisor and police statements go here.'}
+                {pmReviewStep === 2 && 'Analyze contributing factors, log damage and tow details, and record any fatalities or injuries.'}
+                {pmReviewStep === 3 && 'Make your final classification decision and close the case.'}
+              </p>
+            </div>
+            <div className="p-5 md:p-6 space-y-5 bg-gradient-to-b from-[#F6F8FB] via-white to-white">
+
+              {/* Data integrity warning — persistent across all PM steps */}
+              {invalidDerailmentMode && (
+                <div className="dart-card dart-card--alert-warn p-4">
+                  <p className="text-sm font-semibold text-amber-900 font-['Poppins']">Event type / mode mismatch</p>
+                  <p className="mt-1 text-xs text-amber-800 font-['Poppins']">
+                    Derailment is only valid for Light Rail, Streetcar, or Hi-Rail. This case was filed as a Derailment on {data.mode || 'a non-rail mode'} — verify with the initiator before classifying.
+                  </p>
                 </div>
               )}
-              <div>
-                <div className={FIELD_LABEL_CLASS}>Field supervisor statement</div>
-                <textarea rows={4} value={data.field_supervisor_statement || ''} onChange={(e) => onUpdate({ field_supervisor_statement: e.target.value })} placeholder="Paste or summarize the field supervisor statement" className={TEXTAREA_CLASS} />
-              </div>
-              <div>
-                <div className={FIELD_LABEL_CLASS}>Police statement</div>
-                <textarea rows={4} value={data.police_statement || ''} onChange={(e) => onUpdate({ police_statement: e.target.value })} placeholder="Add police statement or notes" className={TEXTAREA_CLASS} />
-              </div>
-              <div>
-                <div className={FIELD_LABEL_CLASS}>Action taken</div>
-                <textarea rows={3} value={data.action_taken || ''} onChange={(e) => onUpdate({ action_taken: e.target.value })} placeholder="Document immediate actions, coaching, or escalation" className={TEXTAREA_CLASS} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Contributing factors</div>
-                  <textarea rows={3} value={data.program_manager_contributing_factors || ''} onChange={(e) => onUpdate({ program_manager_contributing_factors: e.target.value })} placeholder="Road, weather, operator, third party, equipment" className={TEXTAREA_CLASS} />
+
+              {isPmStep1 && (<>
+              {/* Case context — echo from operator/supervisor + your intake log */}
+              <div className="dart-card dart-card--reference p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow">The case</p>
+                  <h4 className="dart-h4 mt-1">Case context</h4>
+                  <p className="dart-caption mt-1">Facts from the operator and supervisor sections, plus your PM intake log.</p>
                 </div>
-                <div>
-                  <div className={FIELD_LABEL_CLASS}>Program manager collision type</div>
-                  <textarea rows={3} value={data.program_manager_collision_type || ''} onChange={(e) => onUpdate({ program_manager_collision_type: e.target.value })} placeholder="Rear-end, sideswipe, fixed object" className={TEXTAREA_CLASS} />
+
+                {/* Incident facts — read-only echo */}
+                <div className="rounded-lg border border-white/60 bg-white/70 p-4">
+                  <p className="dart-eyebrow mb-3">Incident facts (from operator &amp; supervisor)</p>
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Date/time of event</div>
+                      <input type="text" readOnly value={incidentDateTimeSummary} className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-600`} />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Event location</div>
+                      <input type="text" readOnly value={eventLocationSummary} className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-600`} />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Vehicle number</div>
+                      <input type="text" readOnly value={data.vehicle_number || data.train_number || '—'} className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-600`} />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Operating route</div>
+                      <input type="text" readOnly value={data.route_number || data.operating_route || data.rail_line || '—'} className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-600`} />
+                    </div>
+                    <div className="md:col-span-2 xl:col-span-3">
+                      <div className={FIELD_LABEL_CLASS}>Operating statement</div>
+                      <textarea rows={3} readOnly value={data.description_of_event || data.incident_description || '—'} className={`${TEXTAREA_CLASS} bg-white/70 cursor-not-allowed text-slate-600`} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* PM intake log — editable */}
+                <div className="mt-4 rounded-lg border border-white/60 bg-white/70 p-4 space-y-5">
+                  <p className="dart-eyebrow">Your PM intake log</p>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Is the operator date/time correct?</div>
+                    <YesNoButtons value={data.operator_datetime_correct} onChange={(value) => onUpdate({ operator_datetime_correct: value })} />
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Date employee contacted program manager</div>
+                    <DatePickerInput value={data.employee_contacted_program_manager_date || ''} onChange={(value) => onUpdate({ employee_contacted_program_manager_date: value })} />
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className={FIELD_LABEL_CLASS}>Program manager classification</div>
-                <textarea rows={3} value={data.program_manager_classification || ''} onChange={(e) => onUpdate({ program_manager_classification: e.target.value })} placeholder="Enter final classification decision" className={TEXTAREA_CLASS} />
+
+              {/* Investigation */}
+              <div className="dart-card dart-card--surface dart-elev-1 p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow">Your findings</p>
+                  <h4 className="dart-h4 mt-1">Investigation</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                  {modeIsLRV && (
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Did the event occur on the shared corridor?</div>
+                      <YesNoButtons value={data.shared_corridor} onChange={(value) => onUpdate({ shared_corridor: value })} />
+                    </div>
+                  )}
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Equipment malfunction?</div>
+                    <YesNoButtons value={data.equipment_malfunction} onChange={(value) => onUpdate({ equipment_malfunction: value })} />
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Damage to other property?</div>
+                    <YesNoButtons value={data.damage_to_property} onChange={(value) => onUpdate({ damage_to_property: value })} />
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Was the event at a grade crossing or intersection?</div>
+                    <YesNoButtons value={data.program_manager_at_grade_crossing_or_intersection} onChange={(value) => onUpdate({ program_manager_at_grade_crossing_or_intersection: value })} />
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Did this event involve a life-safety evacuation?</div>
+                    <YesNoButtons value={data.program_manager_life_safety_evacuation} onChange={(value) => onUpdate({ program_manager_life_safety_evacuation: value })} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className={FIELD_LABEL_CLASS}>Action taken</div>
+                    <textarea rows={3} value={data.action_taken || ''} onChange={(e) => onUpdate({ action_taken: e.target.value })} placeholder="Document immediate actions, coaching, or escalation" className={TEXTAREA_CLASS} />
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Field supervisor statement <span className="text-red-500">*</span></div>
+                    <textarea rows={4} value={data.field_supervisor_statement || ''} onChange={(e) => onUpdate({ field_supervisor_statement: e.target.value })} placeholder="Paste or summarize the field supervisor statement" className={TEXTAREA_CLASS} />
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Police statement</div>
+                    <textarea rows={4} value={data.police_statement || ''} onChange={(e) => onUpdate({ police_statement: e.target.value })} placeholder="Add police statement or notes" className={TEXTAREA_CLASS} />
+                  </div>
+                </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className={FIELD_LABEL_CLASS}>Appeal requested?</div>
-                <div className="flex gap-3 mb-4">
+              </>)}
+
+              {isPmStep2 && (<>
+              {/* Event analysis — Contributing Factors always; collision fields only when event is Collision */}
+              <div className="dart-card dart-card--surface dart-elev-1 p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow">Analysis</p>
+                  <h4 className="dart-h4 mt-1">Event analysis</h4>
+                </div>
+                <div className="space-y-5">
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Contributing factors</div>
+                    <p className="mb-3 text-xs text-slate-500 font-['Poppins']">Select all that apply.</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {PROGRAM_MANAGER_CONTRIBUTING_FACTORS.map((factor) => {
+                        const checked = contributingFactorsList.includes(factor);
+                        return (
+                          <label
+                            key={factor}
+                            className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-xs transition-colors font-['Poppins'] ${checked ? 'border-[#00205B] bg-[#00205B]/5 text-[#00205B]' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleContributingFactor(factor)}
+                              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#00205B] focus:ring-[#FFCD00]"
+                            />
+                            <span className="leading-snug">{factor}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {isEventCollision && (
+                    <>
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Collisions with</div>
+                        <CustomSelect
+                          value={data.program_manager_collision_with || ''}
+                          onChange={(value) => onUpdate({ program_manager_collision_with: value })}
+                          options={PROGRAM_MANAGER_COLLISION_WITH_OPTIONS}
+                          placeholder="Select collision type"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                        <div>
+                          <div className={FIELD_LABEL_CLASS}>DART vehicle collision type</div>
+                          <CustomSelect
+                            value={data.program_manager_dart_collision_type || ''}
+                            onChange={(value) => onUpdate({ program_manager_dart_collision_type: value })}
+                            options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
+                            placeholder="Select collision type"
+                          />
+                        </div>
+                        <div>
+                          <div className={FIELD_LABEL_CLASS}>Other vehicle collision type</div>
+                          <CustomSelect
+                            value={data.program_manager_other_collision_type || ''}
+                            onChange={(value) => onUpdate({ program_manager_other_collision_type: value })}
+                            options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
+                            placeholder="Select collision type"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Derailment details — visible when event is Derailment or a Collision resulted in derailment */}
+              {derailmentApplies && (
+                <div className="dart-card dart-card--surface dart-elev-1 p-5 md:p-6">
+                  <div className="mb-4">
+                    <p className="dart-eyebrow">Rail-specific</p>
+                    <h4 className="dart-h4 mt-1">Derailment details</h4>
+                  </div>
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Derail configuration</div>
+                      <CustomSelect
+                        value={data.program_manager_derail_configuration || ''}
+                        onChange={(value) => onUpdate({ program_manager_derail_configuration: value })}
+                        options={PROGRAM_MANAGER_DERAIL_CONFIG_OPTIONS}
+                        placeholder="Select configuration"
+                      />
+                    </div>
+                    {modeIsLRV && (
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of cars derailed</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_cars_derailed_count ?? ''}
+                          onChange={(e) => onUpdate({ program_manager_cars_derailed_count: parseOptionalCount(e.target.value) })}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Damage and tow */}
+              <div className="dart-card dart-card--surface dart-elev-1 p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow">Vehicles</p>
+                  <h4 className="dart-h4 mt-1">Damage and tow</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                  {modeIsBus && (
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Estimated total damages</div>
+                      <input
+                        type="text"
+                        value={data.program_manager_estimated_total_damages || ''}
+                        onChange={(e) => onUpdate({ program_manager_estimated_total_damages: e.target.value })}
+                        placeholder="e.g. $12,500"
+                        className={INPUT_CLASS}
+                      />
+                    </div>
+                  )}
+                  <div className={modeIsBus ? '' : 'md:col-span-2'}>
+                    <DecisionGroup
+                      label="Did this event result in a tow-away?"
+                      value={data.program_manager_tow_away}
+                      onChange={(value) => onUpdate({ program_manager_tow_away: value, ...(!value ? { program_manager_tow_away_vehicle: undefined } : {}) })}
+                    >
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>What vehicle was towed?</div>
+                        <CustomSelect
+                          value={data.program_manager_tow_away_vehicle || ''}
+                          onChange={(value) => onUpdate({ program_manager_tow_away_vehicle: value as AccidentReportData['program_manager_tow_away_vehicle'] })}
+                          options={PM_TOW_AWAY_VEHICLE_OPTIONS}
+                          placeholder="Select what was towed"
+                        />
+                      </div>
+                    </DecisionGroup>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fatalities gate */}
+              <div className="dart-card dart-card--surface dart-elev-1 p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow">People — fatalities</p>
+                  <h4 className="dart-h4 mt-1">Fatalities</h4>
+                </div>
+                <DecisionGroup
+                  label="Were there any fatalities?"
+                  value={data.program_manager_fatalities_present}
+                  onChange={(value) => onUpdate({
+                    program_manager_fatalities_present: value,
+                    ...(!value ? {
+                      program_manager_employee_fatality_count: undefined,
+                      program_manager_passenger_fatality_count: undefined,
+                      program_manager_passenger_fatality_records: [],
+                      program_manager_pedestrian_fatality_count: undefined,
+                      program_manager_pedestrian_fatality_records: [],
+                      program_manager_other_vehicle_fatality_count: undefined,
+                      program_manager_other_vehicle_fatality_records: [],
+                    } : {}),
+                  })}
+                >
+                  <div className="space-y-5">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Number of employee fatalities</div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={data.program_manager_employee_fatality_count ?? ''}
+                        onChange={(e) => onUpdate({ program_manager_employee_fatality_count: parseOptionalCount(e.target.value) })}
+                        className={COMPACT_INPUT_CLASS}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of passenger fatalities</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_passenger_fatality_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_passenger_fatality_count: count,
+                              program_manager_passenger_fatality_records: resizeDemographicRecords(data.program_manager_passenger_fatality_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmPassengerFatalityRecords.length > 0 && renderPMFatalityRecords(pmPassengerFatalityRecords, 'program_manager_passenger_fatality_records', 'Deceased passenger')}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of pedestrian fatalities</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_pedestrian_fatality_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_pedestrian_fatality_count: count,
+                              program_manager_pedestrian_fatality_records: resizeDemographicRecords(data.program_manager_pedestrian_fatality_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmPedestrianFatalityRecords.length > 0 && renderPMFatalityRecords(pmPedestrianFatalityRecords, 'program_manager_pedestrian_fatality_records', 'Deceased pedestrian')}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of occupant fatalities in other vehicle</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_other_vehicle_fatality_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_other_vehicle_fatality_count: count,
+                              program_manager_other_vehicle_fatality_records: resizeDemographicRecords(data.program_manager_other_vehicle_fatality_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmOtherVehicleFatalityRecords.length > 0 && renderPMFatalityRecords(pmOtherVehicleFatalityRecords, 'program_manager_other_vehicle_fatality_records', 'Deceased occupant')}
+                    </div>
+                  </div>
+                </DecisionGroup>
+              </div>
+
+              {/* Injuries gate */}
+              <div className="dart-card dart-card--surface dart-elev-1 p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow">People — injuries</p>
+                  <h4 className="dart-h4 mt-1">Injuries</h4>
+                </div>
+                <DecisionGroup
+                  label="One or more injuries requiring immediate medical transport?"
+                  value={data.program_manager_injuries_present}
+                  onChange={(value) => onUpdate({
+                    program_manager_injuries_present: value,
+                    ...(!value ? {
+                      program_manager_employee_injury_count: undefined,
+                      program_manager_employee_injury_records: [],
+                      program_manager_passenger_injury_count: undefined,
+                      program_manager_passenger_injury_records: [],
+                      program_manager_pedestrian_injury_count: undefined,
+                      program_manager_pedestrian_injury_records: [],
+                      program_manager_other_vehicle_injury_count: undefined,
+                      program_manager_other_vehicle_injury_records: [],
+                    } : {}),
+                  })}
+                >
+                  <div className="space-y-5">
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of employees injured</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_employee_injury_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_employee_injury_count: count,
+                              program_manager_employee_injury_records: resizePMInjuryRecords(data.program_manager_employee_injury_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmEmployeeInjuryRecords.length > 0 && renderPMInjuryRecords(pmEmployeeInjuryRecords, 'program_manager_employee_injury_records', 'Injured employee', false)}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of passengers injured on board</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_passenger_injury_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_passenger_injury_count: count,
+                              program_manager_passenger_injury_records: resizePMInjuryRecords(data.program_manager_passenger_injury_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmPassengerInjuryRecords.length > 0 && renderPMInjuryRecords(pmPassengerInjuryRecords, 'program_manager_passenger_injury_records', 'Injured passenger', true)}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of pedestrians injured</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_pedestrian_injury_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_pedestrian_injury_count: count,
+                              program_manager_pedestrian_injury_records: resizePMInjuryRecords(data.program_manager_pedestrian_injury_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmPedestrianInjuryRecords.length > 0 && renderPMInjuryRecords(pmPedestrianInjuryRecords, 'program_manager_pedestrian_injury_records', 'Injured pedestrian', true)}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Number of occupants injured in other vehicle</div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={data.program_manager_other_vehicle_injury_count ?? ''}
+                          onChange={(e) => {
+                            const count = parseOptionalCount(e.target.value);
+                            onUpdate({
+                              program_manager_other_vehicle_injury_count: count,
+                              program_manager_other_vehicle_injury_records: resizePMInjuryRecords(data.program_manager_other_vehicle_injury_records, count),
+                            });
+                          }}
+                          className={COMPACT_INPUT_CLASS}
+                        />
+                      </div>
+                      {pmOtherVehicleInjuryRecords.length > 0 && renderPMInjuryRecords(pmOtherVehicleInjuryRecords, 'program_manager_other_vehicle_injury_records', 'Injured occupant', true)}
+                    </div>
+                  </div>
+                </DecisionGroup>
+              </div>
+              </>)}
+
+              {isPmStep3 && (<>
+              {/* Classification decision */}
+              <div className="dart-card dart-card--floating p-5 md:p-6">
+                <div className="mb-4">
+                  <p className="dart-eyebrow text-[#00205B]/70">Final decision</p>
+                  <h4 className="dart-h4 mt-1">Classification</h4>
+                  <p className="dart-caption mt-1">Your judgment closes the case. This becomes part of the permanent record.</p>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/50 p-4 space-y-5">
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Classification <span className="text-red-500">*</span></div>
+                    <CustomSelect
+                      value={data.program_manager_classification_value || ''}
+                      onChange={(value) => onUpdate({
+                        program_manager_classification_value: value as PMClassification,
+                        program_manager_classification: value,
+                      })}
+                      options={PROGRAM_MANAGER_CLASSIFICATION_OPTIONS}
+                      placeholder="Select classification decision"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Date classified <span className="text-red-500">*</span></div>
+                      <DatePickerInput value={data.program_manager_classification_date || ''} onChange={(value) => onUpdate({ program_manager_classification_date: value })} />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Program manager who classified</div>
+                      <input type="text" readOnly value={data.program_manager_classified_by_name || ''} placeholder="Auto-populated" className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-500`} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className={FIELD_LABEL_CLASS}>Justification of classification <span className="text-red-500">*</span></div>
+                    <textarea
+                      rows={4}
+                      value={data.program_manager_classification_justification || ''}
+                      onChange={(e) => onUpdate({ program_manager_classification_justification: e.target.value })}
+                      placeholder="Explain the reasoning behind this classification"
+                      className={TEXTAREA_CLASS}
+                    />
+                  </div>
+                </div>
+              </div>
+              </>)}
+
+              {/* Step navigation footer — Back / Continue between PM steps */}
+              {isProgramManagerReview && pmReviewStep < programManagerSectionStepCount && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
+                  {pmReviewStep > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setPmReviewStep(pmReviewStep - 1)}
+                      className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+                    >
+                      ← Back to {pmReviewStep === 2 ? 'Review' : 'Impact'}
+                    </button>
+                  ) : <div />}
+                  <div className="flex items-center gap-3">
+                    <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
+                    <GlassButton variant="primary" onClick={() => setPmReviewStep(pmReviewStep + 1)}>
+                      Continue to {pmReviewStep === 1 ? 'Impact' : 'Classify'}
+                    </GlassButton>
+                  </div>
+                </div>
+              )}
+
+              {/* Back button on final step (no Continue — the action bar owns closing) */}
+              {isProgramManagerReview && pmReviewStep === programManagerSectionStepCount && pmReviewStep > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
                   <button
                     type="button"
-                    onClick={() => onUpdate({ appeal_requested: true })}
-                    className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.appeal_requested === true, 'yes')}`}
+                    onClick={() => setPmReviewStep(pmReviewStep - 1)}
+                    className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
                   >
-                    Yes
+                    ← Back to Impact
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdate({ appeal_requested: false })}
-                    className={`px-4 py-2.5 rounded-lg border transition-colors ${binaryChoiceClass(data.appeal_requested === false, 'no')}`}
-                  >
-                    No
-                  </button>
+                  <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
                 </div>
-                {data.appeal_requested && (
-                  <textarea rows={3} value={data.appeal_notes || ''} onChange={(e) => onUpdate({ appeal_notes: e.target.value })} placeholder="Appeal notes" className={TEXTAREA_CLASS} />
-                )}
-              </div>
+              )}
+
+            </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
-        {showRoleAttachments && (!isSupervisorReview || supervisorReviewStep === 3) && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-              <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Support documents</h4>
-              <p className="text-xs text-slate-600 mt-1 font-['Poppins']">
+        {showRoleAttachments && (
+          (isSupervisorReview && supervisorReviewStep === 3) ||
+          (isProgramManagerReview && isPmStep3)
+        ) && (
+          <div className="dart-card dart-card--surface overflow-hidden">
+            <div className="dart-card-header">
+              <h4 className="dart-h4">Support documents</h4>
+              <p className="dart-caption mt-1">
                 {isSupervisorReview
                   ? 'Upload completed supervisor support documents, diagrams, and evidence files for this case.'
                   : 'Upload classification notes, statements, or supporting documents for this case.'}
@@ -2203,8 +2932,29 @@ export function Step4ReviewSubmit({
           </div>
         )}
 
-        {/* Confirmation */}
-        {(!isSupervisorReview || supervisorReviewStep === 3) && (
+        {/* Program Manager bottom action bar — placed after attachments so the whole PM record is visible before deciding */}
+        {isProgramManagerReview && isPmStep3 && pmReviewEnabled && pmSupervisorSection && pmOnComment && pmOnReturn && pmOnReassign && pmOnReject && pmOnApproveAndClose && (
+          <PMReviewActionBar
+            variant="compact"
+            data={data}
+            supervisorSection={pmSupervisorSection}
+            canApprove={Boolean(reviewCanSubmit)}
+            approveDisabledReason={reviewCanSubmit ? undefined : 'Complete required classification fields to enable approval.'}
+            missingFields={pmMissingFields}
+            onJumpToStep={setPmReviewStep}
+            onOpenOperatorReport={pmOnOpenOperatorReport || (() => {})}
+            onOpenSupervisorReport={pmOnOpenSupervisorReport || (() => {})}
+            onOpenActivity={pmOnOpenActivity}
+            onComment={pmOnComment}
+            onReturn={pmOnReturn}
+            onReassign={pmOnReassign}
+            onReject={pmOnReject}
+            onApprove={pmOnApproveAndClose}
+          />
+        )}
+
+        {/* Confirmation — hidden for Program Manager (their Approve action already requires a note) */}
+        {(!isSupervisorReview || supervisorReviewStep === 3) && !isProgramManagerReview && (
         <div className="rounded-xl border border-slate-300 bg-slate-50 p-6">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -2217,15 +2967,11 @@ export function Step4ReviewSubmit({
               <div className="text-sm text-slate-900 font-medium font-['Poppins']">
                 {isSupervisorReview
                   ? 'I confirm that the supervisor review section is complete and ready for program manager review'
-                  : isProgramManagerReview
-                  ? 'I confirm that the program manager review and classification are complete'
                   : 'I confirm that my section is accurate to the best of my knowledge'}
               </div>
               <div className="text-xs text-slate-600 mt-1 font-['Poppins']">
                 {isSupervisorReview
                   ? 'This supervisor section will be available in the shared case for classification.'
-                  : isProgramManagerReview
-                  ? 'Closing this case records the final classification and completes the workflow.'
                   : 'This information joins the shared case and may be used for safety analysis and reporting'}
               </div>
             </div>
@@ -2234,8 +2980,8 @@ export function Step4ReviewSubmit({
         )}
       </div>
 
-      {/* Smart Check Banner */}
-      {(!isSupervisorReview || supervisorReviewStep === 3) && (
+      {/* Smart Check Banner — hidden for Program Manager review; deferred to a later phase */}
+      {(!isSupervisorReview || supervisorReviewStep === 3) && !isProgramManagerReview && (
       <div className="mt-6">
         <SmartCheckReviewBanner 
           state={smartCheckState}
@@ -2250,8 +2996,8 @@ export function Step4ReviewSubmit({
       </div>
       )}
 
-      {/* Footer Actions */}
-      {(!isSupervisorReview || supervisorReviewStep === 3) && (
+      {/* Footer Actions — hidden for Program Manager (their step-nav footer inside the PM card owns Back/Save/Continue) */}
+      {(!isSupervisorReview || supervisorReviewStep === 3) && !isProgramManagerReview && (
       <div className="flex flex-wrap items-center justify-between gap-y-3 mt-8 pt-6 border-t border-slate-200">
         {isSupervisorReview && supervisorReviewStep === 3 ? (
           <button

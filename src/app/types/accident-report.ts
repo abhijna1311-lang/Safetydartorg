@@ -36,6 +36,26 @@ export interface SupervisorDemographicRecord {
   transported_to_hospital?: boolean;
 }
 
+export type PMInjurySeverity = 'Injured – Non-Serious' | 'Injured - Serious';
+export type PMInjuryBodyPart = 'Head' | 'Upper body' | 'Lower body';
+
+export interface PMInjuryRecord {
+  severity?: PMInjurySeverity;
+  body_part?: PMInjuryBodyPart;
+  age_group?: SupervisorDemographicRecord['age_group'];
+  gender?: SupervisorDemographicRecord['gender'];
+  transported_to_hospital?: boolean;
+}
+
+export type PMClassification =
+  | 'Preventable'
+  | 'Non-Preventable'
+  | 'Preventable Incident'
+  | 'Non-Preventable Incident'
+  | 'Not Reportable';
+
+export type PMAppealDecision = 'Overturn' | 'Uphold';
+
 export interface SupervisorOtherVehicleRecord {
   id: string;
   occupant_fatality_count?: number;
@@ -206,7 +226,10 @@ export interface AccidentReportData {
   // Supervisor review
   supervisor_badge_number?: string;
   supervisor_name?: string;
+  supervisor_first_name?: string;
+  supervisor_last_name?: string;
   supervisor_division?: string;
+  supervisor_operating_statement?: string;
   supervisor_incident_date?: string;
   supervisor_incident_time?: string;
   supervisor_arrival_date?: string;
@@ -291,11 +314,77 @@ export interface AccidentReportData {
   police_statement?: string;
   program_manager_collision_with?: string;
   program_manager_contributing_factors?: string;
+  program_manager_contributing_factors_list?: string[];
   program_manager_collision_type?: string;
+  program_manager_dart_collision_type?: string;
+  program_manager_other_collision_type?: string;
+  program_manager_derail_configuration?: string;
+  program_manager_cars_derailed_count?: number;
+  program_manager_fatalities_present?: boolean;
+  program_manager_injuries_present?: boolean;
+  program_manager_life_safety_evacuation?: boolean;
+  program_manager_estimated_total_damages?: string;
+  program_manager_tow_away?: boolean;
+  program_manager_tow_away_vehicle?: 'DART vehicle only' | 'Other vehicle only' | 'Both DART and other vehicle';
+  program_manager_at_grade_crossing_or_intersection?: boolean;
+
+  // Program manager identity (auto-filled from current role)
+  program_manager_badge_number?: string;
+  program_manager_first_name?: string;
+  program_manager_last_name?: string;
+  program_manager_department?: string;
+
+  // Program manager injury records (structured, one per person)
+  program_manager_employee_fatality_count?: number;
+  program_manager_employee_injury_count?: number;
+  program_manager_employee_injury_records?: PMInjuryRecord[];
+  program_manager_passenger_fatality_count?: number;
+  program_manager_passenger_fatality_records?: SupervisorDemographicRecord[];
+  program_manager_passenger_injury_count?: number;
+  program_manager_passenger_injury_records?: PMInjuryRecord[];
+  program_manager_pedestrian_fatality_count?: number;
+  program_manager_pedestrian_fatality_records?: SupervisorDemographicRecord[];
+  program_manager_pedestrian_injury_count?: number;
+  program_manager_pedestrian_injury_records?: PMInjuryRecord[];
+  program_manager_other_vehicle_fatality_count?: number;
+  program_manager_other_vehicle_fatality_records?: SupervisorDemographicRecord[];
+  program_manager_other_vehicle_injury_count?: number;
+  program_manager_other_vehicle_injury_records?: PMInjuryRecord[];
+
+  // Classification
   program_manager_classification?: string;
+  program_manager_classification_value?: PMClassification;
+  program_manager_classification_date?: string;
+  program_manager_classification_justification?: string;
+  program_manager_classified_by_name?: string;
+  program_manager_classified_by_badge?: string;
+
+  // Appeal Section
   appeal_requested?: boolean;
   appeal_notes?: string;
+  program_manager_first_appeal_decision?: PMAppealDecision;
+  program_manager_first_appeal_date?: string;
+  program_manager_first_appeal_time?: string;
+  program_manager_first_appeal_completed_by?: string;
+  program_manager_arb_decision?: PMAppealDecision;
+  program_manager_arb_appeal_date?: string;
+  program_manager_arb_appeal_time?: string;
+
   program_manager_confirmation_checked?: boolean;
+
+  // PM reviewer decision on Supervisor's submitted section
+  pm_supervisor_review_decision?: 'approved' | 'returned' | 'rejected' | 'reassigned';
+  pm_supervisor_reviewed_at?: string;
+  pm_supervisor_review_note?: string;
+  pm_supervisor_reassigned_to_badge?: string;
+  pm_supervisor_reassigned_to_name?: string;
+
+  // Operator waiver — Supervisor confirms Operator cannot submit their own section
+  operator_availability_confirmed?: boolean;
+  operator_unavailable_reason?: string;
+  operator_unavailable_notes?: string;
+  operator_waived_by?: string;
+  operator_waived_at?: string;
 
   // Impact diagram markers
   impact_markers?: { x: number; y: number }[];

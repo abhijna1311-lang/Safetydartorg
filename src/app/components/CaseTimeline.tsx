@@ -49,6 +49,16 @@ function handoffActionLabel(handoff: WorkflowHandoff) {
     case 'section-returned':
     case 'returned':
       return `${sectionLabel} returned for correction`;
+    case 'section-approved':
+      return `${sectionLabel} approved`;
+    case 'section-reassigned':
+      return `${sectionLabel} reassigned`;
+    case 'section-commented':
+      return `Comment added on ${sectionLabel}`;
+    case 'operator-waived':
+      return 'Operator section waived';
+    case 'rejected':
+      return 'Case rejected';
     case 'closed':
       return 'Case closed';
     case 'forwarded':

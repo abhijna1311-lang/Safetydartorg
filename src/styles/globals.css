@@ -36,6 +36,28 @@
 
   --color-focus-border: #00205B;
   --color-focus-ring: rgba(0, 32, 91, 0.16);
+
+  /* ==========================================================
+     Elevation scale — apply depth intentionally, not everywhere.
+     0 = flat (borders only)   → reference / read-only surfaces
+     1 = subtle raised         → default work cards
+     2 = floating / interactive → action bars, sticky control panels
+     3 = overlay               → drawers, popovers, modals
+     brand = branded glow     → focused primary CTA groups
+     ========================================================== */
+  --dart-elevation-1: 0 2px 6px -2px rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --dart-elevation-2: 0 12px 28px -14px rgba(15, 23, 42, 0.18), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
+  --dart-elevation-3: 0 28px 56px -24px rgba(15, 23, 42, 0.38), 0 12px 24px -10px rgba(15, 23, 42, 0.16);
+  --dart-elevation-brand: 0 14px 32px -14px rgba(0, 32, 91, 0.32), 0 4px 12px -4px rgba(0, 32, 91, 0.12);
+
+  /* Spacing scale — pick from these three, not every Tailwind size */
+  --dart-space-sm: 0.75rem;   /* 12px */
+  --dart-space-md: 1.25rem;   /* 20px */
+  --dart-space-lg: 2rem;      /* 32px */
+
+  /* Motion */
+  --dart-motion-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --dart-motion-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
@@ -110,6 +132,169 @@ body {
 
 .dart-action-link:hover {
   color: var(--dart-brand-navy);
+}
+
+/* ============================================
+   Elevation utilities
+   ============================================ */
+.dart-elev-1 { box-shadow: var(--dart-elevation-1); }
+.dart-elev-2 { box-shadow: var(--dart-elevation-2); }
+.dart-elev-3 { box-shadow: var(--dart-elevation-3); }
+.dart-elev-brand { box-shadow: var(--dart-elevation-brand); }
+
+/* ============================================
+   Card system — pick the variant that matches purpose.
+   .dart-card is the base; combine with one modifier.
+   ============================================ */
+.dart-card {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 1rem;
+  transition: box-shadow var(--dart-motion-base), border-color var(--dart-motion-base);
+}
+
+.dart-card--surface {
+  box-shadow: var(--dart-elevation-1);
+}
+
+.dart-card--primary {
+  border-color: #DBE4EE;
+  box-shadow: var(--dart-elevation-2);
+  border-radius: 1.25rem;
+}
+
+.dart-card--floating {
+  border-color: rgba(0, 32, 91, 0.14);
+  box-shadow: var(--dart-elevation-brand);
+  border-radius: 1.25rem;
+}
+
+.dart-card--reference {
+  background: #F6F8FB;
+  border-color: #E2E8F0;
+  box-shadow: none;
+  border-radius: 0.875rem;
+}
+
+.dart-card--alert-warn {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-left: 4px solid #F59E0B;
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+.dart-card--alert-info {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-left: 4px solid #3B82F6;
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+.dart-card--alert-danger {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-left: 4px solid #EF4444;
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+/* Card header strip — use inside .dart-card to introduce a section */
+.dart-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #E2E8F0;
+  background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
+}
+
+.dart-card-body {
+  padding: 1.25rem;
+}
+
+.dart-card-body--roomy {
+  padding: 1.5rem 1.5rem 1.75rem;
+}
+
+/* ============================================
+   Typography scale — codified. Use these instead of ad-hoc text sizes.
+   ============================================ */
+.dart-h1 {
+  font-family: var(--font-sans);
+  font-size: 1.75rem;   /* 28px */
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+  letter-spacing: -0.01em;
+}
+
+.dart-h2 {
+  font-family: var(--font-sans);
+  font-size: 1.375rem;   /* 22px */
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+}
+
+.dart-h3 {
+  font-family: var(--font-sans);
+  font-size: 1rem;       /* 16px */
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+}
+
+.dart-h4 {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;   /* 14px */
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+}
+
+.dart-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;  /* 11px */
+  line-height: 1.35;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748B;
+}
+
+.dart-body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #334155;
+}
+
+.dart-caption {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #64748B;
+}
+
+/* ============================================
+   Interactive primitives
+   ============================================ */
+.dart-press {
+  transition: transform var(--dart-motion-fast), box-shadow var(--dart-motion-base), background-color var(--dart-motion-base), border-color var(--dart-motion-base);
+}
+
+.dart-press:active {
+  transform: scale(0.985);
+}
+
+.dart-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--color-focus-border);
+}
+
+/* Divider under card headers */
+.dart-hr-soft {
+  border-top: 1px solid #E2E8F0;
 }
 
 /* ============================================

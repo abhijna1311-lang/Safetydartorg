@@ -11,6 +11,9 @@ import { DARTFooter } from './DARTFooter';
 import { CorrectionResolutionScreen } from './CorrectionResolutionScreen';
 import { RoleContextBar } from './RoleContextBar';
 import { CaseStatusDrawer } from './CaseStatusDrawer';
+import { ReviewerDecisionScreen } from './ReviewerDecisionScreen';
+import { ViewReportModal } from './ViewReportModal';
+import { ReferenceReportDrawer, type ReferenceReportTab } from './ReferenceReportDrawer';
 import type { AccidentReportData } from '../types/accident-report';
 import { useUserRole, type UserRole } from '../context/UserRoleContext';
 import {
@@ -49,7 +52,11 @@ const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { 
     { number: 2, title: 'Injuries and Police' },
     { number: 3, title: 'Review and Submit' },
   ],
-  programManager: [{ number: 1, title: 'Program Manager Section' }],
+  programManager: [
+    { number: 1, title: 'Review' },
+    { number: 2, title: 'Impact' },
+    { number: 3, title: 'Classify' },
+  ],
 };
 
 function getWorkflowStageForSection(sectionKey: WorkflowSectionKey): WorkflowStage {
@@ -144,9 +151,6 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const activeSection = sections[activeSectionKey];
   const isAssignedSectionFlow = shouldUseAssignedSectionFlow(initialReport, roleConfig.role);
   const assignedSectionSteps = isAssignedSectionFlow && activeSectionKey !== 'operator' ? ASSIGNED_SECTION_STEPS[activeSectionKey] : undefined;
-  const showSectionStepper = !isAssignedSectionFlow || Boolean(assignedSectionSteps && assignedSectionSteps.length > 1);
-  const currentStepperStep = isAssignedSectionFlow ? Math.min(currentStep, assignedSectionSteps?.length || 1) : currentStep;
-  const activeAssignedStepTitle = assignedSectionSteps?.find((step) => step.number === currentStepperStep)?.title;
   const operatorSectionStatus = sections.operator.status;
   const isOperatorSectionEditableByCurrentRole = activeSectionKey === 'operator' && ['pending', 'in-progress', 'returned'].includes(operatorSectionStatus);
   const isOperatorNarrativeLocked = !isOperatorSectionEditableByCurrentRole;
@@ -158,29 +162,51 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const [returnReason, setReturnReason] = useState('');
   const [returnTargetSection, setReturnTargetSection] = useState<WorkflowSectionKey>('operator');
   const [isCaseStatusOpen, setIsCaseStatusOpen] = useState(false);
+  const [rejectedAt, setRejectedAt] = useState<string | null>(initialReport?.rejectedAt || null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(initialReport?.rejectionReason || null);
+  const [rejectedBy, setRejectedBy] = useState<UserRole | null>(initialReport?.rejectedBy || null);
+  const [isFullReportOpen, setIsFullReportOpen] = useState(false);
+  const [referenceDrawerOpen, setReferenceDrawerOpen] = useState(false);
+  const [referenceDrawerTab, setReferenceDrawerTab] = useState<ReferenceReportTab>('operator');
   const [submitResult, setSubmitResult] = useState<null | {
     submittedSectionKey: WorkflowSectionKey;
     sections: WorkflowSections;
     activatedSections: WorkflowSectionKey[];
     isComplete: boolean;
   }>(null);
+  const [rejectResult, setRejectResult] = useState<{ reason: string; rejectedAt: string } | null>(null);
 
   const stageMeta = useMemo(
     () => getSectionMeta(activeSectionKey, initiatedBy, formData.is_on_behalf, isComplete),
     [activeSectionKey, initiatedBy, formData.is_on_behalf, isComplete],
   );
-  const isRoleAllowedToAdvance = !isComplete && isSectionActionable(activeSection);
+  const isCaseRejected = Boolean(rejectedAt);
+  const supervisorSectionSubmitted = ['submitted', 'resubmitted'].includes(sections.supervisor.status);
+  const pmCanTakeReviewAction = roleConfig.role === 'Program Manager'
+    && isAssignedSectionFlow
+    && !isCaseRejected;
+  const isRoleAllowedToAdvance = !isCaseRejected && !isComplete && isSectionActionable(activeSection);
+  const showSectionStepper = !isAssignedSectionFlow || (
+    Boolean(assignedSectionSteps && assignedSectionSteps.length > 1)
+    && !isCaseRejected
+  );
+  const currentStepperStep = isAssignedSectionFlow ? Math.min(currentStep, assignedSectionSteps?.length || 1) : currentStep;
+  const activeAssignedStepTitle = assignedSectionSteps?.find((step) => step.number === currentStepperStep)?.title;
+  // Return-for-correction routing:
+  // - Operator sections lock on submit; no reviewer can send them back.
+  // - Supervisor cannot return anything (their upstream is the Operator, which is locked).
+  // - Program Manager can only return the Supervisor section for clarification.
   const returnableSections = WORKFLOW_SECTION_ORDER.filter((sectionKey) => {
     const section = sections[sectionKey];
-    if (section.status !== 'submitted' || section.ownerRole === roleConfig.role || roleConfig.role === 'Operator') {
+    if (section.status !== 'submitted' || section.ownerRole === roleConfig.role) {
       return false;
     }
 
-    if (roleConfig.role === 'Supervisor') {
-      return sectionKey === 'operator';
+    if (roleConfig.role === 'Program Manager') {
+      return sectionKey === 'supervisor';
     }
 
-    return true;
+    return false;
   });
   const returnRole = returnableSections.length > 0 ? getSectionRole(returnTargetSection) : null;
   const liveReport = useMemo<WorkflowReport>(() => {
@@ -200,8 +226,11 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       handoffNote,
       handoffHistory,
       closedAt: initialReport?.closedAt || null,
+      rejectedAt,
+      rejectionReason,
+      rejectedBy,
     };
-  }, [createdAt, currentStep, formData, handoffHistory, handoffNote, initialReport?.closedAt, initialReport?.dueBy, initialReport?.lastSavedAt, initiatedBy, lastSubmittedBy, reportId, sections]);
+  }, [createdAt, currentStep, formData, handoffHistory, handoffNote, initialReport?.closedAt, initialReport?.dueBy, initialReport?.lastSavedAt, initiatedBy, lastSubmittedBy, rejectedAt, rejectedBy, rejectionReason, reportId, sections]);
 
   useEffect(() => {
     if (initialReport || roleConfig.role !== 'Supervisor') {
@@ -224,6 +253,10 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     nextClosedAt,
     nextHandoffNote,
     nextHandoffHistory,
+    nextFormData,
+    nextRejectedAt,
+    nextRejectionReason,
+    nextRejectedBy,
   }: {
     nextSections: WorkflowSections;
     nextStep: number;
@@ -231,23 +264,35 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     nextClosedAt: string | null;
     nextHandoffNote: string | null;
     nextHandoffHistory: WorkflowHandoff[];
+    nextFormData?: AccidentReportData;
+    nextRejectedAt?: string | null;
+    nextRejectionReason?: string | null;
+    nextRejectedBy?: UserRole | null;
   }) => {
     const nextStage = getLegacyStageFromSections(nextSections);
+    const dataToPersist = nextFormData ?? formData;
+    const rejectedAtToPersist = nextRejectedAt !== undefined ? nextRejectedAt : rejectedAt;
+    const rejectionReasonToPersist = nextRejectionReason !== undefined ? nextRejectionReason : rejectionReason;
+    const rejectedByToPersist = nextRejectedBy !== undefined ? nextRejectedBy : rejectedBy;
+    const isRejected = Boolean(rejectedAtToPersist);
     onSaveReport?.({
       id: reportId,
       initiatedBy,
-      workflowStage: nextStage,
-      overallStatus: getOverallStatusFromSections(nextSections, nextStage === 'closed'),
+      workflowStage: isRejected ? 'closed' : nextStage,
+      overallStatus: isRejected ? 'rejected' : getOverallStatusFromSections(nextSections, nextStage === 'closed'),
       sections: nextSections,
       currentStep: nextStep,
-      formData,
+      formData: dataToPersist,
       createdAt,
       lastSavedAt: new Date().toISOString(),
       dueBy: initialReport?.dueBy,
       lastSubmittedBy: nextLastSubmittedBy,
       handoffNote: nextHandoffNote,
       handoffHistory: nextHandoffHistory,
-      closedAt: nextClosedAt,
+      closedAt: isRejected ? rejectedAtToPersist : nextClosedAt,
+      rejectedAt: rejectedAtToPersist,
+      rejectionReason: rejectionReasonToPersist,
+      rejectedBy: rejectedByToPersist,
     });
   };
 
@@ -337,6 +382,17 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       buildHandoff(nextIsComplete ? 'closed' : wasCorrection ? 'section-resubmitted' : 'section-submitted', nextIsComplete ? null : activeSectionKey, undefined, activatedSections),
     ];
 
+    // If Supervisor is resubmitting after a correction, clear any prior PM decision
+    // so the PM sees the reviewer decision screen again on the resubmitted content.
+    const shouldResetPmReview = activeSectionKey === 'supervisor' && wasCorrection;
+    const nextFormData: AccidentReportData = shouldResetPmReview
+      ? { ...formData, pm_supervisor_review_decision: undefined, pm_supervisor_reviewed_at: undefined, pm_supervisor_review_note: undefined }
+      : formData;
+
+    if (shouldResetPmReview) {
+      setFormData(nextFormData);
+    }
+
     setLastSubmittedBy(roleConfig.role);
     setHandoffNote(null);
     setReturnReason('');
@@ -353,6 +409,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       nextClosedAt: nextIsComplete ? timestamp : null,
       nextHandoffNote: null,
       nextHandoffHistory: nextHistory,
+      nextFormData,
     });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -391,6 +448,243 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleApproveSupervisor = (note: string) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmed = note.trim();
+    if (!trimmed) {
+      return;
+    }
+    const timestamp = new Date().toISOString();
+    const nextFormData: AccidentReportData = {
+      ...formData,
+      pm_supervisor_review_decision: 'approved',
+      pm_supervisor_reviewed_at: timestamp,
+      pm_supervisor_review_note: trimmed,
+    };
+    const nextHistory = [
+      ...handoffHistory,
+      buildHandoff('section-approved', 'supervisor', trimmed),
+    ];
+    setFormData(nextFormData);
+    setHandoffHistory(nextHistory);
+    setCurrentStep(4);
+    persistReport({
+      nextSections: sections,
+      nextStep: 4,
+      nextLastSubmittedBy: lastSubmittedBy,
+      nextClosedAt: null,
+      nextHandoffNote: handoffNote,
+      nextHandoffHistory: nextHistory,
+      nextFormData,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCommentOnly = (note: string) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmed = note.trim();
+    if (!trimmed) {
+      return;
+    }
+    const nextHistory = [
+      ...handoffHistory,
+      buildHandoff('section-commented', 'supervisor', trimmed),
+    ];
+    setHandoffHistory(nextHistory);
+    persistReport({
+      nextSections: sections,
+      nextStep: currentStep,
+      nextLastSubmittedBy: lastSubmittedBy,
+      nextClosedAt: initialReport?.closedAt || null,
+      nextHandoffNote: handoffNote,
+      nextHandoffHistory: nextHistory,
+    });
+  };
+
+  const handleApproveAndCloseCase = (note: string) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmed = note.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (!isRoleAllowedToAdvance) {
+      return;
+    }
+    // Record the approval marker on the supervisor section, then run the standard submit
+    // (which marks PM section submitted and closes the case if all required sections are done).
+    const timestamp = new Date().toISOString();
+    const decisionData: AccidentReportData = {
+      ...formData,
+      pm_supervisor_review_decision: 'approved',
+      pm_supervisor_reviewed_at: timestamp,
+      pm_supervisor_review_note: trimmed,
+    };
+    setFormData(decisionData);
+    const wasCorrection = sections[activeSectionKey].status === 'returned';
+    const submittedSections = markSectionSubmitted(sections, activeSectionKey, roleConfig.role, timestamp);
+    const nextSections = activateParallelSections(submittedSections, initiatedBy, formData.is_on_behalf, timestamp);
+    const nextIsComplete = areRequiredSectionsComplete(nextSections);
+    const activatedSections = WORKFLOW_SECTION_ORDER.filter(
+      (sectionKey) => sections[sectionKey].status === 'not-started' && nextSections[sectionKey].status === 'pending',
+    );
+    const nextHistory: WorkflowHandoff[] = [
+      ...handoffHistory,
+      buildHandoff('section-approved', 'supervisor', trimmed),
+      buildHandoff(nextIsComplete ? 'closed' : wasCorrection ? 'section-resubmitted' : 'section-submitted', nextIsComplete ? null : activeSectionKey, undefined, activatedSections),
+    ];
+    setLastSubmittedBy(roleConfig.role);
+    setHandoffNote(null);
+    setReturnReason('');
+    setSections(nextSections);
+    setHandoffHistory(nextHistory);
+    setSubmitResult({ submittedSectionKey: activeSectionKey, sections: nextSections, activatedSections, isComplete: nextIsComplete });
+    setCurrentStep(4);
+    persistReport({
+      nextSections,
+      nextStep: 4,
+      nextLastSubmittedBy: roleConfig.role,
+      nextClosedAt: nextIsComplete ? timestamp : null,
+      nextHandoffNote: null,
+      nextHandoffHistory: nextHistory,
+      nextFormData: decisionData,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleReassignSupervisorFromDecision = ({ toBadge, toName, note }: { toBadge: string; toName: string; note: string }) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmed = note.trim();
+    if (!trimmed || !toBadge) {
+      return;
+    }
+    const timestamp = new Date().toISOString();
+    const [firstName, ...restName] = toName.trim().split(/\s+/);
+    const lastName = restName.join(' ');
+    const noteWithAssignee = `Reassigned to ${toName} (badge ${toBadge}). ${trimmed}`;
+    const nextSections = returnWorkflowSection(sections, 'supervisor', roleConfig.role, noteWithAssignee, timestamp);
+    const nextHistory = [...handoffHistory, buildHandoff('section-reassigned', 'supervisor', noteWithAssignee)];
+    const nextFormData: AccidentReportData = {
+      ...formData,
+      pm_supervisor_review_decision: 'reassigned',
+      pm_supervisor_reviewed_at: timestamp,
+      pm_supervisor_review_note: trimmed,
+      pm_supervisor_reassigned_to_badge: toBadge,
+      pm_supervisor_reassigned_to_name: toName,
+      // Rewrite supervisor identity so the new assignee owns the section going forward
+      supervisor_badge_number: toBadge,
+      supervisor_name: toName,
+      supervisor_first_name: firstName,
+      supervisor_last_name: lastName,
+    };
+
+    setFormData(nextFormData);
+    setLastSubmittedBy(roleConfig.role);
+    setHandoffHistory(nextHistory);
+    setHandoffNote(noteWithAssignee);
+    setSections(nextSections);
+    setCurrentStep(4);
+
+    persistReport({
+      nextSections,
+      nextStep: 4,
+      nextLastSubmittedBy: roleConfig.role,
+      nextClosedAt: null,
+      nextHandoffNote: noteWithAssignee,
+      nextHandoffHistory: nextHistory,
+      nextFormData,
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleReturnSupervisorFromDecision = (note: string) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmedReason = note.trim();
+    if (!trimmedReason) {
+      return;
+    }
+    const timestamp = new Date().toISOString();
+    const nextSections = returnWorkflowSection(sections, 'supervisor', roleConfig.role, trimmedReason, timestamp);
+    const nextHistory = [...handoffHistory, buildHandoff('section-returned', 'supervisor', trimmedReason)];
+    const nextFormData: AccidentReportData = {
+      ...formData,
+      pm_supervisor_review_decision: 'returned',
+      pm_supervisor_reviewed_at: timestamp,
+      pm_supervisor_review_note: trimmedReason,
+    };
+
+    setFormData(nextFormData);
+    setLastSubmittedBy(roleConfig.role);
+    setHandoffHistory(nextHistory);
+    setHandoffNote(trimmedReason);
+    setSections(nextSections);
+    setCurrentStep(4);
+
+    persistReport({
+      nextSections,
+      nextStep: 4,
+      nextLastSubmittedBy: roleConfig.role,
+      nextClosedAt: null,
+      nextHandoffNote: trimmedReason,
+      nextHandoffHistory: nextHistory,
+      nextFormData,
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRejectCase = (reason: string) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) {
+      return;
+    }
+    const timestamp = new Date().toISOString();
+    const nextHistory = [...handoffHistory, buildHandoff('rejected', null, trimmedReason)];
+    const nextFormData: AccidentReportData = {
+      ...formData,
+      pm_supervisor_review_decision: 'rejected',
+      pm_supervisor_reviewed_at: timestamp,
+      pm_supervisor_review_note: trimmedReason,
+    };
+
+    setFormData(nextFormData);
+    setRejectedAt(timestamp);
+    setRejectionReason(trimmedReason);
+    setRejectedBy(roleConfig.role);
+    setLastSubmittedBy(roleConfig.role);
+    setHandoffHistory(nextHistory);
+    setHandoffNote(trimmedReason);
+    setRejectResult({ reason: trimmedReason, rejectedAt: timestamp });
+
+    persistReport({
+      nextSections: sections,
+      nextStep: currentStep,
+      nextLastSubmittedBy: roleConfig.role,
+      nextClosedAt: timestamp,
+      nextHandoffNote: trimmedReason,
+      nextHandoffHistory: nextHistory,
+      nextFormData,
+      nextRejectedAt: timestamp,
+      nextRejectionReason: trimmedReason,
+      nextRejectedBy: roleConfig.role,
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (submitResult) {
     return (
       <SuccessScreen
@@ -406,6 +700,57 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
         onBackToHome={onBackToHome}
         onViewCaseStatus={() => setSubmitResult(null)}
       />
+    );
+  }
+
+  if (rejectResult) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <DARTHeader activeNav="new-report" onNavigate={onNavigate} />
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 flex-1 w-full">
+          <div className="max-w-[880px] mx-auto">
+            <div className="rounded-2xl border border-red-200 bg-white shadow-[0_10px_28px_-14px_rgba(153,27,27,0.35)] overflow-hidden">
+              <div className="bg-gradient-to-br from-red-50 to-white px-6 py-8 sm:px-10 sm:py-10 border-b border-red-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-red-700 font-['Poppins']">Case rejected</p>
+                <h2 className="mt-2 text-[24px] sm:text-[28px] font-semibold text-[#00205B] font-['Poppins']">
+                  Case {reportId} closed as rejected
+                </h2>
+                <p className="mt-3 text-sm text-slate-600 font-['Poppins']">
+                  Rejected by {roleConfig.name} on {new Date(rejectResult.rejectedAt).toLocaleString()}. Rework is not permitted after rejection.
+                </p>
+              </div>
+              <div className="px-6 py-6 sm:px-10 sm:py-8 space-y-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Reason for rejection</p>
+                  <p className="mt-2 whitespace-pre-line rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 font-['Poppins']">
+                    {rejectResult.reason}
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRejectResult(null)}
+                    className="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+                  >
+                    View case record
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRejectResult(null);
+                      onBackToHome?.();
+                    }}
+                    className="inline-flex min-h-[44px] items-center rounded-lg bg-[#00205B] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#001a49] focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+                  >
+                    Back to home
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <DARTFooter />
+      </div>
     );
   }
 
@@ -497,6 +842,21 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
 
               {/* Form Content - dedicated white work surface below the navigation deck */}
               <div className={`bg-white px-4 sm:px-6 md:px-8 pb-6 md:pb-8 ${isAssignedSectionFlow && !showSectionStepper ? 'relative z-20 -mt-1 md:-mt-2 rounded-t-[36px] pt-2 md:pt-4 shadow-[0_10px_16px_-14px_rgba(2,36,79,0.30)]' : 'relative z-10'}`}>
+              {isCaseRejected && (
+                <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+                  <p className="text-sm font-semibold text-red-900 font-['Poppins']">Case rejected</p>
+                  <p className="mt-1 text-xs text-red-800 font-['Poppins']">
+                    Closed as rejected by {rejectedBy || 'a program manager'}
+                    {rejectedAt ? ` on ${new Date(rejectedAt).toLocaleString()}` : ''}. No further edits are permitted.
+                  </p>
+                  {rejectionReason && (
+                    <p className="mt-2 text-xs text-red-900 font-['Poppins']">
+                      <span className="font-semibold">Reason:</span> {rejectionReason}
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Step Content */}
               {/* Step Content */}
               {isAssignedSectionFlow && (
                 <Step4ReviewSubmit
@@ -514,7 +874,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   title={activeSectionKey === 'supervisor' ? activeAssignedStepTitle || stageMeta.label : stageMeta.label}
                   description={activeSectionKey === 'supervisor'
                     ? 'Complete the supervisor-owned investigation fields for this case. The operator report is available as read-only reference.'
-                    : 'Complete the program manager-owned classification fields for this case.'}
+                    : 'Read the operator and supervisor content, complete your classification, then approve the case.'}
                   showStepBadge={false}
                   showBackButton={false}
                   submitLabel={stageMeta.submitLabel}
@@ -534,6 +894,22 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                     setCurrentStep(step);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   } : undefined}
+                  programManagerSectionStep={activeSectionKey === 'programManager' ? currentStepperStep : undefined}
+                  programManagerSectionStepCount={assignedSectionSteps?.length}
+                  onProgramManagerSectionStepChange={activeSectionKey === 'programManager' ? (step) => {
+                    setCurrentStep(step);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  } : undefined}
+                  pmReviewEnabled={pmCanTakeReviewAction && supervisorSectionSubmitted}
+                  pmSupervisorSection={sections.supervisor}
+                  pmOnOpenOperatorReport={() => { setReferenceDrawerTab('operator'); setReferenceDrawerOpen(true); }}
+                  pmOnOpenSupervisorReport={() => { setReferenceDrawerTab('supervisor'); setReferenceDrawerOpen(true); }}
+                  pmOnOpenActivity={() => { setReferenceDrawerTab('activity'); setReferenceDrawerOpen(true); }}
+                  pmOnComment={handleCommentOnly}
+                  pmOnReturn={handleReturnSupervisorFromDecision}
+                  pmOnReassign={handleReassignSupervisorFromDecision}
+                  pmOnReject={handleRejectCase}
+                  pmOnApproveAndClose={handleApproveAndCloseCase}
                 />
               )}
 
@@ -614,6 +990,24 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
             sections={sections}
             activeSectionKey={activeSectionKey}
             timelineReport={liveReport}
+          />
+
+          {isFullReportOpen && (
+            <ViewReportModal
+              eventId={reportId}
+              onClose={() => setIsFullReportOpen(false)}
+              report={liveReport}
+            />
+          )}
+
+          <ReferenceReportDrawer
+            open={referenceDrawerOpen}
+            onClose={() => setReferenceDrawerOpen(false)}
+            data={formData}
+            defaultTab={referenceDrawerTab}
+            operatorStatus={sections.operator.status}
+            supervisorSection={sections.supervisor}
+            activityReport={liveReport}
           />
         </div>
       </div>

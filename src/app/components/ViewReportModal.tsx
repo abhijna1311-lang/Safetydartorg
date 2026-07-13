@@ -102,6 +102,24 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
 
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
+            {report?.rejectionReason && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-700">
+                    Rejected
+                  </span>
+                  {report.rejectedAt && (
+                    <span className="text-xs text-red-800">Closed as rejected on {new Date(report.rejectedAt).toLocaleString()}</span>
+                  )}
+                  {report.rejectedBy && (
+                    <span className="text-xs text-red-800">by {report.rejectedBy}</span>
+                  )}
+                </div>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-red-700">Reason for rejection</p>
+                <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-red-900">{report.rejectionReason}</p>
+              </div>
+            )}
+
             {sections && report && data && (
               <CaseWorkflowStatusPanel
                 caseId={eventId}
@@ -182,13 +200,77 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
                   <FieldValue label="Operator date/time correct" value={data?.operator_datetime_correct} />
                   <FieldValue label="Employee contacted" value={data?.employee_contacted_program_manager_date} />
                   <FieldValue label="Collision with" value={data?.program_manager_collision_with} />
+                  <FieldValue label="DART vehicle collision type" value={data?.program_manager_dart_collision_type} />
+                  <FieldValue label="Other vehicle collision type" value={data?.program_manager_other_collision_type} />
                   <FieldValue label="Damage to property" value={data?.damage_to_property} />
+                  <FieldValue label="Life-safety evacuation" value={data?.program_manager_life_safety_evacuation} />
+                  <FieldValue label="Tow-away" value={data?.program_manager_tow_away} />
+                  {data?.program_manager_tow_away && (
+                    <FieldValue label="Vehicle towed" value={data?.program_manager_tow_away_vehicle} />
+                  )}
+                  {data?.program_manager_contributing_factors_list && data.program_manager_contributing_factors_list.length > 0 && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2 font-medium">Contributing factors</p>
+                      <div className="flex flex-wrap gap-2">
+                        {data.program_manager_contributing_factors_list.map((factor) => (
+                          <span key={factor} className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700">
+                            {factor}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="col-span-2">
                     <p className="text-xs text-slate-500 uppercase tracking-wide mb-2 font-medium">Classification</p>
-                    <p className="text-sm text-slate-700 leading-relaxed bg-white rounded-lg p-4 border border-slate-200">
-                      {data?.program_manager_classification || '—'}
-                    </p>
+                    <div className="bg-white rounded-lg p-4 border border-slate-200 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-[#00205B]/10 px-3 py-1 text-xs font-semibold text-[#00205B]">
+                          {data?.program_manager_classification_value || data?.program_manager_classification || 'Not classified'}
+                        </span>
+                        {data?.program_manager_classification_date && (
+                          <span className="text-xs text-slate-500">Classified {data.program_manager_classification_date}</span>
+                        )}
+                        {data?.program_manager_classified_by_name && (
+                          <span className="text-xs text-slate-500">by {data.program_manager_classified_by_name}</span>
+                        )}
+                      </div>
+                      {data?.program_manager_classification_justification && (
+                        <p className="text-sm text-slate-700 leading-relaxed">{data.program_manager_classification_justification}</p>
+                      )}
+                    </div>
                   </div>
+                  {(data?.program_manager_first_appeal_decision || data?.program_manager_arb_decision) && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2 font-medium">Appeals</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {data?.program_manager_first_appeal_decision && (
+                          <div className="bg-white rounded-lg p-4 border border-slate-200">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">1st appeal</p>
+                            <p className="mt-1 text-sm text-slate-900 font-semibold">{data.program_manager_first_appeal_decision}</p>
+                            {(data.program_manager_first_appeal_date || data.program_manager_first_appeal_time) && (
+                              <p className="mt-1 text-xs text-slate-500">
+                                {[data.program_manager_first_appeal_date, data.program_manager_first_appeal_time].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                            {data.program_manager_first_appeal_completed_by && (
+                              <p className="mt-1 text-xs text-slate-500">Completed by {data.program_manager_first_appeal_completed_by}</p>
+                            )}
+                          </div>
+                        )}
+                        {data?.program_manager_arb_decision && (
+                          <div className="bg-white rounded-lg p-4 border border-slate-200">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Accident Review Board</p>
+                            <p className="mt-1 text-sm text-slate-900 font-semibold">{data.program_manager_arb_decision}</p>
+                            {(data.program_manager_arb_appeal_date || data.program_manager_arb_appeal_time) && (
+                              <p className="mt-1 text-xs text-slate-500">
+                                {[data.program_manager_arb_appeal_date, data.program_manager_arb_appeal_time].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SectionCard>
             ) : (

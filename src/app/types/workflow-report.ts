@@ -2,10 +2,10 @@ import type { UserRole } from '../context/UserRoleContext';
 import type { AccidentReportData } from './accident-report';
 
 export type WorkflowStage = 'initiation' | 'operator-completion' | 'supervisor-review' | 'program-manager-review' | 'closed';
-export type WorkflowHandoffAction = 'forwarded' | 'returned' | 'closed' | 'section-submitted' | 'section-resubmitted' | 'section-returned';
+export type WorkflowHandoffAction = 'forwarded' | 'returned' | 'closed' | 'section-submitted' | 'section-resubmitted' | 'section-returned' | 'section-approved' | 'section-reassigned' | 'section-commented' | 'operator-waived' | 'rejected';
 export type WorkflowSectionKey = 'operator' | 'supervisor' | 'programManager';
 export type WorkflowSectionStatus = 'not-required' | 'not-started' | 'pending' | 'in-progress' | 'submitted' | 'returned' | 'resubmitted' | 'accepted';
-export type WorkflowOverallStatus = 'draft' | 'open' | 'waiting-on-sections' | 'correction-requested' | 'complete' | 'closed';
+export type WorkflowOverallStatus = 'draft' | 'open' | 'waiting-on-sections' | 'correction-requested' | 'complete' | 'closed' | 'rejected';
 
 export const STAGE_ORDER: WorkflowStage[] = [
   'initiation',
@@ -58,6 +58,9 @@ export interface WorkflowReport {
   handoffNote?: string | null;
   handoffHistory?: WorkflowHandoff[];
   closedAt?: string | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  rejectedBy?: UserRole | null;
 }
 
 export function getInitialStage(role: UserRole): WorkflowStage {
@@ -198,10 +201,16 @@ export function getReportLocation(data: AccidentReportData): string {
 }
 
 export function getWorkflowStatus(report: WorkflowReport): string {
+  if (report.rejectionReason || report.overallStatus === 'rejected') {
+    return 'Rejected';
+  }
+
   const sections = getWorkflowSections(report);
   const overallStatus = report.overallStatus || getOverallStatusFromSections(sections, report.workflowStage === 'closed');
 
   switch (overallStatus) {
+    case 'rejected':
+      return 'Rejected';
     case 'closed':
       return 'Closed';
     case 'complete':

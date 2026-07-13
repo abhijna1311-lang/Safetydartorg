@@ -15,7 +15,7 @@ interface CaseHistoryItem {
   mode: string;
   eventType: string;
   location: string;
-  status: 'Closed' | 'Waiting on sections' | 'Active' | 'Correction needed';
+  status: 'Closed' | 'Waiting on sections' | 'Active' | 'Correction needed' | 'Rejected';
   waitingOn?: string;
 }
 
@@ -131,7 +131,9 @@ export function MySubmissions({ onNavigate, onBackToHome, reports }: MySubmissio
         eventType: report.formData.event_type || 'Unspecified',
         location: getReportLocation(report.formData),
         status:
-          report.workflowStage === 'closed'
+          report.rejectionReason || report.overallStatus === 'rejected'
+            ? 'Rejected'
+            : report.workflowStage === 'closed'
             ? 'Closed'
             : getWorkflowStatus(report) === 'Correction requested'
             ? 'Correction needed'
@@ -150,6 +152,7 @@ export function MySubmissions({ onNavigate, onBackToHome, reports }: MySubmissio
     { value: 'Waiting on sections',  label: 'Waiting on sections',   color: 'bg-blue-500' },
     { value: 'Active',               label: 'Active',                color: 'bg-slate-400' },
     { value: 'Correction needed',    label: 'Correction needed',     color: 'bg-amber-500' },
+    { value: 'Rejected',             label: 'Rejected',              color: 'bg-red-500' },
   ];
 
   const modeOptions: FilterOption[] = [
@@ -197,6 +200,8 @@ export function MySubmissions({ onNavigate, onBackToHome, reports }: MySubmissio
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'Correction needed':
         return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Rejected':
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
