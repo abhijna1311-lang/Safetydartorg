@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
@@ -41,13 +41,14 @@ function Card({ title, complete, children }: { title: string; complete?: boolean
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {children}
+      <div className={error ? 'rounded-lg ring-2 ring-red-400/70' : ''}>{children}</div>
+      {error && <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p>}
     </div>
   );
 }
@@ -75,6 +76,16 @@ export function Step3PeopleImpact({
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
 
   const canProceed = isInitiationStage || isSupervisorReview ? true : data.operator_injured !== undefined;
+  const [showErrors, setShowErrors] = useState(false);
+  const handleNextClick = () => {
+    if (canProceed) {
+      setShowErrors(false);
+      onNext();
+    } else {
+      setShowErrors(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const contextTone = isSupervisorReview
     ? {
@@ -97,9 +108,15 @@ export function Step3PeopleImpact({
   return (
     <StepContainer
       stepNumber={3}
-      title="People and Impact"
+      title="People And Impact"
       description="Record injuries, passengers, pedestrians, and other vehicles involved."
     >
+      {showErrors && !canProceed && (
+        <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" />
+          <p className="text-sm font-semibold text-red-800 font-['Poppins']">Please complete the required fields highlighted below to continue.</p>
+        </div>
+      )}
       {/* Context */}
       <div className={`mb-5 flex items-center gap-2 rounded-lg border px-4 py-2.5 ${contextTone.container}`}>
         <Info className={`h-4 w-4 flex-shrink-0 ${contextTone.icon}`} />
@@ -182,7 +199,7 @@ export function Step3PeopleImpact({
 
         {/* ── Operator / Employee Injury ── */}
         <Card title="Operator / other employee injury" complete={data.operator_injured !== undefined}>
-          <Field label="Was the operator injured?" required>
+          <Field label="Was the operator injured?" required error={showErrors && data.operator_injured === undefined}>
             <YesNoToggle
               value={data.operator_injured}
               onChange={v => onUpdate({ operator_injured: v, operator_injured_body_part: undefined, operator_transported: undefined })}
@@ -258,7 +275,7 @@ export function Step3PeopleImpact({
         </button>
         <div className="flex items-center gap-4">
           <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
-          <GlassButton variant="primary" onClick={onNext} disabled={!canProceed}>Next</GlassButton>
+          <GlassButton variant="primary" onClick={handleNextClick}>Next</GlassButton>
         </div>
       </div>
     </StepContainer>

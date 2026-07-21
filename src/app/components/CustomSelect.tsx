@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Lock } from 'lucide-react';
 
 interface CustomSelectProps {
   value: string;
@@ -8,6 +8,8 @@ interface CustomSelectProps {
   options: { value: string; label: string }[];
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
+  error?: boolean;
 }
 
 interface DropdownPos {
@@ -19,7 +21,7 @@ interface DropdownPos {
 
 const DROPDOWN_MAX_H = 288; // matches max-h-[288px] below
 
-export function CustomSelect({ value, onChange, options, placeholder = 'Select...', className = '' }: CustomSelectProps) {
+export function CustomSelect({ value, onChange, options, placeholder = 'Select...', className = '', disabled = false, error = false }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [pos, setPos] = useState<DropdownPos>({ top: 0, left: 0, width: 0, openUpward: false });
@@ -160,27 +162,36 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
       <button
         ref={buttonRef}
         type="button"
+        disabled={disabled}
         onClick={() => isOpen ? close() : open()}
         onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={`
-          w-full px-4 py-3 rounded-lg border-2 bg-white transition-all min-h-[44px]
+          w-full px-4 py-3 rounded-lg border-2 transition-all min-h-[44px]
           flex items-center justify-between gap-2
           font-['Poppins'] text-sm text-left
-          ${isOpen
-            ? 'border-[#00205B] ring-2 ring-[rgba(0,32,91,0.16)]'
-            : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50/50'
+          ${disabled
+            ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
+            : isOpen
+            ? 'border-[#00205B] bg-white ring-2 ring-[rgba(0,32,91,0.16)]'
+            : error
+            ? 'border-red-400 bg-white hover:border-red-500'
+            : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50/50'
           }
           focus:outline-none focus-visible:border-[#00205B] focus-visible:ring-2 focus-visible:ring-[rgba(0,32,91,0.16)]
         `}
       >
-        <span className={`min-w-0 flex-1 truncate ${selectedOption ? 'text-slate-900' : 'text-slate-500'}`}>
+        <span className={`min-w-0 flex-1 truncate ${selectedOption ? (disabled ? 'text-slate-600' : 'text-slate-900') : 'text-slate-500'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown
-          className={`w-4 h-4 transition-all duration-200 flex-shrink-0 ${isOpen ? 'rotate-180 text-[#00205B]' : 'text-slate-400'}`}
-        />
+        {disabled ? (
+          <Lock className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+        ) : (
+          <ChevronDown
+            className={`w-4 h-4 transition-all duration-200 flex-shrink-0 ${isOpen ? 'rotate-180 text-[#00205B]' : 'text-slate-400'}`}
+          />
+        )}
       </button>
 
       {typeof document !== 'undefined' && createPortal(dropdown, document.body)}

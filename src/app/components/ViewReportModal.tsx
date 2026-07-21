@@ -70,7 +70,7 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-xl text-white font-semibold">Accident Case Details</h2>
+                <h2 className="text-xl text-white font-semibold">Accident case details</h2>
                 <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
                   {status}
                 </span>
@@ -133,7 +133,7 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
               />
             )}
 
-            <SectionCard title="Incident Basics" sectionNumber={1}>
+            <SectionCard title="Incident basics" sectionNumber={1}>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <FieldValue label="Vehicle Mode" value={data?.mode || fallbackReport.mode} />
                 <FieldValue label="Event Type" value={data?.event_type || fallbackReport.eventType} />
@@ -144,7 +144,7 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
               </div>
             </SectionCard>
 
-            <SectionCard title="Operator Section" sectionNumber={2}>
+            <SectionCard title="Operator section" sectionNumber={2}>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <FieldValue label="Vehicle Number" value={data?.vehicle_number || data?.train_number} />
                 <FieldValue label="Route / Rail Line" value={data?.route_number || data?.rail_line} />
@@ -167,7 +167,7 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
             </SectionCard>
 
             {canSeeSupervisorDetails ? (
-              <SectionCard title="Supervisor Section Collision" sectionNumber={3}>
+              <SectionCard title="Supervisor section collision" sectionNumber={3}>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                   <FieldValue label="Supervisor" value={data?.supervisor_name} />
                   <FieldValue label="Supervisor badge" value={data?.supervisor_badge_number} />
@@ -195,7 +195,7 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
             )}
 
             {canSeeProgramManagerDetails ? (
-              <SectionCard title="Program Manager Section" sectionNumber={4}>
+              <SectionCard title="Program manager section" sectionNumber={4}>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                   <FieldValue label="Operator date/time correct" value={data?.operator_datetime_correct} />
                   <FieldValue label="Employee contacted" value={data?.employee_contacted_program_manager_date} />

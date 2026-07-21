@@ -28,7 +28,7 @@ export function SubmissionSuccessInline({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl text-emerald-900 font-semibold font-['Poppins'] mb-3">
-            Your Operator Section Has Been Submitted
+            Your operator section has been submitted
           </h2>
           
           <div className="flex items-center gap-2 text-sm text-slate-700 mb-6 font-['Poppins']">

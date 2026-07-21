@@ -14,6 +14,7 @@ interface Props {
   onUpdate: (d: Partial<AccidentReportData>) => void;
   compactMode?: boolean;
   narrativeReadOnly?: boolean;
+  showErrors?: boolean;
 }
 
 // ── option lists ──────────────────────────────────────────────────────────────
@@ -70,14 +71,14 @@ const fade = {
 
 const inputCls = "dart-input-base";
 
-function Field({ label, required, helper, children }: { label: string; required?: boolean; helper?: string; children: React.ReactNode }) {
+function Field({ label, required, helper, error, children }: { label: string; required?: boolean; helper?: string; error?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {children}
-      {helper && <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p>}
+      <div className={error ? 'rounded-lg ring-2 ring-red-400/70' : ''}>{children}</div>
+      {error ? <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p> : helper ? <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p> : null}
     </div>
   );
 }
@@ -94,7 +95,7 @@ function Card({ title, complete, children }: { title: string; complete?: boolean
   );
 }
 
-export function BusCollisionSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false }: Props) {
+export function BusCollisionSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false, showErrors = false }: Props) {
   const vehicleOptions: ComboboxOption[] = VEHICLE_DB.map(v => ({
     value: v.id, label: v.label, description: `${v.type} • ${v.route}`,
   }));
@@ -122,7 +123,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
       {/* 1 & 2 – Description + Date/Time */}
       <Card title={compactMode ? 'Event timing' : 'Event description & timing'} complete={!!((compactMode || data.description_of_event) && data.incident_date && data.incident_time)}>
         {!compactMode && (
-          <Field label="Description of event" required helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
+          <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
             <textarea
               rows={4}
               value={data.description_of_event || ''}
@@ -134,10 +135,10 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
           </Field>
         )}
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Event date" required>
+          <Field label="Event date" required error={showErrors && !data.incident_date}>
             <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
           </Field>
-          <Field label="Event time" required helper="An estimated time is acceptable">
+          <Field label="Event time" required error={showErrors && !data.incident_time} helper="An estimated time is acceptable">
             <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
           </Field>
         </div>
@@ -146,7 +147,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
       {/* 3–6 – Vehicle */}
       <Card title="Vehicle details" complete={!!data.vehicle_number}>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Bus vehicle number" required>
+          <Field label="Bus vehicle number" required error={showErrors && !data.vehicle_number}>
             <SearchableCombobox
               options={vehicleOptions}
               value={data.vehicle_number || ''}
@@ -217,13 +218,13 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
         </AnimatePresence>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Street on" required>
+          <Field label="Street on" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
           <Field label="Cross street">
             <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
           </Field>
-          <Field label="City" required>
+          <Field label="City" required error={showErrors && !data.city}>
             <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
           </Field>
           <Field label="ZIP code">

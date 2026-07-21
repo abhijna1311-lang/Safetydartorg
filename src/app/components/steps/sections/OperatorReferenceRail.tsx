@@ -953,19 +953,52 @@ function buildPedestrianGroupEntries(data: AccidentReportData): OperatorFieldEnt
   });
 }
 
+// The transcript above holds every possible operator field (bus AND rail). We only
+// surface the sections that match the case's vehicle mode, so a rail case never shows
+// bus-stop questions or bus vehicle details, and a bus case never shows train sections.
+const BUS_ONLY_SECTIONS = new Set<string>([
+  'Vehicle details',
+  'Bus status & route',
+  'Bus collision details',
+  'Bus runaway & evacuation',
+]);
+const RAIL_ONLY_SECTIONS = new Set<string>([
+  'Train vehicle details',
+  'Train location',
+  'Train status & line',
+  'Train collision details',
+  'Train runaway & evacuation',
+]);
+// Bus-specific fields that live inside an otherwise shared section (Location).
+const BUS_ONLY_FIELD_IDS = new Set<string>(['event_at_bus_stop', 'bus_stop_name']);
+
+function isRailMode(mode?: string): boolean {
+  return mode === 'Light Rail Vehicle' || mode === 'Streetcar' || mode === 'Hi-Rail';
+}
+
+function fieldMatchesMode(definition: TranscriptFieldDefinition, rail: boolean): boolean {
+  if (rail) {
+    return !BUS_ONLY_SECTIONS.has(definition.section) && !BUS_ONLY_FIELD_IDS.has(definition.id);
+  }
+  return !RAIL_ONLY_SECTIONS.has(definition.section);
+}
+
 function buildOperatorFieldEntries(data: AccidentReportData): OperatorFieldEntry[] {
-  const fixedEntries = OPERATOR_TRANSCRIPT_FIELDS.map((definition) => ({
-    id: definition.id,
-    section: definition.section,
-    label: definition.label,
-    value: formatDisplayValue(
-      definition.getValue
-        ? definition.getValue(data)
-        : definition.path
-        ? getValueByPath(data, definition.path)
-        : undefined,
-    ),
-  }));
+  const rail = isRailMode(data.mode);
+  const fixedEntries = OPERATOR_TRANSCRIPT_FIELDS
+    .filter((definition) => fieldMatchesMode(definition, rail))
+    .map((definition) => ({
+      id: definition.id,
+      section: definition.section,
+      label: definition.label,
+      value: formatDisplayValue(
+        definition.getValue
+          ? definition.getValue(data)
+          : definition.path
+          ? getValueByPath(data, definition.path)
+          : undefined,
+      ),
+    }));
 
   return [...fixedEntries, ...buildPedestrianGroupEntries(data)];
 }
@@ -1092,7 +1125,7 @@ function buildPrintableReportHtml(entries: OperatorFieldEntry[], status: string,
     </style>
   </head>
   <body>
-    <h1>Operator Report</h1>
+    <h1>Operator report</h1>
     <div class="meta">Section status: ${escapeHtml(status)}<br />Generated: ${escapeHtml(generatedAt)}</div>
     <table>
       <thead>

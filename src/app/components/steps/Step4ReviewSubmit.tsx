@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Bus, Car, Download, Edit, FileText, Train, TramFront, Truck, Upload, X } from 'lucide-react';
+import { Bus, Car, ChevronDown, Download, Edit, FileText, PauseCircle, ShieldCheck, Train, TramFront, Truck, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
@@ -65,10 +65,12 @@ interface Step4Props {
   pmOnOpenSupervisorReport?: () => void;
   pmOnOpenActivity?: () => void;
   pmOnComment?: (note: string) => void;
+  pmOnHold?: (note: string) => void;
   pmOnReturn?: (note: string) => void;
   pmOnReassign?: (payload: { toBadge: string; toName: string; note: string }) => void;
   pmOnReject?: (reason: string) => void;
   pmOnApproveAndClose?: (note: string) => void;
+  pmOnResume?: () => void;
 }
 
 const SUPERVISOR_TEMPLATE_DOWNLOADS = [
@@ -408,7 +410,7 @@ export function Step4ReviewSubmit({
   supervisorSectionStepCount = DEFAULT_SUPERVISOR_REVIEW_STEP_COUNT,
   onSupervisorSectionStepChange,
   programManagerSectionStep,
-  programManagerSectionStepCount = 3,
+  programManagerSectionStepCount = 4,
   onProgramManagerSectionStepChange,
   pmReviewEnabled = false,
   pmSupervisorSection,
@@ -416,10 +418,12 @@ export function Step4ReviewSubmit({
   pmOnOpenSupervisorReport,
   pmOnOpenActivity,
   pmOnComment,
+  pmOnHold,
   pmOnReturn,
   pmOnReassign,
   pmOnReject,
   pmOnApproveAndClose,
+  pmOnResume,
 }: Step4Props) {
   const { roleConfig } = useUserRole();
   const [isDragging, setIsDragging] = useState(false);
@@ -431,6 +435,9 @@ export function Step4ReviewSubmit({
   const attachments = data.attachments || [];
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
+  // The operator report only exists once the operator has actually filed. When a supervisor
+  // initiates the case (operator waived or not yet filed), there is nothing to open.
+  const operatorReportAvailable = ['submitted', 'resubmitted', 'accepted'].includes(sectionStatuses?.operator?.status ?? '');
   const supervisorReviewStep = supervisorSectionStep ?? localSupervisorReviewStep;
   const setSupervisorReviewStep = (step: number) => {
     const nextStep = Math.max(1, Math.min(supervisorSectionStepCount, step));
@@ -453,9 +460,9 @@ export function Step4ReviewSubmit({
   const isPmStep1 = isProgramManagerReview && pmReviewStep === 1;
   const isPmStep2 = isProgramManagerReview && pmReviewStep === 2;
   const isPmStep3 = isProgramManagerReview && pmReviewStep === 3;
+  const isPmStep4 = isProgramManagerReview && pmReviewStep === 4;
   const isSectionAlreadySubmitted = activeSectionStatus === 'submitted' || activeSectionStatus === 'accepted';
   const showInlineReferenceSummaries = !isSupervisorReview && !isProgramManagerReview;
-  const showRoleAttachments = isSupervisorReview || isProgramManagerReview;
   const supervisorWorkdayRecord = roleConfig.role === 'Supervisor' ? EMPLOYEE_DB[roleConfig.badge] : undefined;
   const supervisorVehicleType = data.supervisor_dart_vehicle_type || '';
   const hasSupervisorVehicleType = Boolean(supervisorVehicleType);
@@ -1135,9 +1142,9 @@ export function Step4ReviewSubmit({
   // Compute exactly which PM fields are missing so we can point the reviewer to the right step
   const pmMissingFields: Array<{ label: string; step: number; stepName: string }> = [];
   if (isProgramManagerReview) {
-    if (data.operator_datetime_correct === undefined) pmMissingFields.push({ label: 'Confirm operator date/time is correct', step: 1, stepName: 'Review' });
-    if (!data.employee_contacted_program_manager_date) pmMissingFields.push({ label: 'Date employee contacted program manager', step: 1, stepName: 'Review' });
-    if (!data.field_supervisor_statement) pmMissingFields.push({ label: 'Field supervisor statement', step: 1, stepName: 'Review' });
+    if (data.operator_datetime_correct === undefined) pmMissingFields.push({ label: 'Confirm operator date/time is correct', step: 1, stepName: 'Investigate' });
+    if (!data.employee_contacted_program_manager_date) pmMissingFields.push({ label: 'Date employee contacted program manager', step: 1, stepName: 'Investigate' });
+    if (!data.field_supervisor_statement) pmMissingFields.push({ label: 'Field supervisor statement', step: 1, stepName: 'Investigate' });
     if (!data.program_manager_classification_value) pmMissingFields.push({ label: 'Classification value', step: 3, stepName: 'Classify' });
     if (!data.program_manager_classification_date) pmMissingFields.push({ label: 'Date classified', step: 3, stepName: 'Classify' });
     if (!data.program_manager_classification_justification) pmMissingFields.push({ label: 'Justification of classification', step: 3, stepName: 'Classify' });
@@ -1151,6 +1158,114 @@ export function Step4ReviewSubmit({
       setSupervisorReviewStep(1);
     }
   }, [isSupervisorReview, supervisorReviewStep]);
+
+  // Shared attachments block, rendered inline within each role's form flow (not as a
+  // detached trailing card). Text adapts to the active role.
+  const roleAttachmentsSection = (
+    <div className="dart-card dart-card--surface overflow-hidden">
+      <div className="dart-card-header">
+        <h4 className="dart-h4">Support documents</h4>
+        <p className="dart-caption mt-1">
+          {isSupervisorReview
+            ? 'Upload completed supervisor support documents, diagrams, and evidence files for this case.'
+            : 'Upload classification notes, statements, or supporting documents for this case.'}
+        </p>
+      </div>
+      <div className="p-6">
+        {isSupervisorReview && (
+          <div className="mb-4 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Supervisor templates</p>
+            <p className="mt-1 text-xs text-slate-700 font-['Poppins']">Download, complete, then upload these forms as part of your supervisor submission.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {SUPERVISOR_TEMPLATE_DOWNLOADS.map((template) => (
+                <a
+                  key={template.href}
+                  href={template.href}
+                  download
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {template.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`
+            border-2 border-dashed rounded-xl p-8 text-center transition-all
+            ${isDragging
+              ? 'border-emerald-400 bg-emerald-50'
+              : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+            }
+          `}
+        >
+          <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-emerald-600' : 'text-slate-400'}`} />
+          <div className="text-sm text-slate-700 mb-1 font-['Poppins']">
+            Drag and drop files here, or select files to upload
+          </div>
+          <div className="text-xs text-slate-500 mb-4 font-['Poppins']">
+            Supports images, PDFs, and documents
+          </div>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+            id="role-file-upload"
+          />
+          <button
+            type="button"
+            onClick={() => document.getElementById('role-file-upload')?.click()}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+          >
+            Select files
+          </button>
+        </div>
+
+        {attachments.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {attachments.map((file, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="rounded bg-slate-100 p-2">
+                    <FileText className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-900 font-['Poppins']">{file.name}</div>
+                    <div className="text-xs text-slate-500 font-['Poppins']">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDownloadAttachment(file)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition-colors min-h-[36px] focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+                    aria-label={`Download ${file.name}`}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </button>
+                  <button
+                    onClick={() => handleRemoveAttachment(index)}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+                    aria-label="Remove attachment"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <StepContainer
@@ -1440,15 +1555,17 @@ export function Step4ReviewSubmit({
 
         {isSupervisorReview && (
           <div className="space-y-6">
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsOperatorReportOpen(true)}
-                className="inline-flex min-h-[40px] items-center rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
-              >
-                Open operator report
-              </button>
-            </div>
+            {operatorReportAvailable && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsOperatorReportOpen(true)}
+                  className="inline-flex min-h-[40px] items-center rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+                >
+                  Open operator report
+                </button>
+              </div>
+            )}
 
             <div className="space-y-6">
               {supervisorReviewStep === 1 && (
@@ -1837,7 +1954,7 @@ export function Step4ReviewSubmit({
               {supervisorReviewStep === 2 && (
               <>
               <div>
-                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">DART Employee Injury Section</h5>
+                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">DART employee injury section</h5>
                 <div className="space-y-4">
                   <DecisionGroup
                     label="Were there any employee fatalities?"
@@ -1876,7 +1993,7 @@ export function Step4ReviewSubmit({
               </div>
 
               <div>
-                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Passenger Injury Section</h5>
+                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Passenger injury section</h5>
                 <div className="space-y-4">
                   <DecisionGroup
                     label="Were there any passenger fatalities?"
@@ -1921,7 +2038,7 @@ export function Step4ReviewSubmit({
               </div>
 
               <div>
-                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Pedestrian Injury</h5>
+                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Pedestrian injury</h5>
                 <div className="space-y-4">
                   <DecisionGroup
                     label="Were there any pedestrian fatalities?"
@@ -1967,7 +2084,7 @@ export function Step4ReviewSubmit({
 
               {data.supervisor_other_vehicles_involved && otherVehicleRecords.length > 0 && (
                 <div>
-                  <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Other Vehicle Occupants Injury</h5>
+                  <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Other vehicle occupants injury</h5>
                   <div className="space-y-5">
                     {otherVehicleRecords.map((record, index) => renderOtherVehicleRecord(record, index))}
                   </div>
@@ -1975,7 +2092,7 @@ export function Step4ReviewSubmit({
               )}
 
               <div>
-                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Police Information</h5>
+                <h5 className="mb-4 text-sm font-semibold text-[#00205B] font-['Poppins']">Police information</h5>
                 <DecisionGroup
                   label="Were police called?"
                   value={data.supervisor_police_called}
@@ -2058,6 +2175,8 @@ export function Step4ReviewSubmit({
                       </div>
                     </div>
                   ) : null}
+
+                  {roleAttachmentsSection}
                 </div>
               )}
 
@@ -2260,39 +2379,78 @@ export function Step4ReviewSubmit({
 
           return (
           <div className="space-y-5">
-            {pmReviewEnabled && pmSupervisorSection && pmOnComment && pmOnReturn && pmOnReassign && pmOnReject && pmOnApproveAndClose && (
-              <PMReviewActionBar
-                data={data}
-                supervisorSection={pmSupervisorSection}
-                canApprove={Boolean(reviewCanSubmit)}
-                approveDisabledReason={reviewCanSubmit ? undefined : 'Complete required classification fields to enable approval.'}
-                missingFields={pmMissingFields}
-                onJumpToStep={setPmReviewStep}
-                onOpenOperatorReport={pmOnOpenOperatorReport || (() => {})}
-                onOpenSupervisorReport={pmOnOpenSupervisorReport || (() => {})}
-                onOpenActivity={pmOnOpenActivity}
-                onComment={pmOnComment}
-                onReturn={pmOnReturn}
-                onReassign={pmOnReassign}
-                onReject={pmOnReject}
-                onApprove={pmOnApproveAndClose}
-              />
-            )}
-            <div className="dart-card dart-card--primary overflow-hidden">
-            <div className="dart-card-header">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h4 className="dart-h3">
-                  Step {pmReviewStep} of {programManagerSectionStepCount} · {pmReviewStep === 1 ? 'Review' : pmReviewStep === 2 ? 'Impact' : 'Classify'}
-                </h4>
-                <span className="dart-eyebrow">Program manager section</span>
+            {isProgramManagerReview && data.pm_on_hold && (
+              <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50/70 px-5 py-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <PauseCircle className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-indigo-900 font-['Poppins']">This case is on hold</p>
+                    <p className="mt-0.5 text-xs text-indigo-800/80 font-['Poppins']">
+                      {data.pm_hold_note || 'Parked in your queue. It will not move until you take an action.'}
+                    </p>
+                    {data.operator_availability_confirmed === false && (
+                      <p className="mt-1 text-xs text-indigo-800/80 font-['Poppins']">
+                        Un-holding sends the operator their section to complete, then returns the case to you to close.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {pmOnResume && (
+                  <button
+                    type="button"
+                    onClick={pmOnResume}
+                    className="dart-press dart-focus-ring inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-800 hover:border-indigo-400 hover:bg-indigo-50 font-['Poppins']"
+                  >
+                    Unhold
+                  </button>
+                )}
               </div>
-              <p className="dart-body mt-1.5">
-                {pmReviewStep === 1 && 'Confirm the case context and record your investigation notes. Field supervisor and police statements go here.'}
-                {pmReviewStep === 2 && 'Analyze contributing factors, log damage and tow details, and record any fatalities or injuries.'}
-                {pmReviewStep === 3 && 'Make your final classification decision and close the case.'}
-              </p>
-            </div>
-            <div className="p-5 md:p-6 space-y-5 bg-gradient-to-b from-[#F6F8FB] via-white to-white">
+            )}
+            {/* Case references — available on every step so the PM can check source reports while they work */}
+            {isProgramManagerReview && (pmOnOpenOperatorReport || pmOnOpenSupervisorReport || pmOnOpenActivity) && (
+              <div className="dart-card dart-card--surface flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#00205B]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#00205B] font-['Poppins']">
+                    <ShieldCheck className="h-3 w-3" />
+                    Case references
+                  </span>
+                  <span className="dart-caption hidden sm:inline">Open any source report while you work.</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {pmOnOpenOperatorReport && (
+                    <button
+                      type="button"
+                      onClick={pmOnOpenOperatorReport}
+                      className="dart-press dart-focus-ring inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50 font-['Poppins']"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Operator report
+                    </button>
+                  )}
+                  {pmOnOpenSupervisorReport && (
+                    <button
+                      type="button"
+                      onClick={pmOnOpenSupervisorReport}
+                      className="dart-press dart-focus-ring inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50 font-['Poppins']"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Supervisor report
+                    </button>
+                  )}
+                  {pmOnOpenActivity && (
+                    <button
+                      type="button"
+                      onClick={pmOnOpenActivity}
+                      className="dart-press dart-focus-ring inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50 font-['Poppins']"
+                    >
+                      Activity
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="space-y-5">
 
               {/* Data integrity warning — persistent across all PM steps */}
               {invalidDerailmentMode && (
@@ -2780,6 +2938,33 @@ export function Step4ReviewSubmit({
                   </div>
                 </div>
               </div>
+
+              {roleAttachmentsSection}
+              </>)}
+
+              {isPmStep4 && (<>
+              {/* Decision actions — the PM acts on the case here */}
+              {pmReviewEnabled && pmSupervisorSection && pmOnComment && pmOnHold && pmOnReturn && pmOnReassign && pmOnReject && pmOnApproveAndClose && (
+                <PMReviewActionBar
+                  variant="compact"
+                  data={data}
+                  isOnHold={Boolean(data.pm_on_hold)}
+                  supervisorSection={pmSupervisorSection}
+                  canApprove={Boolean(reviewCanSubmit)}
+                  approveDisabledReason={reviewCanSubmit ? undefined : 'Complete required classification fields to enable approval.'}
+                  missingFields={pmMissingFields}
+                  onJumpToStep={setPmReviewStep}
+                  onOpenOperatorReport={pmOnOpenOperatorReport || (() => {})}
+                  onOpenSupervisorReport={pmOnOpenSupervisorReport || (() => {})}
+                  onOpenActivity={pmOnOpenActivity}
+                  onComment={pmOnComment}
+                  onHold={pmOnHold}
+                  onReturn={pmOnReturn}
+                  onReassign={pmOnReassign}
+                  onReject={pmOnReject}
+                  onApprove={pmOnApproveAndClose}
+                />
+              )}
               </>)}
 
               {/* Step navigation footer — Back / Continue between PM steps */}
@@ -2791,13 +2976,13 @@ export function Step4ReviewSubmit({
                       onClick={() => setPmReviewStep(pmReviewStep - 1)}
                       className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
                     >
-                      ← Back to {pmReviewStep === 2 ? 'Review' : 'Impact'}
+                      ← Back to {pmReviewStep === 2 ? 'Investigate' : 'Impact'}
                     </button>
                   ) : <div />}
                   <div className="flex items-center gap-3">
                     <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
                     <GlassButton variant="primary" onClick={() => setPmReviewStep(pmReviewStep + 1)}>
-                      Continue to {pmReviewStep === 1 ? 'Impact' : 'Classify'}
+                      Continue to {pmReviewStep === 1 ? 'Impact' : pmReviewStep === 2 ? 'Classify' : 'Actions'}
                     </GlassButton>
                   </div>
                 </div>
@@ -2811,147 +2996,16 @@ export function Step4ReviewSubmit({
                     onClick={() => setPmReviewStep(pmReviewStep - 1)}
                     className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
                   >
-                    ← Back to Impact
+                    ← Back to Classify
                   </button>
                   <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
                 </div>
               )}
 
             </div>
-            </div>
           </div>
           );
         })()}
-
-        {showRoleAttachments && (
-          (isSupervisorReview && supervisorReviewStep === 3) ||
-          (isProgramManagerReview && isPmStep3)
-        ) && (
-          <div className="dart-card dart-card--surface overflow-hidden">
-            <div className="dart-card-header">
-              <h4 className="dart-h4">Support documents</h4>
-              <p className="dart-caption mt-1">
-                {isSupervisorReview
-                  ? 'Upload completed supervisor support documents, diagrams, and evidence files for this case.'
-                  : 'Upload classification notes, statements, or supporting documents for this case.'}
-              </p>
-            </div>
-            <div className="p-6">
-              {isSupervisorReview && (
-                <div className="mb-4 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Supervisor templates</p>
-                  <p className="mt-1 text-xs text-slate-700 font-['Poppins']">Download, complete, then upload these forms as part of your supervisor submission.</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {SUPERVISOR_TEMPLATE_DOWNLOADS.map((template) => (
-                      <a
-                        key={template.href}
-                        href={template.href}
-                        download
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        {template.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`
-                  border-2 border-dashed rounded-xl p-8 text-center transition-all
-                  ${isDragging
-                    ? 'border-emerald-400 bg-emerald-50'
-                    : 'border-slate-300 bg-slate-50 hover:border-slate-400'
-                  }
-                `}
-              >
-                <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <div className="text-sm text-slate-700 mb-1 font-['Poppins']">
-                  Drag and drop files here, or select files to upload
-                </div>
-                <div className="text-xs text-slate-500 mb-4 font-['Poppins']">
-                  Supports images, PDFs, and documents
-                </div>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="role-file-upload"
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('role-file-upload')?.click()}
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
-                >
-                  Select files
-                </button>
-              </div>
-
-              {attachments.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {attachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded bg-slate-100 p-2">
-                          <FileText className="w-4 h-4 text-slate-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm text-slate-900 font-['Poppins']">{file.name}</div>
-                          <div className="text-xs text-slate-500 font-['Poppins']">
-                            {(file.size / 1024).toFixed(1)} KB
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDownloadAttachment(file)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition-colors min-h-[36px] focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-                          aria-label={`Download ${file.name}`}
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Download
-                        </button>
-                        <button
-                          onClick={() => handleRemoveAttachment(index)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-                          aria-label="Remove attachment"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Program Manager bottom action bar — placed after attachments so the whole PM record is visible before deciding */}
-        {isProgramManagerReview && isPmStep3 && pmReviewEnabled && pmSupervisorSection && pmOnComment && pmOnReturn && pmOnReassign && pmOnReject && pmOnApproveAndClose && (
-          <PMReviewActionBar
-            variant="compact"
-            data={data}
-            supervisorSection={pmSupervisorSection}
-            canApprove={Boolean(reviewCanSubmit)}
-            approveDisabledReason={reviewCanSubmit ? undefined : 'Complete required classification fields to enable approval.'}
-            missingFields={pmMissingFields}
-            onJumpToStep={setPmReviewStep}
-            onOpenOperatorReport={pmOnOpenOperatorReport || (() => {})}
-            onOpenSupervisorReport={pmOnOpenSupervisorReport || (() => {})}
-            onOpenActivity={pmOnOpenActivity}
-            onComment={pmOnComment}
-            onReturn={pmOnReturn}
-            onReassign={pmOnReassign}
-            onReject={pmOnReject}
-            onApprove={pmOnApproveAndClose}
-          />
-        )}
 
         {/* Confirmation — hidden for Program Manager (their Approve action already requires a note) */}
         {(!isSupervisorReview || supervisorReviewStep === 3) && !isProgramManagerReview && (

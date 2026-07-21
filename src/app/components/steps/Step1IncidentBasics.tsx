@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bus, Train, TramFront, Truck, Car } from 'lucide-react';
+import { Bus, Train, TramFront, Truck, Car, Lock, AlertTriangle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
@@ -14,6 +14,9 @@ interface Props {
   onUpdate: (d: Partial<AccidentReportData>) => void;
   onNext: () => void;
   onSaveDraft: () => void;
+  nextLabel?: string;
+  showStepBadge?: boolean;
+  lockEventAndMode?: boolean;
 }
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -27,6 +30,10 @@ const EVENT_TYPES = [
   'Trail a Switch',
   'Signal Violation',
 ].map(v => ({ value: v, label: v }));
+
+// The multi-role case workflow only applies to collisions and derailments, so a Program
+// Manager initiating a case on behalf of an operator/employee can only pick those two.
+const WORKFLOW_EVENT_TYPES = EVENT_TYPES.filter(o => o.value === 'Collision' || o.value === 'Derailment');
 
 const SHOW_DRIVING_QUESTION = ['Assault (Verbal or Physical)', 'Fire', 'Operator/Passenger Events (non-collision)'];
 
@@ -91,19 +98,26 @@ function Section({ title, help, children }: { title: string; help?: string; comp
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Props) {
+export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextLabel, showStepBadge = true, lockEventAndMode = false }: Props) {
   const { roleConfig } = useUserRole();
   const isSupervisor = roleConfig.role === 'Supervisor';
   const isProgramManager = roleConfig.role === 'Program Manager';
   const effectiveIsOnBehalf = isProgramManager || data.is_on_behalf === true;
+  const [showErrors, setShowErrors] = useState(false);
 
   const hasEventType = !!data.event_type;
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
   const hasMode = !!data.mode;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
   const hasFilingChoice = !isSupervisor || data.is_on_behalf !== undefined;
+  // When a PM (always) or an on-behalf Supervisor initiates, they must state whether the
+  // operator can file their own section. "No" waives the operator section and requires a reason.
+  const needsOperatorAvailability = isProgramManager || (isSupervisor && data.is_on_behalf === true);
+  const hasOperatorAvailability = !needsOperatorAvailability
+    || data.operator_availability_confirmed === true
+    || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
-  const canProceed = hasFilingChoice && hasEventType && hasMode && hasEmployee && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
+  const canProceed = hasFilingChoice && hasEventType && hasMode && hasEmployee && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
   useEffect(() => {
     if (!isProgramManager || data.is_on_behalf === true) return;
     onUpdate({
@@ -176,7 +190,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
     const q = val.trim().toLowerCase();
     if (q.length >= 1) {
       const matches = Object.values(EMPLOYEE_DB).filter(
-        emp => emp.badge.startsWith(q) || emp.name.toLowerCase().includes(q)
+        emp => emp.badge !== roleConfig.badge && (emp.badge.startsWith(q) || emp.name.toLowerCase().includes(q))
       );
       setBehalfSuggestions(matches);
       setShowBehalfDropdown(matches.length > 0);
@@ -239,15 +253,194 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
 
   const missing: string[] = [];
   if (isSupervisor && !hasFilingChoice) missing.push('filing on behalf');
+  if ((isProgramManager || data.is_on_behalf === true) && !hasEmployee) missing.push('employee this case is for');
+  if (needsOperatorAvailability && !hasOperatorAvailability) missing.push('operator availability');
   if (!hasEventType) missing.push('event type');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
 
+  const errFilingChoice = showErrors && isSupervisor && !hasFilingChoice;
+  const errEmployee = showErrors && (isProgramManager || data.is_on_behalf === true) && !hasEmployee;
+  const errAvailability = showErrors && needsOperatorAvailability && !hasOperatorAvailability;
+  const errEventType = showErrors && !hasEventType;
+  const errDriving = showErrors && needsDrivingQ && data.operating_dart_vehicle === undefined;
+  const errMode = showErrors && !hasMode;
+
+  const handleNextClick = () => {
+    if (canProceed) {
+      setShowErrors(false);
+      onNext();
+    } else {
+      setShowErrors(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Extracted so the same controls can render as a 2-col Schedule section (operator /
+  // supervisor) or share one 3-col row with the employee field (program manager).
+  const studentEmployeeField = (
+    <div>
+      <p className="dart-field-label">Student employee?</p>
+      <div className="inline-flex gap-2">
+        <button type="button" onClick={() => onUpdate({ is_student_employee: true })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.is_student_employee === true ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Yes</button>
+        <button type="button" onClick={() => onUpdate({ is_student_employee: false })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.is_student_employee === false ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>No</button>
+      </div>
+    </div>
+  );
+
+  const regularDayOffField = (
+    <div>
+      <p className="dart-field-label">Regular day off</p>
+      <div className="inline-flex gap-2">
+        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Consecutive', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.regular_day_off_type === 'Consecutive' ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Consecutive days</button>
+        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Split', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.regular_day_off_type === 'Split' ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Split days</button>
+      </div>
+    </div>
+  );
+
+  const rdoConditional = (
+    <AnimatePresence>
+      {data.regular_day_off_type === 'Consecutive' && (
+        <motion.div {...fade} key="rdo-consec" className="mt-3">
+          <label className="dart-field-label">Regular days off (RDO) – Consecutive</label>
+          <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" />
+        </motion.div>
+      )}
+      {data.regular_day_off_type === 'Split' && (
+        <motion.div {...fade} key="rdo-split" className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="dart-field-label">RDO Split – Day 1</label>
+            <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />
+          </div>
+          <div>
+            <label className="dart-field-label">RDO Split – Day 2</label>
+            <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  const employeeSearchField = (
+    <>
+      <label className="dart-field-label">
+        Employee name or badge number <span className="text-red-500">*</span>
+      </label>
+      <div className="relative" ref={behalfRef}>
+        <input
+          type="text"
+          value={behalfQuery || (data.on_behalf_employee ? `${data.employee_name} · #${data.on_behalf_employee}` : '')}
+          onChange={e => handleBehalfInput(e.target.value)}
+          onFocus={() => {
+            if (behalfSuggestions.length > 0) {
+              setShowBehalfDropdown(true);
+            } else if (!behalfQuery) {
+              setBehalfSuggestions(Object.values(EMPLOYEE_DB));
+              setShowBehalfDropdown(true);
+            }
+          }}
+          placeholder="Search DART employee…"
+          className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all min-h-[44px] font-['Poppins'] text-sm ${errEmployee ? 'border-red-400' : 'border-slate-300'}`}
+        />
+        <AnimatePresence>
+          {showBehalfDropdown && (
+            <motion.div
+              key="behalf-dd"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute z-50 left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden"
+            >
+              <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-['Poppins']">
+                  {behalfQuery ? 'Matching employees' : 'All employees (demo)'}
+                </p>
+              </div>
+              <ul className="max-h-52 overflow-y-auto py-1">
+                {behalfSuggestions.map(emp => (
+                  <li key={emp.badge}>
+                    <button
+                      type="button"
+                      onMouseDown={() => handleBehalfSelect(emp.badge)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left group"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-[#007DBA]/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-bold text-[#007DBA] font-['Poppins']">
+                          {emp.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-800 font-medium font-['Poppins'] truncate group-hover:text-[#00205B]">{emp.name}</p>
+                        <p className="text-xs text-slate-400 font-['Poppins']">Badge #{emp.badge} · {emp.division_work}</p>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {errEmployee && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select the employee this case is for.</p>}
+    </>
+  );
+
+  const operatorAvailabilityField = (
+    <div>
+      <label className="dart-field-label">
+        Is the operator available to complete their own section? <span className="text-red-500">*</span>
+      </label>
+      <YesNoToggle
+        value={data.operator_availability_confirmed}
+        yesLabel="Yes, the operator will file"
+        noLabel="No, the operator is unavailable"
+        onChange={v => onUpdate({
+          operator_availability_confirmed: v,
+          operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
+        })}
+      />
+      {errAvailability && data.operator_availability_confirmed === undefined && (
+        <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether the operator can file their own section.</p>
+      )}
+      <AnimatePresence>
+        {data.operator_availability_confirmed === false && (
+          <motion.div {...fade} key="operator-unavailable-reason" className="mt-4">
+            <label className="dart-field-label">
+              Why is the operator unavailable? <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={data.operator_unavailable_reason || ''}
+              onChange={e => onUpdate({ operator_unavailable_reason: e.target.value })}
+              placeholder="e.g. Operator was transported to the hospital after the incident and cannot file."
+              rows={3}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all font-['Poppins'] text-sm resize-none ${showErrors && !data.operator_unavailable_reason?.trim() ? 'border-red-400' : 'border-slate-300'}`}
+            />
+            {showErrors && !data.operator_unavailable_reason?.trim() && (
+              <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">A reason is required to waive the operator.</p>
+            )}
+            <p className="mt-2 text-xs text-slate-500 font-['Poppins']">
+              The operator section will be waived — this report will not require the operator to file it themselves.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
   return (
-    <StepContainer stepNumber={1} title="Incident Basics" description="Confirm the schedule, then select the event type and vehicle mode.">
+    <StepContainer stepNumber={1} showStepBadge={showStepBadge} title="Incident Basics" description="Confirm the schedule, then select the event type and vehicle mode.">
+      {showErrors && !canProceed && (
+        <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" />
+          <p className="text-sm font-semibold text-red-800 font-['Poppins']">
+            Please complete the {missing.length} required {missing.length === 1 ? 'field' : 'fields'} below to continue.
+          </p>
+        </div>
+      )}
       <div className="divide-y divide-slate-100">
 
-        {/* Filing on behalf — Supervisors only */}
+        {/* Supervisor: optional filing-on-behalf, gated by its own Yes/No decision */}
         {isSupervisor && (
           <Section
             title="Filing on behalf"
@@ -256,71 +449,17 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
           >
             <YesNoToggle
               value={data.is_on_behalf}
-              yesLabel="Yes — for another employee"
-              noLabel="No — this case is for me"
+              yesLabel="Yes, for another employee"
+              noLabel="No, this case is for me"
               onChange={v => onUpdate({ is_on_behalf: v, on_behalf_employee: v ? data.on_behalf_employee : undefined })}
             />
+            {errFilingChoice && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether this case is for another employee.</p>}
             <AnimatePresence>
               {data.is_on_behalf === true && (
                 <motion.div {...fade} key="behalf-name" className="mt-4">
-                  <label className="dart-field-label">
-                    Employee name or badge number
-                  </label>
-                  <div className="relative" ref={behalfRef}>
-                    <input
-                      type="text"
-                      value={behalfQuery || (data.on_behalf_employee ? `${data.employee_name} · #${data.on_behalf_employee}` : '')}
-                      onChange={e => handleBehalfInput(e.target.value)}
-                      onFocus={() => {
-                        if (behalfSuggestions.length > 0) {
-                          setShowBehalfDropdown(true);
-                        } else if (!behalfQuery) {
-                          setBehalfSuggestions(Object.values(EMPLOYEE_DB));
-                          setShowBehalfDropdown(true);
-                        }
-                      }}
-                      placeholder="Search DART employee…"
-                      className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all min-h-[44px] font-['Poppins'] text-sm"
-                    />
-                    <AnimatePresence>
-                      {showBehalfDropdown && (
-                        <motion.div
-                          key="behalf-dd"
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute z-50 left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden"
-                        >
-                          <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-['Poppins']">
-                              {behalfQuery ? 'Matching employees' : 'All employees (demo)'}
-                            </p>
-                          </div>
-                          <ul className="max-h-52 overflow-y-auto py-1">
-                            {behalfSuggestions.map(emp => (
-                              <li key={emp.badge}>
-                                <button
-                                  type="button"
-                                  onMouseDown={() => handleBehalfSelect(emp.badge)}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left group"
-                                >
-                                  <div className="w-7 h-7 rounded-full bg-[#007DBA]/10 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-[10px] font-bold text-[#007DBA] font-['Poppins']">
-                                      {emp.name.split(' ').map(n => n[0]).join('')}
-                                    </span>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-slate-800 font-medium font-['Poppins'] truncate group-hover:text-[#00205B]">{emp.name}</p>
-                                    <p className="text-xs text-slate-400 font-['Poppins']">Badge #{emp.badge} · {emp.division_work}</p>
-                                  </div>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  {employeeSearchField}
+                  <div className="mt-5 pt-5 border-t border-slate-100">
+                    {operatorAvailabilityField}
                   </div>
                 </motion.div>
               )}
@@ -328,51 +467,39 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
           </Section>
         )}
 
-        {/* Schedule — pre-filled from Workday, no green check (user isn't deciding here) */}
-        <Section
-          title="Schedule"
-          help="Confirm the operator's schedule details."
-          complete={false}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="dart-field-label">Student employee?</p>
-              <div className="inline-flex gap-2">
-                <button type="button" onClick={() => onUpdate({ is_student_employee: true })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.is_student_employee === true ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Yes</button>
-                <button type="button" onClick={() => onUpdate({ is_student_employee: false })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.is_student_employee === false ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>No</button>
-              </div>
+        {/* Program manager: subject + schedule share one row (PM always files on behalf) */}
+        {isProgramManager && (
+          <Section
+            title="Who is this case for?"
+            help="Program managers open cases on behalf of a DART employee. Select who this case is for, then confirm their schedule."
+            complete={!!data.on_behalf_employee}
+          >
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-y-4 md:gap-x-8">
+              <div className="w-full md:w-[300px] md:shrink-0">{employeeSearchField}</div>
+              {studentEmployeeField}
+              {regularDayOffField}
             </div>
-
-            <div>
-              <p className="dart-field-label">Regular day off</p>
-              <div className="inline-flex gap-2">
-                <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Consecutive', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.regular_day_off_type === 'Consecutive' ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Consecutive days</button>
-                <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Split', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.regular_day_off_type === 'Split' ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Split days</button>
-              </div>
+            {rdoConditional}
+            <div className="mt-5 pt-5 border-t border-slate-100">
+              {operatorAvailabilityField}
             </div>
-          </div>
+          </Section>
+        )}
 
-          <AnimatePresence>
-            {data.regular_day_off_type === 'Consecutive' && (
-              <motion.div {...fade} key="rdo-consec" className="mt-3">
-                <label className="dart-field-label">Regular days off (RDO) – Consecutive</label>
-                <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" />
-              </motion.div>
-            )}
-            {data.regular_day_off_type === 'Split' && (
-              <motion.div {...fade} key="rdo-split" className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="dart-field-label">RDO Split – Day 1</label>
-                  <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />
-                </div>
-                <div>
-                  <label className="dart-field-label">RDO Split – Day 2</label>
-                  <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Section>
+        {/* Schedule — operators and supervisors (PM's schedule sits in the row above) */}
+        {!isProgramManager && (
+          <Section
+            title="Schedule"
+            help="Confirm the operator's schedule details."
+            complete={false}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {studentEmployeeField}
+              {regularDayOffField}
+            </div>
+            {rdoConditional}
+          </Section>
+        )}
 
         {/* Type of event (+ conditional driving sub-question) */}
         <Section
@@ -387,9 +514,17 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
             <CustomSelect
               value={data.event_type || ''}
               onChange={handleEventTypeChange}
-              options={EVENT_TYPES}
+              options={isProgramManager ? WORKFLOW_EVENT_TYPES : EVENT_TYPES}
               placeholder="Select event type"
+              disabled={lockEventAndMode}
+              error={errEventType}
             />
+            {errEventType && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select the type of event to continue.</p>}
+            {lockEventAndMode && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
+                <Lock className="w-3 h-3" /> Set when the case was opened.
+              </p>
+            )}
           </div>
 
           <AnimatePresence>
@@ -402,6 +537,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
                   Were you driving, operating, or in possession of a DART vehicle at the time of the event?
                 </p>
                 <YesNoToggle value={data.operating_dart_vehicle} onChange={v => onUpdate({ operating_dart_vehicle: v })} />
+                {errDriving && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Answer this question to continue.</p>}
               </motion.div>
             )}
           </AnimatePresence>
@@ -421,12 +557,17 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
                 <button
                   key={m.value}
                   type="button"
+                  disabled={lockEventAndMode}
                   onClick={() => handleModeChange(m.value)}
                   className={`flex flex-col items-center gap-2 px-3 py-4 rounded-xl border transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,32,91,0.16)] ${
                     selected
                       ? 'border-[#00205B] bg-[#00205B]'
+                      : lockEventAndMode
+                      ? 'border-[#E2E8F0] bg-white opacity-60'
+                      : errMode
+                      ? 'border-red-300 bg-white hover:border-red-400'
                       : 'border-[#CBD5E1] bg-white hover:border-[#94A3B8] hover:bg-[#F8FAFC]'
-                  }`}
+                  } ${lockEventAndMode ? 'cursor-not-allowed' : ''}`}
                 >
                   <div
                     className={`p-2.5 rounded-lg transition-colors ${
@@ -441,20 +582,20 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft }: Pro
               );
             })}
           </div>
+          {errMode && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Select the vehicle mode involved.</p>}
+          {lockEventAndMode && (
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
+              <Lock className="w-3 h-3" /> Set when the case was opened.
+            </p>
+          )}
         </Section>
-
       </div>
 
-      {/* Footer — attached to form. Disabled Next tells the operator what's missing. */}
+      {/* Footer — Next validates the step; field-level errors surface on attempt. */}
       <div className="mt-6 pt-5 border-t border-slate-200 flex items-center justify-between gap-4 flex-wrap">
         <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
         <div className="flex items-center gap-3 ml-auto">
-          {!canProceed && missing.length > 0 && (
-            <p className="text-xs text-slate-500 font-['Poppins'] hidden sm:block">
-              Missing: <span className="text-slate-700 font-medium">{missing.join(' · ')}</span>
-            </p>
-          )}
-          <GlassButton variant="primary" onClick={onNext} disabled={!canProceed}>Next</GlassButton>
+          <GlassButton variant="primary" onClick={handleNextClick}>{nextLabel || 'Next'}</GlassButton>
         </div>
       </div>
     </StepContainer>

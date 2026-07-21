@@ -13,6 +13,7 @@ interface Props {
   onUpdate: (d: Partial<AccidentReportData>) => void;
   compactMode?: boolean;
   narrativeReadOnly?: boolean;
+  showErrors?: boolean;
 }
 
 // ── option lists ──────────────────────────────────────────────────────────────
@@ -41,14 +42,14 @@ const fade = {
 
 const inputCls = "w-full px-4 py-3 rounded-lg border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all min-h-[44px] font-['Poppins'] text-sm";
 
-function Field({ label, required, helper, children }: { label: string; required?: boolean; helper?: string; children: React.ReactNode }) {
+function Field({ label, required, helper, error, children }: { label: string; required?: boolean; helper?: string; error?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {children}
-      {helper && <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p>}
+      <div className={error ? 'rounded-lg ring-2 ring-red-400/70' : ''}>{children}</div>
+      {error ? <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p> : helper ? <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p> : null}
     </div>
   );
 }
@@ -65,7 +66,7 @@ function Card({ title, complete, children }: { title: string; complete?: boolean
   );
 }
 
-export function BasicIncidentSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false }: Props) {
+export function BasicIncidentSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false, showErrors = false }: Props) {
   const isBusMode = data.mode === 'Bus' || data.mode === 'Non-Revenue Vehicle';
 
   const vehicleOptions: ComboboxOption[] = VEHICLE_DB.map(v => ({
@@ -95,7 +96,7 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
       {/* 1 & 2 – Description + Date/Time */}
       <Card title={compactMode ? 'Event timing' : 'Event description & timing'} complete={!!((compactMode || data.description_of_event) && data.incident_date && data.incident_time)}>
         {!compactMode && (
-          <Field label="Description of event" required helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
+          <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
             <textarea
               rows={4}
               value={data.description_of_event || ''}
@@ -107,10 +108,10 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
           </Field>
         )}
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Event date" required>
+          <Field label="Event date" required error={showErrors && !data.incident_date}>
             <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
           </Field>
-          <Field label="Event time" required helper="An estimated time is acceptable">
+          <Field label="Event time" required error={showErrors && !data.incident_time} helper="An estimated time is acceptable">
             <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
           </Field>
         </div>
@@ -192,13 +193,13 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
         </AnimatePresence>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Street on" required>
+          <Field label="Street on" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
           <Field label="Cross street">
             <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
           </Field>
-          <Field label="City" required>
+          <Field label="City" required error={showErrors && !data.city}>
             <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
           </Field>
           <Field label="ZIP code">

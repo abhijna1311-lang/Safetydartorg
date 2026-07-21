@@ -2,7 +2,7 @@ import type { UserRole } from '../context/UserRoleContext';
 import type { AccidentReportData } from './accident-report';
 
 export type WorkflowStage = 'initiation' | 'operator-completion' | 'supervisor-review' | 'program-manager-review' | 'closed';
-export type WorkflowHandoffAction = 'forwarded' | 'returned' | 'closed' | 'section-submitted' | 'section-resubmitted' | 'section-returned' | 'section-approved' | 'section-reassigned' | 'section-commented' | 'operator-waived' | 'rejected';
+export type WorkflowHandoffAction = 'forwarded' | 'returned' | 'closed' | 'section-submitted' | 'section-resubmitted' | 'section-returned' | 'section-approved' | 'section-reassigned' | 'section-commented' | 'operator-waived' | 'rejected' | 'held';
 export type WorkflowSectionKey = 'operator' | 'supervisor' | 'programManager';
 export type WorkflowSectionStatus = 'not-required' | 'not-started' | 'pending' | 'in-progress' | 'submitted' | 'returned' | 'resubmitted' | 'accepted';
 export type WorkflowOverallStatus = 'draft' | 'open' | 'waiting-on-sections' | 'correction-requested' | 'complete' | 'closed' | 'rejected';
@@ -290,7 +290,7 @@ export function getRequiredSectionKeys(initiatedBy: UserRole, isOnBehalf?: boole
   return ['operator', 'supervisor', 'programManager'];
 }
 
-function createSectionState(key: WorkflowSectionKey, status: WorkflowSectionStatus = 'not-started', timestamp?: string | null): WorkflowSectionState {
+export function createSectionState(key: WorkflowSectionKey, status: WorkflowSectionStatus = 'not-started', timestamp?: string | null): WorkflowSectionState {
   return {
     key,
     ownerRole: SECTION_META[key].ownerRole,
@@ -430,6 +430,16 @@ export function isSectionActionable(section: WorkflowSectionState): boolean {
 export function getActionableSectionForRole(report: WorkflowReport, role: UserRole): WorkflowSectionState | null {
   const section = getWorkflowSections(report)[getSectionKeyForRole(role)];
   return isSectionActionable(section) ? section : null;
+}
+
+// A case is in a role's action queue only when it is genuinely their turn — their section is
+// actionable AND it is the FIRST open section (everyone earlier in the chain is done). This keeps
+// a case out of the PM/supervisor queue until the sections ahead of it close.
+export function isRoleTurnForReport(report: WorkflowReport, role: UserRole): boolean {
+  const sections = getWorkflowSections(report);
+  const roleKey = getSectionKeyForRole(role);
+  if (!isSectionActionable(sections[roleKey])) return false;
+  return WORKFLOW_SECTION_ORDER.find((key) => isSectionActionable(sections[key])) === roleKey;
 }
 
 export function wasRoleInvolvedInReport(report: WorkflowReport, role: UserRole): boolean {

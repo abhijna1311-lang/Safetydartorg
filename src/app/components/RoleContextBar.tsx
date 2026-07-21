@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { CheckCircle, FileText } from 'lucide-react';
 import type { AccidentReportData } from '../types/accident-report';
 import type { UserRole } from '../context/UserRoleContext';
 import { formatSectionStatus, type WorkflowSectionKey, type WorkflowSectionState } from '../types/workflow-report';
@@ -15,7 +15,7 @@ interface RoleContextBarProps {
   onViewCaseStatus: () => void;
 }
 
-const STEP_TITLES = ['Incident Basics', 'Vehicle and Location', 'People and Impact', 'Review and Submit'];
+const STEP_TITLES = ['Incident Basics', 'Vehicle And Location', 'People And Impact', 'Review And Submit'];
 
 function getStartedByName(initiatedBy: UserRole, currentRole: UserRole, currentUserName?: string, data?: AccidentReportData) {
   if (initiatedBy === currentRole && currentUserName) {
@@ -91,38 +91,50 @@ export function RoleContextBar({
   const shouldShowCaseFor = currentRole === 'Supervisor' || currentRole === 'Program Manager';
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm" aria-label="Current section context">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr] lg:items-center">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-[#00205B] font-['Poppins']">{caseId}</p>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <p className="text-sm text-slate-600 font-['Poppins']">{eventSummary}</p>
+    <section className="rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Current section context">
+      <div className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:gap-5">
+        {/* Identity cluster — grounded by a leading icon tile */}
+        <div className="flex min-w-0 flex-1 items-center gap-3.5">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#00205B]/[0.06] text-[#00205B]">
+            <FileText className="h-[18px] w-[18px]" />
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 font-['Poppins']">
-            {shouldShowCaseFor && <span>Case for: {caseFor}</span>}
-            {contextNote && <span>{contextNote}</span>}
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-['Poppins']">Case</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[#00205B] font-['Poppins'] dart-tabular">{caseId}</p>
+              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <p className="truncate text-sm text-slate-600 font-['Poppins']">{eventSummary}</p>
+            </div>
+            {(shouldShowCaseFor || contextNote) && (
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 font-['Poppins']">
+                {shouldShowCaseFor && <span>Case for: {caseFor}</span>}
+                {contextNote && <span>{contextNote}</span>}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        {/* Divider between identity and action */}
+        <div className="hidden h-10 w-px flex-shrink-0 bg-slate-200 lg:block" />
+
+        {/* Action cluster */}
+        <div className="flex items-center justify-between gap-5 lg:justify-end">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#00205B] font-['Poppins']">
-              <ArrowRight className="h-4 w-4 text-[#007DBA]" />
-              <span>{currentTask}</span>
-            </div>
-            {activeSection.status === 'returned' && (
-              <div className="mt-1 text-xs font-semibold text-amber-800 font-['Poppins']">Returned for correction</div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-['Poppins']">Your task</p>
+            <p className="mt-0.5 truncate text-sm font-semibold text-[#00205B] font-['Poppins']">{currentTask}</p>
+            {activeSection.status === 'returned' ? (
+              <p className="mt-1 text-xs font-semibold text-amber-700 font-['Poppins']">Returned for correction</p>
+            ) : (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400 font-['Poppins']">
+                <CheckCircle className="h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
+                Draft saved automatically
+              </p>
             )}
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Draft saved automatically</span>
-            </div>
           </div>
           <button
             type="button"
             onClick={onViewCaseStatus}
-            className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#007DBA] hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]/60 font-['Poppins']"
+            className="inline-flex min-h-[38px] flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#007DBA] hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]/60 font-['Poppins']"
           >
             View case status
           </button>

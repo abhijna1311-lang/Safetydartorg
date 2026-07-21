@@ -14,9 +14,9 @@ interface WizardStep {
 
 const DEFAULT_STEPS: WizardStep[] = [
   { number: 1, title: 'Incident Basics' },
-  { number: 2, title: 'Vehicle and Location' },
-  { number: 3, title: 'People and Impact' },
-  { number: 4, title: 'Review and Submit' },
+  { number: 2, title: 'Vehicle And Location' },
+  { number: 3, title: 'People And Impact' },
+  { number: 4, title: 'Review And Submit' },
 ];
 
 export function WizardStepper({ currentStep, onStepClick, steps = DEFAULT_STEPS }: WizardStepperProps) {

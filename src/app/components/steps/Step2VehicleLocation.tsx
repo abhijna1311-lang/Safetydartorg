@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
 import { BusCollisionSection } from './sections/BusCollisionSection';
@@ -71,6 +71,7 @@ export function Step2VehicleLocation({
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Check if this is a collision event
   const isCollision = data.event_type === 'Collision';
@@ -99,6 +100,16 @@ export function Step2VehicleLocation({
         (isCollision && isBus ? data.vehicle_number : true)
       );
 
+  const handleNextClick = () => {
+    if (canProceed) {
+      setShowErrors(false);
+      onNext();
+    } else {
+      setShowErrors(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const contextTone = isSupervisorReview
     ? {
         container: 'border-[#0078AE]/30 bg-[#0078AE]/10',
@@ -123,6 +134,12 @@ export function Step2VehicleLocation({
       title={stepTitle}
       description={stepDescription}
     >
+      {showErrors && !canProceed && (
+        <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" />
+          <p className="text-sm font-semibold text-red-800 font-['Poppins']">Please complete the required fields highlighted below to continue.</p>
+        </div>
+      )}
       {/* Context banner */}
       <div className={`mb-5 flex items-center gap-2 rounded-lg border px-4 py-2.5 ${contextTone.container}`}>
         <Info className={`h-4 w-4 flex-shrink-0 ${contextTone.icon}`} />
@@ -202,11 +219,11 @@ export function Step2VehicleLocation({
             <>
               {isCollision ? (
                 <>
-                  {isBus  && <BusCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} />}
-                  {isLRV  && <LRVCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} />}
+                  {isBus  && <BusCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
+                  {isLRV  && <LRVCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
                 </>
               ) : (
-                <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} />
+                <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
               )}
               <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />
             </>
@@ -230,7 +247,7 @@ export function Step2VehicleLocation({
         </button>
         <div className="flex items-center gap-4">
           <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
-          <GlassButton variant="primary" onClick={onNext} disabled={!canProceed}>Next</GlassButton>
+          <GlassButton variant="primary" onClick={handleNextClick}>Next</GlassButton>
         </div>
       </div>
     </StepContainer>

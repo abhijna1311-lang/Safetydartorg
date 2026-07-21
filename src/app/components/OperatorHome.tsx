@@ -10,6 +10,7 @@ import {
   getPendingSectionLabels,
   getStepName,
   getWorkflowStatus,
+  isRoleTurnForReport,
   wasRoleInvolvedInReport,
   type WorkflowReport,
   type WorkflowSectionState,
@@ -153,8 +154,8 @@ const HOME_COPY: Record<UserRole, {
 }> = {
   Operator: {
     intro: 'Finish case sections that were assigned to you, or start a case yourself when reporting directly from the field.',
-    heroTitle: 'Start a New Accident Case',
-    heroDescription: 'Open a shared case and complete your section. Your progress will be automatically saved as you go.',
+    heroTitle: 'Start a new accident case',
+    heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your action',
     queueMetricHelper: 'Your section tasks',
@@ -168,8 +169,8 @@ const HOME_COPY: Record<UserRole, {
   },
   Supervisor: {
     intro: 'Start cases when operators cannot, then complete supervisor collision sections assigned to you.',
-    heroTitle: 'Start a New Accident Case',
-    heroDescription: 'Open a shared case and complete your section. Your progress will be automatically saved as you go.',
+    heroTitle: 'Start a new accident case',
+    heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your section',
     queueMetricHelper: 'Supervisor action',
@@ -183,8 +184,8 @@ const HOME_COPY: Record<UserRole, {
   },
   'Program Manager': {
     intro: 'Complete classification sections, request targeted corrections, and close cases when all role sections are in.',
-    heroTitle: 'Start a New Accident Case',
-    heroDescription: 'Open a shared case and complete your section. Your progress will be automatically saved as you go.',
+    heroTitle: 'Start a new accident case',
+    heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your section',
     queueMetricHelper: 'Classification action',
@@ -255,7 +256,7 @@ const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
       eventId: 'AR-2025-0010',
       title: 'Started on your behalf',
       ownerLabel: 'Started by',
-      ownerValue: 'Sarah Chen (Supervisor)',
+      ownerValue: 'Aitana Bonmati (Supervisor)',
       contextLabel: 'Why you are seeing this',
       contextValue: 'Control center called this in. Finish the operator details before supervisor review.',
       dueBy: '11/20/2025',
@@ -271,7 +272,7 @@ const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
       eventId: 'AR-2025-0011',
       title: 'Ready for supervisor review',
       ownerLabel: 'Submitted by',
-      ownerValue: 'John Doe (Operator)',
+      ownerValue: 'Bukayo Saka (Operator)',
       contextLabel: 'What needs review',
       contextValue: 'Operator completed the narrative and people impact section. Confirm scene facts and forward it.',
       dueBy: '11/19/2025',
@@ -287,7 +288,7 @@ const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
       eventId: 'AR-2025-0014',
       title: 'Ready for final review',
       ownerLabel: 'Forwarded by',
-      ownerValue: 'Maria Chen (Supervisor)',
+      ownerValue: 'Alexia Putellas (Supervisor)',
       contextLabel: 'What needs classification',
       contextValue: 'Supervisor completed investigation notes. Finalize classification and close the case.',
       dueBy: '11/21/2025',
@@ -349,7 +350,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
         currentStep: report.currentStep,
         stepName: getStepName(report),
         sectionName: getActionableSectionForRole(report, roleConfig.role)?.label,
-        nextRequiredField: report.currentStep <= 1 ? 'Incident Basics' : report.currentStep === 2 ? 'Vehicle and Location' : report.currentStep === 3 ? 'People and Impact' : 'Review and Submit',
+        nextRequiredField: report.currentStep <= 1 ? 'Incident Basics' : report.currentStep === 2 ? 'Vehicle And Location' : report.currentStep === 3 ? 'People And Impact' : 'Review And Submit',
         savedData: report.formData,
       }));
   }, [reports, roleConfig.role]);
@@ -361,8 +362,8 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
 
     return reports
       .map((report) => ({ report, section: getActionableSectionForRole(report, roleConfig.role) }))
-      .filter((item): item is { report: WorkflowReport; section: WorkflowSectionState } => Boolean(item.section) && item.report.workflowStage !== 'closed')
-      .sort((a, b) => a.report.lastSavedAt.localeCompare(b.report.lastSavedAt))
+      .filter((item): item is { report: WorkflowReport; section: WorkflowSectionState } => Boolean(item.section) && item.report.workflowStage !== 'closed' && isRoleTurnForReport(item.report, roleConfig.role))
+      .sort((a, b) => b.report.lastSavedAt.localeCompare(a.report.lastSavedAt))
       .map(({ report, section }) => {
         const latestHandoff = getLatestHandoff(report);
         const wasReturned = latestHandoff?.action === 'returned' || latestHandoff?.action === 'section-returned' || section.status === 'returned';
@@ -376,7 +377,9 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
           contextLabel: presentation.contextLabel,
           contextValue: presentation.contextValue,
           dueBy: report.dueBy || formatShortDate(report.lastSavedAt),
-          priorityLabel: section.status === 'returned' ? 'Correction needed' : presentation.priorityLabel,
+          priorityLabel: report.formData.pm_on_hold && roleConfig.role === 'Program Manager'
+            ? 'On hold'
+            : section.status === 'returned' ? 'Correction needed' : presentation.priorityLabel,
           reportFor: report.formData.employee_name || 'Employee pending',
           requiredSection: section.label,
           ctaLabel: getSectionCtaLabel(section),
@@ -413,7 +416,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
     : recentActivity.filter((report) => ['Closed', 'Sent to program manager'].includes(report.status)).length;
 
   return (
-    <div className="min-h-screen bg-[#F5F7FB] flex flex-col">
+    <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="home" onNavigate={onNavigate} />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-6 flex-1 w-full">
@@ -440,7 +443,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
               <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#00A4B5]/20 rounded-full blur-2xl" />
 
               <div className="relative z-10 flex items-center justify-between gap-6 h-full">
-                <div className="flex-1 flex flex-col justify-between h-full">
+                <div className="flex-1 flex flex-col justify-center gap-4">
                   <div>
                     <h2 className="text-lg text-white font-semibold mb-1.5">{copy.heroTitle}</h2>
                     <p className="text-xs text-white/80 leading-relaxed">{copy.heroDescription}</p>
@@ -486,11 +489,11 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                   <MdAccessTime className="w-5 h-5 text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-slate-700 font-medium leading-tight text-[12px]">Draft cases</p>
+                  <p className="text-slate-700 font-medium leading-tight text-[12px] capitalize">Draft cases</p>
                   <p className="text-slate-500 leading-tight text-[10px] mt-1">{copy.draftsDescription}</p>
                 </div>
               </div>
-              <div className="text-2xl font-semibold text-[#00205B] shrink-0 text-[20px]">{draftReports.length}</div>
+              <div className="text-2xl font-semibold text-[#00205B] shrink-0 text-[20px] dart-tabular">{draftReports.length}</div>
             </button>
 
             <button
@@ -502,11 +505,11 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                   <MdNotifications className="w-5 h-5 text-[#007DBA]" />
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-slate-700 font-medium leading-tight text-[12px]">{copy.queueMetricLabel}</p>
+                  <p className="text-slate-700 font-medium leading-tight text-[12px] capitalize">{copy.queueMetricLabel}</p>
                   <p className="text-slate-500 leading-tight text-[10px] mt-1">{copy.queueMetricHelper}</p>
                 </div>
               </div>
-              <div className="text-2xl font-semibold text-[#00205B] shrink-0 text-[20px]">{queueReports.length}</div>
+              <div className="text-2xl font-semibold text-[#00205B] shrink-0 text-[20px] dart-tabular">{queueReports.length}</div>
             </button>
 
             <button
@@ -518,11 +521,11 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                   <MdCheckCircle className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-slate-700 font-medium leading-tight text-[12px]">{copy.completedMetricLabel}</p>
+                  <p className="text-slate-700 font-medium leading-tight text-[12px] capitalize">{copy.completedMetricLabel}</p>
                   <p className="text-slate-500 leading-tight text-[10px] mt-1">{copy.completedMetricHelper}</p>
                 </div>
               </div>
-              <div className="text-2xl font-semibold text-[#00205B] shrink-0 text-[20px]">{completedCount}</div>
+              <div className="text-2xl font-semibold text-[#00205B] shrink-0 text-[20px] dart-tabular">{completedCount}</div>
             </button>
           </div>
         </div>
@@ -530,7 +533,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
         <div className="border-t border-[#E5ECF5] mb-8" />
 
         <div className="bg-[#FEFEFE] rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(0,0,0,0.06)] p-5 mb-10" data-section="work-queue">
-          <div className="mb-5 pb-4 border-b border-[#EDF1F7]">
+          <div className="mb-5 pb-4 border-b border-[#EDF1F7] flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 bg-gradient-to-br from-amber-50/60 to-amber-100/40 backdrop-blur-sm rounded-full flex items-center justify-center shrink-0 border border-amber-200/30 shadow-[0_2px_8px_rgba(251,191,36,0.15)]">
                 <MdNotifications className="w-5 h-5 text-[#C57311]" />
@@ -540,11 +543,16 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                 <p className="text-xs text-slate-600 mt-0.5">{copy.queueSectionDescription}</p>
               </div>
             </div>
+            {queueReports.length > 5 && (
+              <button onClick={() => onNavigate?.('submissions')} className="text-sm text-[#007DBA] hover:text-[#00549F] font-medium transition-colors shrink-0">
+                View more →
+              </button>
+            )}
           </div>
 
           {queueReports.length > 0 ? (
             <div className="space-y-4">
-              {queueReports.map((report) => (
+              {queueReports.slice(0, 5).map((report) => (
                 <div
                   key={report.eventId}
                   className="w-full bg-[#FFF9F1] rounded-2xl border border-[#E3E7EE] shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-200 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-6"
@@ -555,18 +563,13 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                         <h3 className="text-[15px] text-[#00205B] font-semibold mb-1">{report.title}</h3>
                         <div className="flex items-baseline gap-2">
                           <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">Case ID</p>
-                          <p className="text-sm text-[#007DBA] font-semibold">{report.eventId}</p>
+                          <p className="text-sm text-[#007DBA] font-semibold dart-tabular">{report.eventId}</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 gap-y-2">
-                      <span className="inline-flex px-3 py-1.5 text-[11px] text-[#C57311] bg-[#FFE6C4] rounded-full font-medium">{report.priorityLabel}</span>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50/60 rounded-lg border border-red-100/60">
-                        <span className="text-[10px] text-slate-600 uppercase tracking-wide font-medium">Due</span>
-                        <MdAccessTime className="w-4 h-4 text-[#D64545]" />
-                        <p className="text-sm text-[#D64545] font-semibold">{report.dueBy}</p>
-                      </div>
+                      <span className={`inline-flex px-3 py-1.5 text-[11px] rounded-full font-medium ${report.priorityLabel === 'On hold' ? 'text-indigo-700 bg-indigo-100' : 'text-[#C57311] bg-[#FFE6C4]'}`}>{report.priorityLabel}</span>
                       <button
                         onClick={() => openReport(report.eventId)}
                         className="group/btn relative w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-br from-[#005A8F] to-[#007DBA] hover:from-[#006BA0] hover:to-[#0088CC] rounded-xl shadow-md hover:shadow-lg ease-in-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#005A8F] focus:ring-offset-2"
@@ -772,7 +775,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                 <MdDelete className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-[#00205B]">Delete Draft Case?</h3>
+                <h3 className="text-base font-semibold text-[#00205B]">Delete draft case?</h3>
                 <p className="text-sm text-slate-600 mt-1">This action cannot be undone.</p>
               </div>
             </div>

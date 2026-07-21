@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
-import { AlertOctagon, Ban, CheckCircle2, ChevronDown, FileText, MessageSquarePlus, RotateCcw, ShieldCheck, UserCog } from 'lucide-react';
+import { AlertOctagon, Ban, CheckCircle2, ChevronDown, FileText, MessageSquarePlus, PauseCircle, RotateCcw, ShieldCheck, UserCog } from 'lucide-react';
 import { GlassButton } from './GlassButton';
 import type { AccidentReportData } from '../types/accident-report';
 import type { WorkflowSectionState } from '../types/workflow-report';
 import { EMPLOYEE_DB } from '../data/employeeDatabase';
 
-export type PMActionKey = 'comment' | 'return' | 'reassign' | 'reject' | 'approve';
+export type PMActionKey = 'comment' | 'hold' | 'return' | 'reassign' | 'reject' | 'approve';
 
 interface PMReviewActionBarProps {
   data: AccidentReportData;
+  isOnHold?: boolean;
   supervisorSection: WorkflowSectionState;
   canApprove: boolean;
   approveDisabledReason?: string;
@@ -19,6 +20,7 @@ interface PMReviewActionBarProps {
   onOpenSupervisorReport: () => void;
   onOpenActivity?: () => void;
   onComment: (note: string) => void;
+  onHold: (note: string) => void;
   onReturn: (note: string) => void;
   onReassign: (payload: { toBadge: string; toName: string; note: string }) => void;
   onReject: (reason: string) => void;
@@ -31,7 +33,7 @@ const ACTION_META: Record<PMActionKey, {
   noteHint: string;
   confirmLabel: string;
   placeholder: string;
-  tone: 'emerald' | 'amber' | 'sky' | 'red' | 'slate';
+  tone: 'emerald' | 'amber' | 'sky' | 'red' | 'slate' | 'indigo';
 }> = {
   comment: {
     label: 'Add comment',
@@ -40,6 +42,14 @@ const ACTION_META: Record<PMActionKey, {
     confirmLabel: 'Post comment',
     placeholder: 'e.g. Waiting on video from bus 2045 before I finalize classification.',
     tone: 'slate',
+  },
+  hold: {
+    label: 'Place case on hold',
+    noteLabel: 'Hold reason (required)',
+    noteHint: 'Parks the case in your queue without routing it anywhere. It stays put until you act again.',
+    confirmLabel: 'Place on hold',
+    placeholder: 'e.g. Holding for CCTV from bus 2045 and the field supervisor statement before I classify.',
+    tone: 'indigo',
   },
   return: {
     label: 'Return for correction',
@@ -75,7 +85,7 @@ const ACTION_META: Record<PMActionKey, {
   },
 };
 
-const TONE_STYLES: Record<'emerald' | 'amber' | 'sky' | 'red' | 'slate', {
+const TONE_STYLES: Record<'emerald' | 'amber' | 'sky' | 'red' | 'slate' | 'indigo', {
   panel: string;
   header: string;
   hint: string;
@@ -85,6 +95,7 @@ const TONE_STYLES: Record<'emerald' | 'amber' | 'sky' | 'red' | 'slate', {
   sky: { panel: 'border-sky-300 bg-sky-50/60', header: 'text-sky-900', hint: 'text-sky-800/80' },
   red: { panel: 'border-red-300 bg-red-50/60', header: 'text-red-900', hint: 'text-red-800/80' },
   slate: { panel: 'border-slate-300 bg-slate-50', header: 'text-slate-900', hint: 'text-slate-600' },
+  indigo: { panel: 'border-indigo-300 bg-indigo-50/60', header: 'text-indigo-900', hint: 'text-indigo-800/80' },
 };
 
 function formatDate(value?: string | null) {
@@ -103,6 +114,7 @@ function formatDate(value?: string | null) {
 
 export function PMReviewActionBar({
   data,
+  isOnHold = false,
   supervisorSection,
   canApprove,
   approveDisabledReason,
@@ -113,6 +125,7 @@ export function PMReviewActionBar({
   onOpenSupervisorReport,
   onOpenActivity,
   onComment,
+  onHold,
   onReturn,
   onReassign,
   onReject,
@@ -164,6 +177,7 @@ export function PMReviewActionBar({
     const trimmed = note.trim();
     if (!trimmed) return;
     if (pendingAction === 'comment') onComment(trimmed);
+    else if (pendingAction === 'hold') onHold(trimmed);
     else if (pendingAction === 'return') onReturn(trimmed);
     else if (pendingAction === 'reassign') {
       const selected = supervisorOptions.find((option) => option.badge === reassignBadge);
@@ -287,6 +301,16 @@ export function PMReviewActionBar({
             <MessageSquarePlus className="h-3.5 w-3.5" />
             Comment only
           </button>
+          {!isOnHold && (
+            <button
+              type="button"
+              onClick={() => openAction('hold')}
+              className={`dart-press dart-focus-ring inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold font-['Poppins'] ${pendingAction === 'hold' ? 'border-indigo-500 bg-indigo-100 text-indigo-900' : 'border-indigo-200 bg-indigo-50 text-indigo-800 hover:border-indigo-400 hover:bg-indigo-100'}`}
+            >
+              <PauseCircle className="h-3.5 w-3.5" />
+              Hold
+            </button>
+          )}
           <button
             type="button"
             onClick={() => openAction('return')}
@@ -343,6 +367,7 @@ export function PMReviewActionBar({
             {pendingAction === 'reassign' && <UserCog className={`h-5 w-5 ${toneStyle.header}`} />}
             {pendingAction === 'reject' && <AlertOctagon className={`h-5 w-5 ${toneStyle.header}`} />}
             {pendingAction === 'comment' && <MessageSquarePlus className={`h-5 w-5 ${toneStyle.header}`} />}
+            {pendingAction === 'hold' && <PauseCircle className={`h-5 w-5 ${toneStyle.header}`} />}
             <p className={`text-sm font-semibold font-['Poppins'] ${toneStyle.header}`}>{meta.label}</p>
           </div>
 

@@ -31,17 +31,17 @@ function getSuccessCopy(sectionKey: WorkflowSectionKey, isComplete?: boolean) {
   switch (sectionKey) {
     case 'operator':
       return {
-        title: 'Your Operator Section has been submitted',
+        title: 'Your operator section has been submitted',
         body: 'Supervisor and Program Manager sections are now pending. You are done for now unless your section is returned for correction.',
       };
     case 'supervisor':
       return {
-        title: 'Your Supervisor Section has been submitted',
+        title: 'Your supervisor section has been submitted',
         body: 'The case will remain open until all required sections are complete.',
       };
     case 'programManager':
       return {
-        title: 'Your Program Manager Section has been submitted',
+        title: 'Your program manager section has been submitted',
         body: 'The case will close when all required sections are complete.',
       };
   }

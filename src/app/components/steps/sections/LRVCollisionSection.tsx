@@ -10,6 +10,7 @@ interface Props {
   data: AccidentReportData;
   onUpdate: (d: Partial<AccidentReportData>) => void;
   narrativeReadOnly?: boolean;
+  showErrors?: boolean;
 }
 
 // ── option lists ──────────────────────────────────────────────────────────────
@@ -57,14 +58,14 @@ const fade = {
 
 const inputCls = "dart-input-base";
 
-function Field({ label, required, helper, children }: { label: string; required?: boolean; helper?: string; children: React.ReactNode }) {
+function Field({ label, required, helper, error, children }: { label: string; required?: boolean; helper?: string; error?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {children}
-      {helper && <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p>}
+      <div className={error ? 'rounded-lg ring-2 ring-red-400/70' : ''}>{children}</div>
+      {error ? <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p> : helper ? <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p> : null}
     </div>
   );
 }
@@ -86,7 +87,7 @@ function locationShowsStation(cat: string) { return ['Rail Station', 'Grade Cros
 function locationShowsGrade(cat: string) { return ['Grade Crossing', 'Bridge'].includes(cat); }
 function locationShowsTunnel(cat: string) { return cat === 'Tunnel'; }
 
-export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false }: Props) {
+export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false }: Props) {
   const showRailLine = SHOWS_RAIL_LINE.includes(data.train_status_before || '');
   const consist = data.lrv_consist_count ?? 0;
 
@@ -95,7 +96,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false 
 
       {/* Description + Date/Time */}
       <Card title="Event description & timing" complete={!!(data.description_of_event && data.incident_date && data.incident_time)}>
-        <Field label="Description of event" required helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
+        <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
           <textarea
             rows={4}
             value={data.description_of_event || ''}
@@ -106,10 +107,10 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false 
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Event date" required>
+          <Field label="Event date" required error={showErrors && !data.incident_date}>
             <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
           </Field>
-          <Field label="Event time" required>
+          <Field label="Event time" required error={showErrors && !data.incident_time}>
             <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
           </Field>
         </div>
@@ -118,7 +119,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false 
       {/* Train Vehicle */}
       <Card title="Train vehicle details" complete={!!data.train_number}>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Train number" required>
+          <Field label="Train number" required error={showErrors && !data.train_number}>
             <input type="text" value={data.train_number || ''} onChange={e => onUpdate({ train_number: e.target.value })} placeholder="e.g. T-2045" className={inputCls} />
           </Field>
           <Field label="Car number involved in event">

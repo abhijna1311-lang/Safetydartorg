@@ -59,9 +59,13 @@ function formatSubmittedAt(value?: string | null) {
 export function EmployeeRecordPanel({ data, submissionContext }: EmployeeRecordPanelProps) {
   const { roleConfig } = useUserRole();
   const [expanded, setExpanded] = useState(false);
+  const isProgramManager = roleConfig.role === 'Program Manager';
   const workdayRecord = data.employee_badge_number ? EMPLOYEE_DB[data.employee_badge_number] : undefined;
+  // Program managers always file on behalf of someone, so never fall back to the
+  // PM's own identity — that would imply the case is about them.
+  const awaitingSubject = isProgramManager && !data.employee_name && !workdayRecord?.name;
   const badgeNumber = data.employee_badge_number || workdayRecord?.badge;
-  const name = data.employee_name || workdayRecord?.name || roleConfig.name;
+  const name = data.employee_name || workdayRecord?.name || (isProgramManager ? undefined : roleConfig.name);
   const divisionWork = data.division_work || workdayRecord?.division_work || 'Employee';
   const division = data.assigned_division || workdayRecord?.division;
   const divisionSupervisor = data.division_supervisor || workdayRecord?.division_supervisor || data.supervisor_name;
@@ -107,18 +111,30 @@ export function EmployeeRecordPanel({ data, submissionContext }: EmployeeRecordP
         {/* Identity block: primary row for orientation, secondary row for submission context */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-sm font-['Poppins']">
-            <span className="font-semibold text-white">{name || '—'}</span>
-            <span className="text-white/30">·</span>
-            <span className="text-blue-100/85">{divisionWork}</span>
-            {badgeNumber && (
+            {awaitingSubject ? (
+              <span className="font-semibold text-white/85">No employee selected yet</span>
+            ) : (
               <>
+                <span className="font-semibold text-white">{name || '—'}</span>
                 <span className="text-white/30">·</span>
-                <span className="text-blue-100/82">Badge #{badgeNumber}</span>
+                <span className="text-blue-100/85">{divisionWork}</span>
+                {badgeNumber && (
+                  <>
+                    <span className="text-white/30">·</span>
+                    <span className="text-blue-100/82">Badge #{badgeNumber}</span>
+                  </>
+                )}
               </>
             )}
           </div>
 
-          {secondaryContext.length > 0 && (
+          {awaitingSubject && (
+            <p className="mt-1.5 text-[12px] text-blue-100/80 font-['Poppins']">
+              Choose who this case is for in the section below to load their record.
+            </p>
+          )}
+
+          {!awaitingSubject && secondaryContext.length > 0 && (
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-['Poppins']">
               {secondaryContext.map((item, index) => (
                 <div key={`${item.label}-${item.value}-${index}`} className="inline-flex shrink-0 items-center gap-2">
@@ -138,34 +154,36 @@ export function EmployeeRecordPanel({ data, submissionContext }: EmployeeRecordP
           )}
         </div>
 
-        {/* Workday tag + expand toggle */}
-        <div className="flex items-start gap-3 flex-shrink-0 pt-0.5 md:pt-1">
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-blue-100/80 font-['Poppins']">
-            <span
-              className="material-symbols-rounded text-blue-100/85"
-              style={{ fontSize: 14, lineHeight: 1, fontVariationSettings: "'FILL' 1, 'wght' 500, 'opsz' 20" }}
-              aria-hidden="true"
-            >
-              lock
+        {/* Workday tag + expand toggle — only once a subject record is loaded */}
+        {!awaitingSubject && (
+          <div className="flex items-start gap-3 flex-shrink-0 pt-0.5 md:pt-1">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-blue-100/80 font-['Poppins']">
+              <span
+                className="material-symbols-rounded text-blue-100/85"
+                style={{ fontSize: 14, lineHeight: 1, fontVariationSettings: "'FILL' 1, 'wght' 500, 'opsz' 20" }}
+                aria-hidden="true"
+              >
+                lock
+              </span>
+              {panelDescriptor}
             </span>
-            {panelDescriptor}
-          </span>
-          <button
-            type="button"
-            onClick={() => setExpanded(v => !v)}
-            className="flex items-center gap-1 text-xs text-[#CDE7FF] font-medium font-['Poppins'] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#7BC5FF] focus:ring-offset-0 rounded px-1.5 py-1"
-            aria-expanded={expanded}
-          >
-            {expanded ? 'Hide details' : 'Show full record'}
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setExpanded(v => !v)}
+              className="flex items-center gap-1 text-xs text-[#CDE7FF] font-medium font-['Poppins'] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#7BC5FF] focus:ring-offset-0 rounded px-1.5 py-1"
+              aria-expanded={expanded}
+            >
+              {expanded ? 'Hide details' : 'Show full record'}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Expanded details — bottom-to-top slide: container grows first (makes room),
           then the panel visibly rises up from below into that space, spring-settled */}
       <AnimatePresence initial={false}>
-        {expanded && (
+        {expanded && !awaitingSubject && (
           <motion.div
             key="details-wrapper"
             initial={{ height: 0 }}

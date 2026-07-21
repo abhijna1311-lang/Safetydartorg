@@ -17,7 +17,7 @@ interface ResumeSnapshotPanelProps {
   onCancel: () => void;
 }
 
-const STEPS = ['Incident Basics', 'Vehicle and Location', 'People and Impact', 'Review and Submit'];
+const STEPS = ['Incident Basics', 'Vehicle And Location', 'People And Impact', 'Review And Submit'];
 
 function countMissingCommonFields(report: WorkflowReport) {
   const data = report.formData;

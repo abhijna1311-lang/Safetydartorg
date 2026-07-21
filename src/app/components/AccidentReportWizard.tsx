@@ -20,6 +20,7 @@ import {
   activateParallelSections,
   areRequiredSectionsComplete,
   createInitialSections,
+  createSectionState,
   getLegacyStageFromSections,
   getOverallStatusFromSections,
   getSectionKeyForRole,
@@ -49,15 +50,25 @@ interface AccidentReportWizardProps {
 const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { number: number; title: string }[]> = {
   supervisor: [
     { number: 1, title: 'Incident Basics' },
-    { number: 2, title: 'Injuries and Police' },
-    { number: 3, title: 'Review and Submit' },
+    { number: 2, title: 'Injuries And Police' },
+    { number: 3, title: 'Review And Submit' },
   ],
   programManager: [
-    { number: 1, title: 'Review' },
+    { number: 1, title: 'Investigate' },
     { number: 2, title: 'Impact' },
     { number: 3, title: 'Classify' },
+    { number: 4, title: 'Actions' },
   ],
 };
+
+// A supervisor who INITIATES a case walks a 4-step flow: the case intake (Incident Basics)
+// then their own three supervisor sub-steps. currentStep maps 1 -> intake, 2-4 -> sub-steps 1-3.
+const INITIATING_SUPERVISOR_STEPS = [
+  { number: 1, title: 'Incident Basics' },
+  { number: 2, title: 'Investigation Details' },
+  { number: 3, title: 'Injuries And Police' },
+  { number: 4, title: 'Review And Submit' },
+];
 
 function getWorkflowStageForSection(sectionKey: WorkflowSectionKey): WorkflowStage {
   switch (sectionKey) {
@@ -149,8 +160,21 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const [sections, setSections] = useState<WorkflowSections>(() => initialReport ? getWorkflowSections(initialReport) : createInitialSections(roleConfig.role, initialData?.is_on_behalf));
   const activeSectionKey = getSectionKeyForRole(roleConfig.role);
   const activeSection = sections[activeSectionKey];
-  const isAssignedSectionFlow = shouldUseAssignedSectionFlow(initialReport, roleConfig.role);
+  const supervisorSectionSubmitted = ['submitted', 'resubmitted'].includes(sections.supervisor.status);
+  // A PM who INITIATED the case returns to REVIEW their own section once the supervisor has submitted.
+  const isPmInitiatorReturning = roleConfig.role === 'Program Manager'
+    && initiatedBy === 'Program Manager'
+    && activeSectionKey === 'programManager'
+    && supervisorSectionSubmitted
+    && isSectionActionable(activeSection);
+  const isAssignedSectionFlow = shouldUseAssignedSectionFlow(initialReport, roleConfig.role) || isPmInitiatorReturning;
   const assignedSectionSteps = isAssignedSectionFlow && activeSectionKey !== 'operator' ? ASSIGNED_SECTION_STEPS[activeSectionKey] : undefined;
+  // A supervisor who INITIATES a case fills the case setup (Incident Basics) and then their
+  // OWN supervisor section — never the operator's Vehicle/Location or People/Impact steps.
+  const isInitiatingSupervisor = roleConfig.role === 'Supervisor' && !isAssignedSectionFlow && activeSectionKey === 'supervisor';
+  // A PM who INITIATES a case fills the case intake (Incident Basics) only; their own section is
+  // completed on the return trip after the operator/supervisor sections are done.
+  const isInitiatingPM = roleConfig.role === 'Program Manager' && !isAssignedSectionFlow && activeSectionKey === 'programManager';
   const operatorSectionStatus = sections.operator.status;
   const isOperatorSectionEditableByCurrentRole = activeSectionKey === 'operator' && ['pending', 'in-progress', 'returned'].includes(operatorSectionStatus);
   const isOperatorNarrativeLocked = !isOperatorSectionEditableByCurrentRole;
@@ -181,16 +205,16 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     [activeSectionKey, initiatedBy, formData.is_on_behalf, isComplete],
   );
   const isCaseRejected = Boolean(rejectedAt);
-  const supervisorSectionSubmitted = ['submitted', 'resubmitted'].includes(sections.supervisor.status);
   const pmCanTakeReviewAction = roleConfig.role === 'Program Manager'
     && isAssignedSectionFlow
     && !isCaseRejected;
   const isRoleAllowedToAdvance = !isCaseRejected && !isComplete && isSectionActionable(activeSection);
-  const showSectionStepper = !isAssignedSectionFlow || (
+  const showSectionStepper = !isInitiatingPM && (!isAssignedSectionFlow || (
     Boolean(assignedSectionSteps && assignedSectionSteps.length > 1)
     && !isCaseRejected
-  );
+  ));
   const currentStepperStep = isAssignedSectionFlow ? Math.min(currentStep, assignedSectionSteps?.length || 1) : currentStep;
+  const sectionStepperSteps = isInitiatingSupervisor ? INITIATING_SUPERVISOR_STEPS : assignedSectionSteps;
   const activeAssignedStepTitle = assignedSectionSteps?.find((step) => step.number === currentStepperStep)?.title;
   // Return-for-correction routing:
   // - Operator sections lock on submit; no reviewer can send them back.
@@ -323,7 +347,8 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    const maxStep = 4;
+    if (currentStep < maxStep) {
       setCurrentStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -356,6 +381,41 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     // In a real app, this would save to a backend/database
   };
 
+  // Program manager initiating: they fill the case intake (Incident Basics) on behalf of an
+  // operator who has not / cannot file yet, then route the case out. Their own PM section is
+  // completed on the return trip, after the operator (if available) and supervisor submit.
+  const handleInitiatePmCase = () => {
+    const timestamp = new Date().toISOString();
+    const operatorAvailable = formData.operator_availability_confirmed !== false;
+    const nextSections: WorkflowSections = {
+      operator: createSectionState('operator', operatorAvailable ? 'pending' : 'not-required', timestamp),
+      supervisor: createSectionState('supervisor', 'pending', timestamp),
+      programManager: createSectionState('programManager', 'pending', timestamp),
+    };
+    const nextFormData: AccidentReportData = operatorAvailable
+      ? formData
+      : { ...formData, operator_waived_by: roleConfig.name, operator_waived_at: timestamp };
+    const nextHistory: WorkflowHandoff[] = [
+      ...handoffHistory,
+      ...(operatorAvailable ? [] : [buildHandoff('operator-waived', null, formData.operator_unavailable_reason || undefined)]),
+      buildHandoff('forwarded', operatorAvailable ? 'operator' : 'supervisor', undefined, operatorAvailable ? ['operator'] : ['supervisor']),
+    ];
+    setSections(nextSections);
+    setFormData(nextFormData);
+    setLastSubmittedBy(roleConfig.role);
+    setHandoffHistory(nextHistory);
+    persistReport({
+      nextSections,
+      nextStep: 1,
+      nextLastSubmittedBy: roleConfig.role,
+      nextClosedAt: null,
+      nextHandoffNote: null,
+      nextHandoffHistory: nextHistory,
+      nextFormData,
+    });
+    onBackToHome?.();
+  };
+
   const handleSubmit = () => {
     if (!isRoleAllowedToAdvance) {
       return;
@@ -372,7 +432,13 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     const timestamp = new Date().toISOString();
     const wasCorrection = sections[activeSectionKey].status === 'returned';
     const submittedSections = markSectionSubmitted(sections, activeSectionKey, roleConfig.role, timestamp);
-    const nextSections = activateParallelSections(submittedSections, initiatedBy, formData.is_on_behalf, timestamp);
+    const activatedRaw = activateParallelSections(submittedSections, initiatedBy, formData.is_on_behalf, timestamp);
+    // If the initiator waived the operator (operator unavailable to file), their section is not
+    // required — keep it out of the queue instead of activating it into a pending state.
+    const operatorWaived = formData.operator_availability_confirmed === false;
+    const nextSections = operatorWaived && activatedRaw.operator.status === 'pending'
+      ? { ...activatedRaw, operator: { ...activatedRaw.operator, status: 'not-required', lastUpdatedAt: timestamp } }
+      : activatedRaw;
     const nextIsComplete = areRequiredSectionsComplete(nextSections);
     const activatedSections = WORKFLOW_SECTION_ORDER.filter(
       (sectionKey) => sections[sectionKey].status === 'not-started' && nextSections[sectionKey].status === 'pending',
@@ -505,6 +571,103 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     });
   };
 
+  const handleHoldCase = (note: string) => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const trimmed = note.trim();
+    if (!trimmed) {
+      return;
+    }
+    const timestamp = new Date().toISOString();
+    // Hold parks the case in place: no section or stage change, no routing.
+    // The case stays in the PM queue, flagged on-hold, until the PM acts again.
+    const nextFormData: AccidentReportData = {
+      ...formData,
+      pm_on_hold: true,
+      pm_hold_note: trimmed,
+      pm_held_at: timestamp,
+    };
+    const nextHistory = [
+      ...handoffHistory,
+      buildHandoff('held', 'programManager', trimmed),
+    ];
+    setFormData(nextFormData);
+    setHandoffHistory(nextHistory);
+    persistReport({
+      nextSections: sections,
+      nextStep: currentStep,
+      nextLastSubmittedBy: lastSubmittedBy,
+      nextClosedAt: initialReport?.closedAt || null,
+      nextHandoffNote: handoffNote,
+      nextHandoffHistory: nextHistory,
+      nextFormData,
+    });
+    onBackToHome?.();
+  };
+
+  const handleResumeFromHold = () => {
+    if (roleConfig.role !== 'Program Manager') {
+      return;
+    }
+    const timestamp = new Date().toISOString();
+    const operatorWasWaived = sections.operator.status === 'not-required' && formData.operator_availability_confirmed === false;
+
+    if (operatorWasWaived) {
+      // The operator has returned: reopen their section and route the case to them so they
+      // complete it, then it comes back to the PM to finalize. Clears the waiver and logs it.
+      const nextSections: WorkflowSections = {
+        ...sections,
+        operator: createSectionState('operator', 'pending', timestamp),
+      };
+      const nextFormData: AccidentReportData = {
+        ...formData,
+        pm_on_hold: false,
+        pm_hold_note: undefined,
+        pm_held_at: undefined,
+        operator_availability_confirmed: true,
+        operator_waived_by: undefined,
+        operator_waived_at: undefined,
+      };
+      const nextHistory = [
+        ...handoffHistory,
+        buildHandoff('forwarded', 'operator', 'Operator returned — section reopened for completion.', ['operator']),
+      ];
+      setSections(nextSections);
+      setFormData(nextFormData);
+      setHandoffHistory(nextHistory);
+      persistReport({
+        nextSections,
+        nextStep: 1,
+        nextLastSubmittedBy: roleConfig.role,
+        nextClosedAt: null,
+        nextHandoffNote: null,
+        nextHandoffHistory: nextHistory,
+        nextFormData,
+      });
+      onBackToHome?.();
+      return;
+    }
+
+    // Plain resume: clear the hold flag and stay in place.
+    const nextFormData: AccidentReportData = {
+      ...formData,
+      pm_on_hold: false,
+      pm_hold_note: undefined,
+      pm_held_at: undefined,
+    };
+    setFormData(nextFormData);
+    persistReport({
+      nextSections: sections,
+      nextStep: currentStep,
+      nextLastSubmittedBy: lastSubmittedBy,
+      nextClosedAt: initialReport?.closedAt || null,
+      nextHandoffNote: handoffNote,
+      nextHandoffHistory: handoffHistory,
+      nextFormData,
+    });
+  };
+
   const handleApproveAndCloseCase = (note: string) => {
     if (roleConfig.role !== 'Program Manager') {
       return;
@@ -524,6 +687,9 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       pm_supervisor_review_decision: 'approved',
       pm_supervisor_reviewed_at: timestamp,
       pm_supervisor_review_note: trimmed,
+      pm_on_hold: false,
+      pm_hold_note: undefined,
+      pm_held_at: undefined,
     };
     setFormData(decisionData);
     const wasCorrection = sections[activeSectionKey].status === 'returned';
@@ -578,6 +744,9 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       pm_supervisor_review_note: trimmed,
       pm_supervisor_reassigned_to_badge: toBadge,
       pm_supervisor_reassigned_to_name: toName,
+      pm_on_hold: false,
+      pm_hold_note: undefined,
+      pm_held_at: undefined,
       // Rewrite supervisor identity so the new assignee owns the section going forward
       supervisor_badge_number: toBadge,
       supervisor_name: toName,
@@ -621,6 +790,9 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       pm_supervisor_review_decision: 'returned',
       pm_supervisor_reviewed_at: timestamp,
       pm_supervisor_review_note: trimmedReason,
+      pm_on_hold: false,
+      pm_hold_note: undefined,
+      pm_held_at: undefined,
     };
 
     setFormData(nextFormData);
@@ -658,6 +830,9 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       pm_supervisor_review_decision: 'rejected',
       pm_supervisor_reviewed_at: timestamp,
       pm_supervisor_review_note: trimmedReason,
+      pm_on_hold: false,
+      pm_hold_note: undefined,
+      pm_held_at: undefined,
     };
 
     setFormData(nextFormData);
@@ -755,7 +930,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="new-report" onNavigate={onNavigate} />
 
       {/* Match header's max-width and padding structure for alignment */}
@@ -765,7 +940,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
           {/* Page Title - aligned with nav menu */}
           <div className="mb-8">
             <h1 className="text-[28px] sm:text-[32px] text-[#00205B] font-semibold mb-2">
-              Accident Case Workspace
+              Accident case workspace
             </h1>
             <p className="text-sm text-slate-600">
               Complete your owned section. Case workflow details are available when you need them.
@@ -836,7 +1011,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
               {/* Section progress — rounded foreground deck pulled upward over the header */}
               {showSectionStepper && (
                 <div className="relative z-20 -mt-1 md:-mt-2 bg-[#F6F8FB] rounded-t-[36px] shadow-[0_10px_16px_-14px_rgba(2,36,79,0.30)]">
-                  <WizardStepper currentStep={currentStepperStep} onStepClick={handleStepClick} steps={assignedSectionSteps} />
+                  <WizardStepper currentStep={currentStepperStep} onStepClick={handleStepClick} steps={sectionStepperSteps} />
                 </div>
               )}
 
@@ -871,10 +1046,16 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   }}
                   stepNumber={1}
                   totalSteps={assignedSectionSteps?.length || 1}
-                  title={activeSectionKey === 'supervisor' ? activeAssignedStepTitle || stageMeta.label : stageMeta.label}
+                  title={activeAssignedStepTitle || stageMeta.label}
                   description={activeSectionKey === 'supervisor'
                     ? 'Complete the supervisor-owned investigation fields for this case. The operator report is available as read-only reference.'
-                    : 'Read the operator and supervisor content, complete your classification, then approve the case.'}
+                    : currentStepperStep === 1
+                    ? 'Confirm the case context and record your investigation notes. Field supervisor and police statements go here.'
+                    : currentStepperStep === 2
+                    ? 'Analyze contributing factors, log damage and tow details, and record any fatalities or injuries.'
+                    : currentStepperStep === 3
+                    ? 'Record your final classification decision, then continue to actions.'
+                    : 'Review your classification, then take action: approve and close, hold for correction, reassign, or reject.'}
                   showStepBadge={false}
                   showBackButton={false}
                   submitLabel={stageMeta.submitLabel}
@@ -906,10 +1087,12 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   pmOnOpenSupervisorReport={() => { setReferenceDrawerTab('supervisor'); setReferenceDrawerOpen(true); }}
                   pmOnOpenActivity={() => { setReferenceDrawerTab('activity'); setReferenceDrawerOpen(true); }}
                   pmOnComment={handleCommentOnly}
+                  pmOnHold={handleHoldCase}
                   pmOnReturn={handleReturnSupervisorFromDecision}
                   pmOnReassign={handleReassignSupervisorFromDecision}
                   pmOnReject={handleRejectCase}
                   pmOnApproveAndClose={handleApproveAndCloseCase}
+                  pmOnResume={handleResumeFromHold}
                 />
               )}
 
@@ -917,12 +1100,45 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                 <Step1IncidentBasics
                   data={formData}
                   onUpdate={handleUpdate}
-                  onNext={handleNext}
+                  onNext={isInitiatingPM ? handleInitiatePmCase : handleNext}
+                  nextLabel={isInitiatingPM ? 'Initiate case' : undefined}
+                  showStepBadge={!isInitiatingPM && !isInitiatingSupervisor}
+                  lockEventAndMode={roleConfig.role === 'Operator' && initiatedBy !== 'Operator'}
                   onSaveDraft={handleSaveDraft}
                 />
               )}
 
-              {!isAssignedSectionFlow && currentStep === 2 && (
+              {/* Initiating supervisor: after case setup, fill their OWN supervisor section
+                  (not the operator's Vehicle/People steps). Section self-manages its sub-steps. */}
+              {!isAssignedSectionFlow && isInitiatingSupervisor && currentStep >= 2 && (
+                <Step4ReviewSubmit
+                  data={formData}
+                  onUpdate={handleUpdate}
+                  onBack={() => { setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onSubmit={handleSubmit}
+                  onSaveDraft={handleSaveDraft}
+                  submitLabel={stageMeta.submitLabel}
+                  stageName={stageMeta.label}
+                  nextRoleLabel={stageMeta.nextRoleLabel}
+                  isRoleAllowedToAdvance={isRoleAllowedToAdvance}
+                  workflowStage={workflowStage}
+                  activeSectionKey={activeSectionKey}
+                  activeSectionStatus={activeSection.status}
+                  sectionStatuses={sections}
+                  initiatedBy={initiatedBy}
+                  handoffNote={handoffNote}
+                  canReturn={false}
+                  stepNumber={currentStep}
+                  totalSteps={INITIATING_SUPERVISOR_STEPS.length}
+                  showStepBadge={false}
+                  title={INITIATING_SUPERVISOR_STEPS[currentStep - 1]?.title || stageMeta.label}
+                  supervisorSectionStep={currentStep - 1}
+                  supervisorSectionStepCount={3}
+                  onSupervisorSectionStepChange={(step) => { setCurrentStep(step + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                />
+              )}
+
+              {!isAssignedSectionFlow && !isInitiatingSupervisor && currentStep === 2 && (
                 <Step2VehicleLocation
                   data={formData}
                   onUpdate={handleUpdate}
@@ -937,7 +1153,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                 />
               )}
 
-              {!isAssignedSectionFlow && currentStep === 3 && (
+              {!isAssignedSectionFlow && !isInitiatingSupervisor && currentStep === 3 && (
                 <Step3PeopleImpact
                   data={formData}
                   onUpdate={handleUpdate}
@@ -951,7 +1167,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                 />
               )}
 
-              {!isAssignedSectionFlow && currentStep === 4 && (
+              {!isAssignedSectionFlow && !isInitiatingSupervisor && currentStep === 4 && (
                 <Step4ReviewSubmit
                   data={formData}
                   onUpdate={handleUpdate}

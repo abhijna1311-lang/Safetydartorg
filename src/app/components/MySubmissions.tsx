@@ -208,14 +208,14 @@ export function MySubmissions({ onNavigate, onBackToHome, reports }: MySubmissio
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="submissions" onNavigate={onNavigate} />
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-[32px] text-[#00205B] font-semibold font-['Poppins'] mb-2">
-            Case History
+            Case history
           </h1>
           <p className="text-sm text-slate-600 font-['Poppins']">
             View and track accident cases you are part of.

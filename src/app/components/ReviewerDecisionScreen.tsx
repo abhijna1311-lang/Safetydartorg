@@ -292,7 +292,7 @@ export function ReviewerDecisionScreen({
             <span className="text-xs text-slate-500 font-['Poppins']">Case {caseId}</span>
           </div>
           <h2 className="mt-3 text-[22px] sm:text-[26px] font-semibold text-[#00205B] font-['Poppins']">
-            Review Supervisor's submission
+            Review supervisor's submission
           </h2>
           <p className="mt-2 text-sm text-slate-600 font-['Poppins']">
             {wasReturnedBefore

@@ -379,7 +379,13 @@ export interface AccidentReportData {
   pm_supervisor_reassigned_to_badge?: string;
   pm_supervisor_reassigned_to_name?: string;
 
-  // Operator waiver — Supervisor confirms Operator cannot submit their own section
+  // PM "Hold" — case is parked in the PM queue without routing anywhere
+  pm_on_hold?: boolean;
+  pm_hold_note?: string;
+  pm_held_at?: string;
+
+  // Operator waiver — PM or Supervisor states whether the operator can file their own section.
+  // operator_availability_confirmed: true = operator will file; false = waived (unavailable) with reason.
   operator_availability_confirmed?: boolean;
   operator_unavailable_reason?: string;
   operator_unavailable_notes?: string;

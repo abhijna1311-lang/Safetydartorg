@@ -42,7 +42,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
       id: '1',
       type: 'success',
       title: 'Case Closed',
-      message: 'Your Bus collision case #AR-2024-1156 has been closed by Supervisor Maria Chen.',
+      message: 'Your Bus collision case #AR-2024-1156 has been closed by Supervisor Alexia Putellas.',
       timestamp: '2 hours ago',
       isRead: false,
       actionLabel: 'View Case',
@@ -62,7 +62,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
       id: '3',
       type: 'comment',
       title: 'New Comment',
-      message: 'Supervisor David Park commented on your Rail incident case #AR-2024-1142.',
+      message: 'Program Manager Jude Bellingham commented on your Rail incident case #AR-2024-1142.',
       timestamp: '1 day ago',
       isRead: true,
       actionLabel: 'View Comment',
@@ -224,7 +224,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
   ) : null;
 
   return (
-    <header className="mb-6 bg-[#F5F7FB]">
+    <header className="mb-6">
       {/* Liquid Glass Top Nav Shell */}
       <div className="mx-auto px-6 pt-6">
         <div

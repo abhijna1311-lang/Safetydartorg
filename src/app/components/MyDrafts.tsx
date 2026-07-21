@@ -107,7 +107,7 @@ export function MyDrafts({ onNavigate, onResumeReport, onDeleteDraft, drafts, on
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="drafts" onNavigate={onNavigate} />
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
@@ -116,7 +116,7 @@ export function MyDrafts({ onNavigate, onResumeReport, onDeleteDraft, drafts, on
           {/* Left: Page Title */}
           <div>
             <h1 className="text-[32px] text-[#00205B] font-semibold font-['Poppins'] mb-2">
-              Draft Cases
+              Draft cases
             </h1>
             <p className="text-sm text-slate-600 font-['Poppins']">
               Resume or delete unfinished case sections.
