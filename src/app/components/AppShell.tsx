@@ -39,7 +39,7 @@ export function AppShell({ activeNav, onNavigate, children }: AppShellProps) {
   return (
     <div className="min-h-screen dart-canvas">
       {/* AppShell / Page Container */}
-      <div className="w-full max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
 
         {/* Header */}
         <DARTHeader

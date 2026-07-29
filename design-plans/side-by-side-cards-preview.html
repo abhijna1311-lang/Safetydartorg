@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Side-by-side cards preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --navy:#00205B; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:'Poppins',system-ui,sans-serif; color:#1e293b;
+    background-color:#E7EDF5;
+    background-image:
+      radial-gradient(1150px 620px at 8% -6%, rgba(0,120,174,0.10), transparent 60%),
+      radial-gradient(1000px 560px at 102% 2%, rgba(0,32,91,0.075), transparent 55%),
+      radial-gradient(1200px 900px at 50% 118%, rgba(0,164,181,0.06), transparent 62%);
+    background-attachment:fixed;
+    padding:40px 0 80px;
+  }
+  .wrap { max-width:1500px; margin:0 auto; padding:0 32px; }
+  .note { font-size:13px; color:#475569; margin:0 0 24px; }
+  h2.title { font-size:18px; color:#0f172a; margin:0 0 4px; font-weight:600; }
+  .floor { background:#F6F8FB; border-radius:20px; padding:26px; }
+  .card {
+    background:linear-gradient(180deg,#FFFFFF 0%,#FBFDFF 100%);
+    border:1px solid #E2E8F0; border-radius:16px; padding:24px 28px;
+    box-shadow:0 1px 2px rgba(15,23,42,0.05), 0 10px 28px -14px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.85);
+  }
+  .h3 { color:var(--navy); font-size:15px; font-weight:600; margin:0; line-height:1.2; }
+  .help { color:#64748b; font-size:12px; margin:4px 0 0; }
+  .head { margin-bottom:22px; }
+  .lbl { display:block; font-size:11px; font-weight:700; letter-spacing:.01em; text-transform:capitalize; color:#64748b; margin-bottom:8px; }
+  .seg { display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(226,232,240,.8); background:rgba(241,245,249,.7); border-radius:12px; padding:4px; }
+  .seg button { border:0; background:transparent; font-family:inherit; font-size:14px; color:#64748b; padding:8px 20px; border-radius:8px; cursor:pointer; white-space:nowrap; }
+  .seg button.on { background:var(--navy); color:#fff; font-weight:600; box-shadow:0 2px 8px -2px rgba(0,32,91,.45); }
+  .field { width:100%; min-height:44px; border:1.5px solid #dbe3ec; border-radius:10px; background:#fff; padding:11px 16px; color:#94a3b8; font-size:14px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  .field.filled { color:#1e293b; }
+  .chev { color:#94a3b8; font-size:12px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  .stack { display:flex; flex-direction:column; gap:20px; }
+  .divider { height:1px; background:#eef2f7; margin:20px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2 class="title">Step 1 — Schedule + Type of event, side by side</h2>
+  <p class="note">Static mock (not the live app), real styles. Two right-sized cards per row fill the width, and each holds its fields comfortably — no stretched inputs, no void. Vehicle mode stays full-width below since it needs the room for its cards.</p>
+
+  <div class="floor">
+    <!-- Row 1: two cards side by side -->
+    <div class="grid2">
+
+      <!-- Schedule card -->
+      <div class="card">
+        <div class="head">
+          <p class="h3">Schedule</p>
+          <p class="help">Confirm the operator's schedule details.</p>
+        </div>
+        <div class="grid2">
+          <div>
+            <span class="lbl">Student Employee?</span>
+            <div class="seg"><button class="on">Yes</button><button>No</button></div>
+          </div>
+          <div>
+            <span class="lbl">Regular Day Off</span>
+            <div class="seg"><button class="on">Consecutive</button><button>Split</button></div>
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <span class="lbl">Regular Days Off (RDO) – Consecutive</span>
+          <div class="field filled"><span>Mon / Tue</span><span class="chev">▾</span></div>
+        </div>
+      </div>
+
+      <!-- Type of event card -->
+      <div class="card">
+        <div class="head">
+          <p class="h3">Type of event</p>
+          <p class="help">This determines which questions appear next.</p>
+        </div>
+        <div>
+          <span class="lbl">Type of event <span style="color:#ef4444;">*</span></span>
+          <div class="field filled"><span>Collision</span><span class="chev">▾</span></div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <p style="font-size:14px; font-weight:500; color:var(--navy); margin:0 0 2px;">Were you operating a DART vehicle? <span style="color:#ef4444;">*</span></p>
+          <p style="font-size:12px; color:#64748b; margin:0 0 12px;">Were you driving, operating, or in possession of a DART vehicle at the time of the event?</p>
+          <div class="seg"><button class="on">Yes</button><button>No</button></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 2: Vehicle mode full width -->
+    <div class="card" style="margin-top:16px;">
+      <div class="head">
+        <p class="h3">Vehicle mode</p>
+        <p class="help">Which DART vehicle mode is involved?</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px;">
+        <div style="border:1.5px solid var(--navy); background:rgba(0,32,91,.05); border-radius:12px; padding:16px; text-align:center; font-size:13px; color:var(--navy); font-weight:600;">🚌<br>Bus</div>
+        <div style="border:1px solid #e2e8f0; background:#fff; border-radius:12px; padding:16px; text-align:center; font-size:13px; color:#475569;">🚊<br>Light Rail</div>
+        <div style="border:1px solid #e2e8f0; background:#fff; border-radius:12px; padding:16px; text-align:center; font-size:13px; color:#475569;">🚋<br>Streetcar</div>
+        <div style="border:1px solid #e2e8f0; background:#fff; border-radius:12px; padding:16px; text-align:center; font-size:13px; color:#475569;">🚐<br>Paratransit</div>
+        <div style="border:1px solid #e2e8f0; background:#fff; border-radius:12px; padding:16px; text-align:center; font-size:13px; color:#475569;">🚗<br>Other</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

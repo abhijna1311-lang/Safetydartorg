@@ -81,7 +81,7 @@ export function CorrectionResolutionScreen({ caseId, data, sectionKey, sectionLa
 
       {sectionKey === 'programManager' && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">
-          <p className="text-sm font-semibold text-slate-900 font-['Poppins']">Returned field: Program manager classification</p>
+          <p className="text-sm font-semibold text-slate-900 font-['Poppins']">Returned field: Safety Program Manager classification</p>
           <textarea value={data.program_manager_classification || ''} onChange={(event) => onUpdate({ program_manager_classification: event.target.value })} placeholder="Update classification" rows={4} className={`${inputCls} mt-3 resize-none`} />
         </div>
       )}

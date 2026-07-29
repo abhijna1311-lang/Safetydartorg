@@ -44,7 +44,7 @@ const mockSubmissions: CaseHistoryItem[] = [
     eventType: 'Passenger Injury',
     location: 'Downtown Station',
     status: 'Waiting on sections',
-    waitingOn: 'Supervisor Section'
+    waitingOn: 'Field Supervisor Section'
   },
   {
     id: 'AE-2024-1854',
@@ -94,7 +94,7 @@ const mockSubmissions: CaseHistoryItem[] = [
     eventType: 'Passenger Injury',
     location: 'Market St',
     status: 'Active',
-    waitingOn: 'Program Manager Section'
+    waitingOn: 'Safety Program Manager Section'
   },
   {
     id: 'AE-2024-1765',
@@ -211,7 +211,7 @@ export function MySubmissions({ onNavigate, onBackToHome, reports }: MySubmissio
     <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="submissions" onNavigate={onNavigate} />
 
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-[32px] text-[#00205B] font-semibold font-['Poppins'] mb-2">

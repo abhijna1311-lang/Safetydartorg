@@ -14,7 +14,7 @@ export function StepContainer({ stepNumber, totalSteps = 4, showStepBadge = true
   return (
     <div className="pt-6">
       {/* Form Section Header */}
-      <div className="mb-6 pb-4 border-b border-slate-200/60">
+      <div className="mb-6 pb-4">
         <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
           <h2 className="text-[22px] text-[#00205B] font-semibold font-['Poppins']">
             {title}

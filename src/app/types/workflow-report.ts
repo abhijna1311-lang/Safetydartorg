@@ -428,6 +428,14 @@ export function isSectionActionable(section: WorkflowSectionState): boolean {
 }
 
 export function getActionableSectionForRole(report: WorkflowReport, role: UserRole): WorkflowSectionState | null {
+  // Assistant Manager has no form section of their own. When it's their turn
+  // (Field Supervisor submitted, SPM not yet done) surface the Field Supervisor
+  // section so the queue card has something to render. The real workflow engine
+  // will drive this via a dedicated AM queue endpoint.
+  if (role === 'Assistant Manager') {
+    if (!isRoleTurnForReport(report, role)) return null;
+    return getWorkflowSections(report).supervisor;
+  }
   const section = getWorkflowSections(report)[getSectionKeyForRole(role)];
   return isSectionActionable(section) ? section : null;
 }
@@ -437,12 +445,25 @@ export function getActionableSectionForRole(report: WorkflowReport, role: UserRo
 // a case out of the PM/supervisor queue until the sections ahead of it close.
 export function isRoleTurnForReport(report: WorkflowReport, role: UserRole): boolean {
   const sections = getWorkflowSections(report);
+  // Assistant Manager has no form section — their queue trigger is Field Supervisor
+  // submitted (or resubmitted after rework) AND the Safety Program Manager hasn't
+  // approved yet. Real workflow-engine state will replace this heuristic later.
+  if (role === 'Assistant Manager') {
+    const fsSubmitted = ['submitted', 'resubmitted'].includes(sections.supervisor.status);
+    const pmNotDoneYet = !['accepted'].includes(sections.programManager.status);
+    return fsSubmitted && pmNotDoneYet;
+  }
   const roleKey = getSectionKeyForRole(role);
   if (!isSectionActionable(sections[roleKey])) return false;
   return WORKFLOW_SECTION_ORDER.find((key) => isSectionActionable(sections[key])) === roleKey;
 }
 
 export function wasRoleInvolvedInReport(report: WorkflowReport, role: UserRole): boolean {
+  if (role === 'Assistant Manager') {
+    const sections = getWorkflowSections(report);
+    // AM was involved once the Field Supervisor moved the case along.
+    return ['submitted', 'resubmitted', 'accepted'].includes(sections.supervisor.status);
+  }
   const section = getWorkflowSections(report)[getSectionKeyForRole(role)];
   return report.initiatedBy === role || report.lastSubmittedBy === role || section.status !== 'not-required';
 }

@@ -32,7 +32,7 @@ const inputCls = 'dart-input-base';
 
 function IntakeCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="dart-card dart-card--surface">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
         <div className="w-2 h-2 rounded-full flex-shrink-0 bg-[#0078AE]" />
         <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">{title}</h3>
@@ -225,7 +225,8 @@ export function Step2VehicleLocation({
               ) : (
                 <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
               )}
-              <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />
+              {/* Bus collision embeds weather inside "Where it happened"; other flows keep it standalone */}
+              {!(isCollision && isBus) && <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />}
             </>
           )}
       </div>

@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
-import { Bus, Train, TramFront, Truck, Car, Lock, AlertTriangle } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Lock, AlertTriangle, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
 import { CustomSelect } from '../CustomSelect';
+import { DatePickerInput } from '../DatePickerInput';
+import { TimePickerInput } from '../TimePickerInput';
 import { YesNoToggle } from '../form/YesNoToggle';
 import type { AccidentReportData } from '../../types/accident-report';
+import type { WorkflowReport } from '../../types/workflow-report';
 import { EMPLOYEE_DB } from '../../data/employeeDatabase';
 import { useUserRole } from '../../context/UserRoleContext';
 
@@ -17,6 +20,8 @@ interface Props {
   nextLabel?: string;
   showStepBadge?: boolean;
   lockEventAndMode?: boolean;
+  existingReports?: WorkflowReport[];
+  currentReportId?: string | null;
 }
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -38,11 +43,11 @@ const WORKFLOW_EVENT_TYPES = EVENT_TYPES.filter(o => o.value === 'Collision' || 
 const SHOW_DRIVING_QUESTION = ['Assault (Verbal or Physical)', 'Fire', 'Operator/Passenger Events (non-collision)'];
 
 const MODES = [
-  { value: 'Bus',                  label: 'Bus',        sublabel: 'Fixed route bus',           icon: Bus },
-  { value: 'Light Rail Vehicle',   label: 'Light Rail', sublabel: 'Light rail vehicle',         icon: Train },
-  { value: 'Streetcar',            label: 'Streetcar',  sublabel: 'Urban streetcar',            icon: TramFront },
-  { value: 'Hi-Rail',              label: 'Hi-Rail',    sublabel: 'On-rail maintenance truck',  icon: Truck },
-  { value: 'Non-Revenue Vehicle',  label: 'Non-Revenue',sublabel: 'Non-revenue vehicle',        icon: Car },
+  { value: 'Bus',                  label: 'Bus',        sublabel: 'Fixed route bus',           glyph: 'directions_bus' },
+  { value: 'Light Rail Vehicle',   label: 'Light Rail', sublabel: 'Light rail vehicle',         glyph: 'directions_railway' },
+  { value: 'Streetcar',            label: 'Streetcar',  sublabel: 'Urban streetcar',            glyph: 'tram' },
+  { value: 'Hi-Rail',              label: 'Hi-Rail',    sublabel: 'On-rail maintenance truck',  glyph: 'local_shipping' },
+  { value: 'Non-Revenue Vehicle',  label: 'Non-Revenue',sublabel: 'Non-revenue vehicle',        glyph: 'directions_car' },
 ] as const;
 
 const EMPTY_EMPLOYEE_FIELDS: Partial<AccidentReportData> = {
@@ -76,29 +81,50 @@ const fade = {
   transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
 };
 
+// Spring for the Schedule row's layout reflow so the toggles glide to their new width
+// (instead of snapping) as RDO selects appear and disappear.
+const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
+
+// Incident date/time are stored as machine formats (date YYYY-MM-DD, time 24-hr HH:MM).
+// Render them the way the pickers show them so the duplicate notice never surfaces raw values.
+function formatIncidentDate(iso?: string) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return y && m && d ? `${m}/${d}/${y}` : iso;
+}
+function formatIncidentTime(val?: string) {
+  if (!val) return '';
+  const [hStr, mStr = '00'] = val.split(':');
+  const h24 = parseInt(hStr, 10);
+  if (Number.isNaN(h24)) return val;
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${mStr.padStart(2, '0')} ${period}`;
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
-// Numbered section block. Renders as a divider-separated row within the form
-// surface — no card chrome, so the whole page reads as one task list.
+// Section block. Renders as a divider-separated block on one shared surface (no per-section
+// card chrome) so Step 1 reads as a single continuous form rather than stacked cards.
 function Section({ title, help, children }: { title: string; help?: string; complete?: boolean; children: React.ReactNode }) {
   return (
-    <div className="py-6 first:pt-0">
-      <div className="mb-4">
-        <h3 className="text-[15px] font-semibold text-[#00205B] font-['Poppins'] leading-tight">
+    <section className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
+      <div className="mb-6">
+        <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">
           {title}
         </h3>
         {help && (
-          <p className="text-xs text-slate-500 font-['Poppins'] mt-1">{help}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500 font-['Poppins']">{help}</p>
         )}
       </div>
       <div>
         {children}
       </div>
-    </div>
+    </section>
   );
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextLabel, showStepBadge = true, lockEventAndMode = false }: Props) {
+export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextLabel, showStepBadge = true, lockEventAndMode = false, existingReports = [], currentReportId = null }: Props) {
   const { roleConfig } = useUserRole();
   const isSupervisor = roleConfig.role === 'Supervisor';
   const isProgramManager = roleConfig.role === 'Program Manager';
@@ -108,6 +134,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const hasEventType = !!data.event_type;
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
   const hasMode = !!data.mode;
+  const hasIncidentDate = !!data.incident_date;
+  const hasIncidentTime = !!data.incident_time;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
   const hasFilingChoice = !isSupervisor || data.is_on_behalf !== undefined;
   // When a PM (always) or an on-behalf Supervisor initiates, they must state whether the
@@ -117,7 +145,22 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     || data.operator_availability_confirmed === true
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
-  const canProceed = hasFilingChoice && hasEventType && hasMode && hasEmployee && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
+  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
+
+  // Duplicate guard — if this employee already has a report on this date, surface it before a
+  // second one is created. Matches on person + date; the existing report's time and initiator
+  // are shown so the user can confirm whether it is genuinely the same event.
+  const duplicateReport = useMemo(() => {
+    if (!data.employee_badge_number || !data.incident_date) return null;
+    return existingReports.find(r =>
+      r.id !== currentReportId &&
+      r.formData?.employee_badge_number === data.employee_badge_number &&
+      r.formData?.incident_date === data.incident_date,
+    ) ?? null;
+  }, [existingReports, currentReportId, data.employee_badge_number, data.incident_date]);
+  const [duplicateDismissed, setDuplicateDismissed] = useState(false);
+  useEffect(() => { setDuplicateDismissed(false); }, [duplicateReport?.id]);
+
   useEffect(() => {
     if (!isProgramManager || data.is_on_behalf === true) return;
     onUpdate({
@@ -174,6 +217,14 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const [behalfSuggestions, setBehalfSuggestions] = useState<typeof EMPLOYEE_DB[string][]>([]);
   const [showBehalfDropdown, setShowBehalfDropdown] = useState(false);
   const behalfRef = useRef<HTMLDivElement>(null);
+  // All selectable employees for the on-behalf search — excludes the signed-in supervisor and is
+  // sorted alphabetically by name so the list stays easy to scan when there are hundreds of names.
+  const behalfAllEmployees = useMemo(
+    () => Object.values(EMPLOYEE_DB)
+      .filter(e => e.badge !== roleConfig.badge)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [roleConfig.badge],
+  );
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -189,8 +240,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     setBehalfQuery(val);
     const q = val.trim().toLowerCase();
     if (q.length >= 1) {
-      const matches = Object.values(EMPLOYEE_DB).filter(
-        emp => emp.badge !== roleConfig.badge && (emp.badge.startsWith(q) || emp.name.toLowerCase().includes(q))
+      const matches = behalfAllEmployees.filter(
+        emp => emp.badge.startsWith(q) || emp.name.toLowerCase().includes(q)
       );
       setBehalfSuggestions(matches);
       setShowBehalfDropdown(matches.length > 0);
@@ -232,6 +283,14 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     });
   };
 
+  // Clear a mistakenly-picked employee and reopen the full list so they can search again.
+  const handleBehalfClear = () => {
+    setBehalfQuery('');
+    setBehalfSuggestions(behalfAllEmployees);
+    setShowBehalfDropdown(true);
+    onUpdate({ ...EMPTY_EMPLOYEE_FIELDS });
+  };
+
   const handleEventTypeChange = (val: string) => {
     onUpdate({
       event_type: val,
@@ -256,6 +315,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if ((isProgramManager || data.is_on_behalf === true) && !hasEmployee) missing.push('employee this case is for');
   if (needsOperatorAvailability && !hasOperatorAvailability) missing.push('operator availability');
   if (!hasEventType) missing.push('event type');
+  if (!hasIncidentDate) missing.push('incident date');
+  if (!hasIncidentTime) missing.push('incident time');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
 
@@ -263,6 +324,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const errEmployee = showErrors && (isProgramManager || data.is_on_behalf === true) && !hasEmployee;
   const errAvailability = showErrors && needsOperatorAvailability && !hasOperatorAvailability;
   const errEventType = showErrors && !hasEventType;
+  const errIncidentDate = showErrors && !hasIncidentDate;
+  const errIncidentTime = showErrors && !hasIncidentTime;
   const errDriving = showErrors && needsDrivingQ && data.operating_dart_vehicle === undefined;
   const errMode = showErrors && !hasMode;
 
@@ -281,9 +344,13 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const studentEmployeeField = (
     <div>
       <p className="dart-field-label">Student employee?</p>
-      <div className="inline-flex gap-2">
-        <button type="button" onClick={() => onUpdate({ is_student_employee: true })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.is_student_employee === true ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Yes</button>
-        <button type="button" onClick={() => onUpdate({ is_student_employee: false })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.is_student_employee === false ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>No</button>
+      <div className="dart-seg">
+        <button type="button" onClick={() => onUpdate({ is_student_employee: true })} className={`dart-seg-btn ${data.is_student_employee === true ? 'dart-seg-btn--on' : ''}`}>
+          {data.is_student_employee === true && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Yes
+        </button>
+        <button type="button" onClick={() => onUpdate({ is_student_employee: false })} className={`dart-seg-btn ${data.is_student_employee === false ? 'dart-seg-btn--on' : ''}`}>
+          {data.is_student_employee === false && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}No
+        </button>
       </div>
     </div>
   );
@@ -291,9 +358,13 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const regularDayOffField = (
     <div>
       <p className="dart-field-label">Regular day off</p>
-      <div className="inline-flex gap-2">
-        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Consecutive', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.regular_day_off_type === 'Consecutive' ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Consecutive days</button>
-        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Split', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`px-3 py-2 rounded-md text-sm font-['Poppins'] transition-colors ${data.regular_day_off_type === 'Split' ? 'bg-[#EAF1F8] border border-[#00205B] text-[#00205B] font-semibold' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}`}>Split days</button>
+      <div className="dart-seg">
+        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Consecutive', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`dart-seg-btn ${data.regular_day_off_type === 'Consecutive' ? 'dart-seg-btn--on' : ''}`}>
+          {data.regular_day_off_type === 'Consecutive' && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Consecutive days
+        </button>
+        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Split', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`dart-seg-btn ${data.regular_day_off_type === 'Split' ? 'dart-seg-btn--on' : ''}`}>
+          {data.regular_day_off_type === 'Split' && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Split days
+        </button>
       </div>
     </div>
   );
@@ -301,18 +372,18 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const rdoConditional = (
     <AnimatePresence>
       {data.regular_day_off_type === 'Consecutive' && (
-        <motion.div {...fade} key="rdo-consec" className="mt-3">
+        <motion.div {...fade} key="rdo-consec" className="w-full sm:w-[240px]">
           <label className="dart-field-label">Regular days off (RDO) – Consecutive</label>
           <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" />
         </motion.div>
       )}
       {data.regular_day_off_type === 'Split' && (
-        <motion.div {...fade} key="rdo-split" className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
+        <motion.div {...fade} key="rdo-split" className="flex flex-wrap items-start gap-x-6 gap-y-5">
+          <div className="w-full sm:w-[200px]">
             <label className="dart-field-label">RDO Split – Day 1</label>
             <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />
           </div>
-          <div>
+          <div className="w-full sm:w-[200px]">
             <label className="dart-field-label">RDO Split – Day 2</label>
             <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" />
           </div>
@@ -324,7 +395,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const employeeSearchField = (
     <>
       <label className="dart-field-label">
-        Employee name or badge number <span className="text-red-500">*</span>
+        Employee name or badge number <span className="dart-req">*</span>
       </label>
       <div className="relative" ref={behalfRef}>
         <input
@@ -335,13 +406,23 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             if (behalfSuggestions.length > 0) {
               setShowBehalfDropdown(true);
             } else if (!behalfQuery) {
-              setBehalfSuggestions(Object.values(EMPLOYEE_DB));
+              setBehalfSuggestions(behalfAllEmployees);
               setShowBehalfDropdown(true);
             }
           }}
           placeholder="Search DART employee…"
-          className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all min-h-[44px] font-['Poppins'] text-sm ${errEmployee ? 'border-red-400' : 'border-slate-300'}`}
+          className={`w-full pl-4 pr-10 py-3 rounded-[0.625rem] border-[1.5px] shadow-[0_1px_2px_rgba(15,23,42,0.05)] focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all duration-200 min-h-[44px] font-['Poppins'] text-sm ${errEmployee ? 'border-red-400' : 'border-[#dbe3ec] hover:border-[#b8c4d3] hover:shadow-[0_2px_8px_-2px_rgba(15,23,42,0.1)]'}`}
         />
+        {(data.on_behalf_employee || behalfQuery) && (
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleBehalfClear(); }}
+            aria-label="Clear selected employee"
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00205B]/30"
+          >
+            <X className="h-4 w-4" strokeWidth={2.5} />
+          </button>
+        )}
         <AnimatePresence>
           {showBehalfDropdown && (
             <motion.div
@@ -354,7 +435,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             >
               <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-['Poppins']">
-                  {behalfQuery ? 'Matching employees' : 'All employees (demo)'}
+                  {behalfQuery ? 'Matching employees' : 'All employees'}
                 </p>
               </div>
               <ul className="max-h-52 overflow-y-auto py-1">
@@ -386,46 +467,54 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     </>
   );
 
-  const operatorAvailabilityField = (
+  const operatorAvailabilityToggle = (
     <div>
-      <label className="dart-field-label">
-        Is the operator available to complete their own section? <span className="text-red-500">*</span>
-      </label>
-      <YesNoToggle
-        value={data.operator_availability_confirmed}
-        yesLabel="Yes, the operator will file"
-        noLabel="No, the operator is unavailable"
-        onChange={v => onUpdate({
-          operator_availability_confirmed: v,
-          operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
-        })}
-      />
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <label className="dart-field-label" style={{ marginBottom: 0 }}>
+            Is the operator available to complete their own section? <span className="dart-req">*</span>
+          </label>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Pick "No" only if the operator can't file (STD, hospitalized, etc.).</p>
+        </div>
+        <div className="shrink-0">
+          <YesNoToggle
+            value={data.operator_availability_confirmed}
+            onChange={v => onUpdate({
+              operator_availability_confirmed: v,
+              operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
+            })}
+          />
+        </div>
+      </div>
       {errAvailability && data.operator_availability_confirmed === undefined && (
         <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether the operator can file their own section.</p>
       )}
-      <AnimatePresence>
-        {data.operator_availability_confirmed === false && (
-          <motion.div {...fade} key="operator-unavailable-reason" className="mt-4">
-            <label className="dart-field-label">
-              Why is the operator unavailable? <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={data.operator_unavailable_reason || ''}
-              onChange={e => onUpdate({ operator_unavailable_reason: e.target.value })}
-              placeholder="e.g. Operator was transported to the hospital after the incident and cannot file."
-              rows={3}
-              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all font-['Poppins'] text-sm resize-none ${showErrors && !data.operator_unavailable_reason?.trim() ? 'border-red-400' : 'border-slate-300'}`}
-            />
-            {showErrors && !data.operator_unavailable_reason?.trim() && (
-              <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">A reason is required to waive the operator.</p>
-            )}
-            <p className="mt-2 text-xs text-slate-500 font-['Poppins']">
-              The operator section will be waived — this report will not require the operator to file it themselves.
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
+  );
+
+  const operatorUnavailableReason = (
+    <AnimatePresence>
+      {data.operator_availability_confirmed === false && (
+        <motion.div {...fade} key="operator-unavailable-reason" className="mt-5">
+          <label className="dart-field-label">
+            Why is the operator unavailable? <span className="dart-req">*</span>
+          </label>
+          <textarea
+            value={data.operator_unavailable_reason || ''}
+            onChange={e => onUpdate({ operator_unavailable_reason: e.target.value })}
+            placeholder="e.g. Operator was transported to the hospital after the incident and cannot file."
+            rows={3}
+            className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all font-['Poppins'] text-sm resize-none ${showErrors && !data.operator_unavailable_reason?.trim() ? 'border-red-400' : 'border-slate-300'}`}
+          />
+          {showErrors && !data.operator_unavailable_reason?.trim() && (
+            <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">A reason is required to waive the operator.</p>
+          )}
+          <p className="mt-2 text-xs text-slate-500 font-['Poppins']">
+            The operator section will be waived — this report will not require the operator to file it themselves.
+          </p>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   return (
@@ -438,32 +527,52 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           </p>
         </div>
       )}
-      <div className="divide-y divide-slate-100">
+      <div className="dart-card dart-card--surface overflow-hidden">
 
-        {/* Supervisor: optional filing-on-behalf, gated by its own Yes/No decision */}
+        {/* Supervisor: the two toggles sit side by side; the employee search reveals below once
+            the operator-availability toggle is answered. */}
         {isSupervisor && (
           <Section
-            title="Filing on behalf"
-            help="Is this case for another DART employee?"
+            title="Who is this case for?"
             complete={data.is_on_behalf !== undefined && (data.is_on_behalf === false || !!data.on_behalf_employee)}
           >
-            <YesNoToggle
-              value={data.is_on_behalf}
-              yesLabel="Yes, for another employee"
-              noLabel="No, this case is for me"
-              onChange={v => onUpdate({ is_on_behalf: v, on_behalf_employee: v ? data.on_behalf_employee : undefined })}
-            />
-            {errFilingChoice && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether this case is for another employee.</p>}
+            <div className="flex flex-col md:flex-row md:items-start gap-x-8 gap-y-5">
+              <motion.div layout transition={layoutSpring} className="md:flex-1">
+                <label className="dart-field-label">
+                  Is this case for another DART employee? <span className="dart-req">*</span>
+                </label>
+                <YesNoToggle
+                  value={data.is_on_behalf}
+                  yesLabel="Yes, for another employee"
+                  noLabel="No, this case is for me"
+                  onChange={v => onUpdate({ is_on_behalf: v, on_behalf_employee: v ? data.on_behalf_employee : undefined })}
+                />
+                {errFilingChoice && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether this case is for another employee.</p>}
+              </motion.div>
+              <AnimatePresence mode="popLayout">
+                {data.is_on_behalf === true && (
+                  <motion.div
+                    layout
+                    key="op-avail"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
+                    className="md:flex-1 min-w-0"
+                  >
+                    {operatorAvailabilityToggle}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <AnimatePresence>
               {data.is_on_behalf === true && (
-                <motion.div {...fade} key="behalf-name" className="mt-4">
+                <motion.div {...fade} key="behalf-emp" className="mt-5 pt-5 border-t border-slate-100">
                   {employeeSearchField}
-                  <div className="mt-5 pt-5 border-t border-slate-100">
-                    {operatorAvailabilityField}
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
+            {operatorUnavailableReason}
           </Section>
         )}
 
@@ -474,14 +583,15 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             help="Program managers open cases on behalf of a DART employee. Select who this case is for, then confirm their schedule."
             complete={!!data.on_behalf_employee}
           >
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-y-4 md:gap-x-8">
-              <div className="w-full md:w-[300px] md:shrink-0">{employeeSearchField}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5 md:items-start">
+              <div className="md:col-span-2">{employeeSearchField}</div>
               {studentEmployeeField}
               {regularDayOffField}
             </div>
-            {rdoConditional}
+            <div className="mt-4">{rdoConditional}</div>
             <div className="mt-5 pt-5 border-t border-slate-100">
-              {operatorAvailabilityField}
+              {operatorAvailabilityToggle}
+              {operatorUnavailableReason}
             </div>
           </Section>
         )}
@@ -493,45 +603,141 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             help="Confirm the operator's schedule details."
             complete={false}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {studentEmployeeField}
-              {regularDayOffField}
+            <div className="dart-schedule-row">
+              <motion.div layout transition={layoutSpring}>{studentEmployeeField}</motion.div>
+              <motion.div layout transition={layoutSpring}>{regularDayOffField}</motion.div>
+              <AnimatePresence mode="popLayout">
+                {data.regular_day_off_type === 'Consecutive' && (
+                  <motion.div
+                    layout
+                    key="sched-rdo-consec"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
+                  >
+                    <label className="dart-field-label">Regular days off (RDO) – Consecutive</label>
+                    <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" />
+                  </motion.div>
+                )}
+                {data.regular_day_off_type === 'Split' && (
+                  <motion.div
+                    layout
+                    key="sched-rdo-1"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
+                  >
+                    <label className="dart-field-label">RDO Split – Day 1</label>
+                    <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />
+                  </motion.div>
+                )}
+                {data.regular_day_off_type === 'Split' && (
+                  <motion.div
+                    layout
+                    key="sched-rdo-2"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
+                  >
+                    <label className="dart-field-label">RDO Split – Day 2</label>
+                    <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            {rdoConditional}
           </Section>
         )}
 
-        {/* Type of event (+ conditional driving sub-question) */}
+        {/* Type of event + incident timing (+ conditional driving sub-question) */}
         <Section
-          title="Type of event"
-          help="This determines which questions appear next."
-          complete={hasEventType && (!needsDrivingQ || data.operating_dart_vehicle !== undefined)}
+          title="Event classification"
+          help="Select the type of incident and confirm when it occurred. These details determine the information required later in the report."
+          complete={hasEventType && hasIncidentDate && hasIncidentTime && (!needsDrivingQ || data.operating_dart_vehicle !== undefined)}
         >
-          <div>
-            <label className="dart-field-label">
-              Type of event <span className="text-red-500">*</span>
-            </label>
-            <CustomSelect
-              value={data.event_type || ''}
-              onChange={handleEventTypeChange}
-              options={isProgramManager ? WORKFLOW_EVENT_TYPES : EVENT_TYPES}
-              placeholder="Select event type"
-              disabled={lockEventAndMode}
-              error={errEventType}
-            />
-            {errEventType && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select the type of event to continue.</p>}
-            {lockEventAndMode && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
-                <Lock className="w-3 h-3" /> Set when the case was opened.
-              </p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-start">
+            <div>
+              <label className="dart-field-label">
+                Incident type <span className="dart-req">*</span>
+              </label>
+              <CustomSelect
+                value={data.event_type || ''}
+                onChange={handleEventTypeChange}
+                options={isProgramManager ? WORKFLOW_EVENT_TYPES : EVENT_TYPES}
+                placeholder="Select incident type"
+                disabled={lockEventAndMode}
+                error={errEventType}
+              />
+              {errEventType && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select the type of event to continue.</p>}
+              {lockEventAndMode && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
+                  <Lock className="w-3 h-3" /> Set when the case was opened.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="dart-field-label">
+                Date of incident <span className="dart-req">*</span>
+              </label>
+              <div className={errIncidentDate ? 'rounded-[0.625rem] ring-2 ring-red-400/70' : ''}>
+                <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
+              </div>
+              {errIncidentDate && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident date to continue.</p>}
+            </div>
+
+            <div>
+              <label className="dart-field-label">
+                Time of incident <span className="dart-req">*</span>
+              </label>
+              <div className={errIncidentTime ? 'rounded-[0.625rem] ring-2 ring-red-400/70' : ''}>
+                <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
+              </div>
+              {errIncidentTime && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident time to continue.</p>}
+            </div>
           </div>
+
+          {/* Duplicate guard — an existing report for this person + date */}
+          <AnimatePresence>
+            {duplicateReport && !duplicateDismissed && (
+              <motion.div {...fade} key="dup-warning" className="mt-4 rounded-xl border border-amber-300/80 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-900 font-['Poppins']">
+                      A report may already exist for this incident
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-amber-800 font-['Poppins']">
+                      {data.employee_name || 'This employee'} already has a report on{' '}
+                      <span className="dart-tabular font-medium">{formatIncidentDate(data.incident_date)}</span>
+                      {duplicateReport.formData?.incident_time && (
+                        <> at <span className="dart-tabular font-medium">{formatIncidentTime(duplicateReport.formData.incident_time)}</span></>
+                      )}
+                      , started by {duplicateReport.initiatedBy} (case{' '}
+                      <span className="dart-tabular">{duplicateReport.id}</span>). Confirm this is a separate event before continuing.
+                    </p>
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setDuplicateDismissed(true)}
+                        className="dart-press inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 font-['Poppins']"
+                      >
+                        This is a different event
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence>
             {needsDrivingQ && (
               <motion.div {...fade} key="driving-q" className="mt-5 pt-5 border-t border-slate-100">
                 <p className="text-sm font-medium text-[#00205B] font-['Poppins'] mb-1">
-                  Were you operating a DART vehicle? <span className="text-red-500">*</span>
+                  Were you operating a DART vehicle? <span className="dart-req">*</span>
                 </p>
                 <p className="text-xs text-slate-500 font-['Poppins'] mb-3">
                   Were you driving, operating, or in possession of a DART vehicle at the time of the event?
@@ -551,7 +757,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {MODES.map(m => {
-              const Icon = m.icon;
               const selected = data.mode === m.value;
               return (
                 <button
@@ -559,25 +764,18 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                   type="button"
                   disabled={lockEventAndMode}
                   onClick={() => handleModeChange(m.value)}
-                  className={`flex flex-col items-center gap-2 px-3 py-4 rounded-xl border transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,32,91,0.16)] ${
-                    selected
-                      ? 'border-[#00205B] bg-[#00205B]'
-                      : lockEventAndMode
-                      ? 'border-[#E2E8F0] bg-white opacity-60'
-                      : errMode
-                      ? 'border-red-300 bg-white hover:border-red-400'
-                      : 'border-[#CBD5E1] bg-white hover:border-[#94A3B8] hover:bg-[#F8FAFC]'
-                  } ${lockEventAndMode ? 'cursor-not-allowed' : ''}`}
+                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${errMode && !selected ? 'dart-mode-card--error' : ''}`}
                 >
-                  <div
-                    className={`p-2.5 rounded-lg transition-colors ${
-                      selected ? 'bg-white/15' : 'bg-[#F1F5F9]'
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 ${selected ? 'text-white' : 'text-[#64748B]'}`} />
-                  </div>
-                  <span className={`text-xs font-semibold font-['Poppins'] ${selected ? 'text-white' : 'text-[#233B57]'}`}>{m.label}</span>
-                  <span className={`text-[10px] font-['Poppins'] ${selected ? 'text-white/80' : 'text-[#5B6B82]'}`}>{m.sublabel}</span>
+                  {selected && (
+                    <span className="dart-mode-badge">
+                      <span className="material-symbols-rounded">check</span>
+                    </span>
+                  )}
+                  <span className={`dart-mode-tile ${selected ? 'dart-mode-tile--on' : ''}`}>
+                    <span className="material-symbols-rounded">{m.glyph}</span>
+                  </span>
+                  <span className="dart-mode-title">{m.label}</span>
+                  <span className="dart-mode-sub">{m.sublabel}</span>
                 </button>
               );
             })}

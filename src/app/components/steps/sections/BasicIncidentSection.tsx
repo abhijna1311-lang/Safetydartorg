@@ -40,7 +40,7 @@ const fade = {
   transition: { duration: 0.2 },
 };
 
-const inputCls = "w-full px-4 py-3 rounded-lg border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all min-h-[44px] font-['Poppins'] text-sm";
+const inputCls = "dart-input-base";
 
 function Field({ label, required, helper, error, children }: { label: string; required?: boolean; helper?: string; error?: boolean; children: React.ReactNode }) {
   return (
@@ -48,7 +48,7 @@ function Field({ label, required, helper, error, children }: { label: string; re
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div className={error ? 'rounded-lg ring-2 ring-red-400/70' : ''}>{children}</div>
+      <div className={error ? 'rounded-[11px] ring-2 ring-red-400/70' : ''}>{children}</div>
       {error ? <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p> : helper ? <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p> : null}
     </div>
   );
@@ -56,9 +56,9 @@ function Field({ label, required, helper, error, children }: { label: string; re
 
 function Card({ title, complete, children }: { title: string; complete?: boolean; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="dart-card dart-card--surface">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${complete ? 'bg-[#007DBA]' : 'bg-slate-300'}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${complete ? 'bg-emerald-500' : 'bg-slate-300'}`} />
         <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">{title}</h3>
       </div>
       <div className="px-6 py-5 space-y-4">{children}</div>
@@ -93,28 +93,18 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
   return (
     <div className="space-y-5">
 
-      {/* 1 & 2 – Description + Date/Time */}
-      <Card title={compactMode ? 'Event timing' : 'Event description & timing'} complete={!!((compactMode || data.description_of_event) && data.incident_date && data.incident_time)}>
-        {!compactMode && (
-          <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
-            <textarea
-              rows={4}
-              value={data.description_of_event || ''}
-              onChange={narrativeReadOnly ? undefined : (e => onUpdate({ description_of_event: e.target.value }))}
-              placeholder="Describe what happened in your own words..."
-              readOnly={narrativeReadOnly}
-              className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-            />
-          </Field>
-        )}
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Event date" required error={showErrors && !data.incident_date}>
-            <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
-          </Field>
-          <Field label="Event time" required error={showErrors && !data.incident_time} helper="An estimated time is acceptable">
-            <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
-          </Field>
-        </div>
+      {/* Description — incident date & time now live on Step 1 */}
+      <Card title="Event description" complete={!!(compactMode || data.description_of_event)}>
+        <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
+          <textarea
+            rows={4}
+            value={data.description_of_event || ''}
+            onChange={narrativeReadOnly ? undefined : (e => onUpdate({ description_of_event: e.target.value }))}
+            placeholder="Describe what happened in your own words..."
+            readOnly={narrativeReadOnly}
+            className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+          />
+        </Field>
       </Card>
 
       {/* 3–6 – Vehicle (Bus/Non-Revenue only) */}
@@ -192,7 +182,7 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <Field label="Street on" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>

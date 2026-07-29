@@ -14,7 +14,7 @@ const PED_ACTION_FOOT = ['Jogging/Running', 'Laying', 'Mobility Assistance', 'Si
 const PED_ACTION_MOBILITY = ['Changing Lanes', 'Going Backwards', 'Going Straight', 'Making a Left Turn', 'Making a Right Turn', 'Negotiating a curve', 'Stopped'].map(v => ({ value: v, label: v }));
 
 const fade = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0 }, transition: { duration: 0.2 } };
-const inputCls = "w-full px-4 py-3 rounded-lg border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-[rgba(0,32,91,0.16)] focus:border-[#00205B] bg-white text-slate-800 placeholder:text-slate-400 transition-all min-h-[44px] font-['Poppins'] text-sm";
+const inputCls = "dart-input-base";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -47,9 +47,9 @@ export function PedestrianInjurySection({ data, onUpdate }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="dart-card dart-card--surface">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${count > 0 ? 'bg-[#007DBA]' : 'bg-slate-300'}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${count > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
         <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">Pedestrian injury section</h3>
       </div>
       <div className="px-6 py-5 space-y-5">

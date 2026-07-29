@@ -19,6 +19,19 @@ import {
 function getQueuePresentation(role: UserRole, report: WorkflowReport, section: WorkflowSectionState, wasReturned: boolean) {
   const isLeaderStartedForOperator = section.key === 'operator' && report.initiatedBy !== 'Operator';
 
+  // Assistant Manager: they don't own a section — they review the Field Supervisor's
+  // submission. Show a card that reflects "case is ready for your review" rather
+  // than the Field Supervisor's own status.
+  if (role === 'Assistant Manager') {
+    return {
+      title: 'Ready for your review',
+      contextLabel: 'What happens next',
+      contextValue: 'The Field Supervisor has completed their section. Approve to send to the Safety Program Manager, return for rework, or reassign.',
+      ownerLabel: 'Sent by',
+      priorityLabel: 'Review needed',
+    };
+  }
+
   if (wasReturned || section.status === 'returned') {
     return {
       title: `${section.label} returned for correction`,
@@ -41,9 +54,9 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
 
   if (section.key === 'supervisor' && report.initiatedBy === 'Supervisor' && section.status === 'in-progress') {
     return {
-      title: 'Continue supervisor collision section',
+      title: 'Continue Field Supervisor collision section',
       contextLabel: 'What happens next',
-      contextValue: 'Submit your supervisor collision section to notify the operator and program manager in tandem.',
+      contextValue: 'Submit your Field Supervisor collision section to notify the operator and Safety Program Manager in tandem.',
       ownerLabel: 'Current section owner',
       priorityLabel: 'In progress',
     };
@@ -51,9 +64,9 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
 
   if (section.key === 'supervisor') {
     return {
-      title: 'Supervisor section pending',
+      title: 'Field Supervisor section pending',
       contextLabel: 'What needs completion',
-      contextValue: 'Complete the supervisor collision investigation section. Program manager work can happen separately on the same case.',
+      contextValue: 'Complete the Field Supervisor collision investigation section. Safety Program Manager work can happen separately on the same case.',
       ownerLabel: 'Assigned section',
       priorityLabel: 'Investigation needed',
     };
@@ -61,7 +74,7 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
 
   if (section.key === 'programManager') {
     return {
-      title: 'Program manager section pending',
+      title: 'Safety Program Manager section pending',
       contextLabel: 'What needs classification',
       contextValue: `Complete program manager classification. Open sections: ${getPendingSectionLabels(report)}.`,
       ownerLabel: 'Assigned section',
@@ -78,7 +91,10 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
   };
 }
 
-function getSectionCtaLabel(section: WorkflowSectionState) {
+function getSectionCtaLabel(section: WorkflowSectionState, role: UserRole) {
+  if (role === 'Assistant Manager') {
+    return 'Open review';
+  }
   if (section.status === 'returned') {
     return 'Resolve correction';
   }
@@ -88,10 +104,10 @@ function getSectionCtaLabel(section: WorkflowSectionState) {
   }
 
   if (section.key === 'supervisor') {
-    return section.status === 'in-progress' ? 'Continue Supervisor Section' : 'Start Supervisor Section';
+    return section.status === 'in-progress' ? 'Continue Field Supervisor Section' : 'Start Field Supervisor Section';
   }
 
-  return section.status === 'in-progress' ? 'Continue Program Manager Section' : 'Open Program Manager Section';
+  return section.status === 'in-progress' ? 'Continue Safety Program Manager Section' : 'Open Safety Program Manager Section';
 }
 
 interface OperatorHomeProps {
@@ -168,7 +184,7 @@ const HOME_COPY: Record<UserRole, {
     activityDescription: 'Cases you have touched recently.',
   },
   Supervisor: {
-    intro: 'Start cases when operators cannot, then complete supervisor collision sections assigned to you.',
+    intro: 'Start cases when operators cannot, then complete Field Supervisor collision sections assigned to you.',
     heroTitle: 'Start a new accident case',
     heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
@@ -177,7 +193,7 @@ const HOME_COPY: Record<UserRole, {
     completedMetricLabel: 'Forwarded this month',
     completedMetricHelper: 'Last 30 days',
     queueSectionTitle: 'Your queue',
-    queueSectionDescription: 'Cases waiting for your supervisor section or correction.',
+    queueSectionDescription: 'Cases waiting for your Field Supervisor section or correction.',
     draftsDescription: 'In progress',
     activityTitle: 'Recent supervisor activity',
     activityDescription: 'Cases you recently reviewed or routed.',
@@ -192,10 +208,25 @@ const HOME_COPY: Record<UserRole, {
     completedMetricLabel: 'Closed this month',
     completedMetricHelper: 'Last 30 days',
     queueSectionTitle: 'Your queue',
-    queueSectionDescription: 'Cases waiting for program manager classification or targeted correction.',
+    queueSectionDescription: 'Cases waiting for Safety Program Manager classification or targeted correction.',
     draftsDescription: 'In progress',
     activityTitle: 'Recent manager activity',
     activityDescription: 'Cases you recently finalized or sent back.',
+  },
+  'Assistant Manager': {
+    intro: 'Review Field Supervisor reports and route them to the Safety Program Manager for classification.',
+    heroTitle: 'Start a new accident case',
+    heroDescription: 'Cases sent by a Field Supervisor land here for your review. Approve to move the report along, return for rework, or reassign.',
+    heroButtonLabel: 'Start New Case',
+    queueMetricLabel: 'Awaiting your review',
+    queueMetricHelper: 'Field Supervisor submissions',
+    completedMetricLabel: 'Reviewed this month',
+    completedMetricHelper: 'Last 30 days',
+    queueSectionTitle: 'Your queue',
+    queueSectionDescription: 'Cases waiting for your review before Safety Program Manager classification.',
+    draftsDescription: 'In progress',
+    activityTitle: 'Recent review activity',
+    activityDescription: 'Cases you recently reviewed or routed.',
   },
 };
 
@@ -248,6 +279,7 @@ const DRAFT_REPORTS_BY_ROLE: Record<UserRole, HomeDraftReport[]> = {
       },
     },
   ],
+  'Assistant Manager': [],
 };
 
 const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
@@ -299,6 +331,7 @@ const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
       },
     },
   ],
+  'Assistant Manager': [],
 };
 
 const RECENT_ACTIVITY_BY_ROLE: Record<UserRole, HomeActivityReport[]> = {
@@ -314,6 +347,7 @@ const RECENT_ACTIVITY_BY_ROLE: Record<UserRole, HomeActivityReport[]> = {
     { eventId: 'AR-2025-0003', date: '11/05/2025', mode: 'Rail', status: 'Closed', injury: 'Medical treatment' },
     { eventId: 'AR-2025-0002', date: '11/02/2025', mode: 'Bus', status: 'Pending clarification', injury: 'No' },
   ],
+  'Assistant Manager': [],
 };
 
 function getModeColor(mode: string) {
@@ -382,7 +416,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
             : section.status === 'returned' ? 'Correction needed' : presentation.priorityLabel,
           reportFor: report.formData.employee_name || 'Employee pending',
           requiredSection: section.label,
-          ctaLabel: getSectionCtaLabel(section),
+          ctaLabel: getSectionCtaLabel(section, roleConfig.role),
           currentStep: report.currentStep,
           savedData: report.formData,
         };
@@ -419,7 +453,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
     <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="home" onNavigate={onNavigate} />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-6 flex-1 w-full">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-6 flex-1 w-full">
         <div className="mb-6">
           <h1 className="text-xl text-[#00205B] font-semibold text-[20px]">Welcome back, {firstName}</h1>
           <p className="text-xs text-slate-600 mt-1">{copy.intro}</p>

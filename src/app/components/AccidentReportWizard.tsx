@@ -7,6 +7,7 @@ import { Step4ReviewSubmit } from './steps/Step4ReviewSubmit';
 import EmployeeRecordPanel from './steps/sections/EmployeeRecordPanel';
 import { SuccessScreen } from './SuccessScreen';
 import { DARTHeader } from './DARTHeader';
+import { AssistantManagerReview } from './AssistantManagerReview';
 import { DARTFooter } from './DARTFooter';
 import { CorrectionResolutionScreen } from './CorrectionResolutionScreen';
 import { RoleContextBar } from './RoleContextBar';
@@ -45,6 +46,7 @@ interface AccidentReportWizardProps {
   initialData?: any;
   initialReport?: WorkflowReport | null;
   onSaveReport?: (report: WorkflowReport) => void;
+  existingReports?: WorkflowReport[];
 }
 
 const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { number: number; title: string }[]> = {
@@ -57,7 +59,7 @@ const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { 
     { number: 1, title: 'Investigate' },
     { number: 2, title: 'Impact' },
     { number: 3, title: 'Classify' },
-    { number: 4, title: 'Actions' },
+    { number: 4, title: 'Review' },
   ],
 };
 
@@ -103,17 +105,17 @@ function getSectionMeta(sectionKey: WorkflowSectionKey, initiatedBy: UserRole, i
           : 'This case was started for the operator. Complete only the operator facts and submit your section back into the shared case.',
         responsibilities: ['Confirm employee and event facts', 'Complete vehicle, location, and impact details', 'Resolve any operator correction notes'],
         submitLabel: 'Submit operator section',
-        nextRoleLabel: 'Supervisor and Program Manager',
+        nextRoleLabel: 'Field Supervisor and Safety Program Manager',
       };
     case 'supervisor':
       return {
         label: initiatedBy === 'Supervisor' && isOnBehalf !== false ? 'Supervisor section collision initiation' : 'Supervisor section collision',
-        scenarioLabel: initiatedBy === 'Supervisor' ? 'Supervisor initiated scenario' : 'Assigned after operator initiation',
+        scenarioLabel: initiatedBy === 'Supervisor' ? 'Field Supervisor initiated scenario' : 'Assigned after operator initiation',
         summary: initiatedBy === 'Supervisor'
-          ? 'Start the case by completing the supervisor collision investigation section, then notify the operator and program manager in tandem.'
-          : 'Complete the supervisor collision investigation section while the program manager can work their section independently.',
+          ? 'Start the case by completing the Field Supervisor collision investigation section, then notify the operator and Safety Program Manager in tandem.'
+          : 'Complete the Field Supervisor collision investigation section while the Safety Program Manager can work their section independently.',
         responsibilities: ['Confirm scene and arrival details', 'Capture collision investigation rollups', 'Request operator corrections when needed'],
-        submitLabel: 'Submit supervisor section',
+        submitLabel: 'Submit Field Supervisor section',
         nextRoleLabel: initiatedBy === 'Supervisor' ? 'Operator and Program Manager' : 'Shared case',
       };
     case 'programManager':
@@ -150,7 +152,7 @@ function getInitialStepForCurrentRole(report: WorkflowReport | null | undefined,
   return report?.currentStep || fallbackStep || 1;
 }
 
-export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, initialData, initialReport, onSaveReport }: AccidentReportWizardProps) {
+export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, initialData, initialReport, onSaveReport, existingReports = [] }: AccidentReportWizardProps) {
   const { roleConfig } = useUserRole();
   const [currentStep, setCurrentStep] = useState(() => getInitialStepForCurrentRole(initialReport, roleConfig.role, initialStep));
   const [formData, setFormData] = useState<AccidentReportData>(initialReport?.formData || initialData || {});
@@ -169,8 +171,9 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     && isSectionActionable(activeSection);
   const isAssignedSectionFlow = shouldUseAssignedSectionFlow(initialReport, roleConfig.role) || isPmInitiatorReturning;
   const assignedSectionSteps = isAssignedSectionFlow && activeSectionKey !== 'operator' ? ASSIGNED_SECTION_STEPS[activeSectionKey] : undefined;
-  // A supervisor who INITIATES a case fills the case setup (Incident Basics) and then their
-  // OWN supervisor section — never the operator's Vehicle/Location or People/Impact steps.
+  // A supervisor who INITIATES a case fills the case setup (Incident Basics) and then completes their
+  // OWN supervisor section in the SAME continuous flow — the operator gets their task on submit. This
+  // differs from the PM, who initiates then hands off and completes their section on the return trip.
   const isInitiatingSupervisor = roleConfig.role === 'Supervisor' && !isAssignedSectionFlow && activeSectionKey === 'supervisor';
   // A PM who INITIATES a case fills the case intake (Incident Basics) only; their own section is
   // completed on the return trip after the operator/supervisor sections are done.
@@ -192,6 +195,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const [isFullReportOpen, setIsFullReportOpen] = useState(false);
   const [referenceDrawerOpen, setReferenceDrawerOpen] = useState(false);
   const [referenceDrawerTab, setReferenceDrawerTab] = useState<ReferenceReportTab>('operator');
+  const [programManagerInActionsMode, setProgramManagerInActionsMode] = useState(false);
   const [submitResult, setSubmitResult] = useState<null | {
     submittedSectionKey: WorkflowSectionKey;
     sections: WorkflowSections;
@@ -209,7 +213,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     && isAssignedSectionFlow
     && !isCaseRejected;
   const isRoleAllowedToAdvance = !isCaseRejected && !isComplete && isSectionActionable(activeSection);
-  const showSectionStepper = !isInitiatingPM && (!isAssignedSectionFlow || (
+  const showSectionStepper = !isInitiatingPM && !programManagerInActionsMode && (!isAssignedSectionFlow || (
     Boolean(assignedSectionSteps && assignedSectionSteps.length > 1)
     && !isCaseRejected
   ));
@@ -933,10 +937,43 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="new-report" onNavigate={onNavigate} />
 
+      {/* Assistant Manager Review — a lightweight "middle reviewer" flow.
+          AM has no form fields of their own; they read what the Field Supervisor
+          (and Operator) filed, then pick one of three CSV-defined actions. */}
+      {roleConfig.role === 'Assistant Manager' ? (
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 flex-1 w-full">
+          <div className="max-w-[900px] mx-auto">
+            <AssistantManagerReview
+              data={formData}
+              caseId={reportId}
+              onBackToHome={onBackToHome}
+              onOpenOperatorReport={() => { setReferenceDrawerTab('operator'); setReferenceDrawerOpen(true); }}
+              onOpenSupervisorReport={() => { setReferenceDrawerTab('supervisor'); setReferenceDrawerOpen(true); }}
+              onOpenActivity={() => { setReferenceDrawerTab('activity'); setReferenceDrawerOpen(true); }}
+              onAction={(actionId, payload) => {
+                // TODO: swap for workflow engine call when the API contract lands.
+                // eslint-disable-next-line no-console
+                console.info('[stub] Assistant Manager action', { actionId, payload });
+              }}
+            />
+          </div>
+          <ReferenceReportDrawer
+            open={referenceDrawerOpen}
+            onClose={() => setReferenceDrawerOpen(false)}
+            data={formData}
+            defaultTab={referenceDrawerTab}
+            operatorStatus={sections.operator.status}
+            supervisorSection={sections.supervisor}
+            activityReport={liveReport}
+          />
+        </div>
+      ) : (
+        <>
+
       {/* Match header's max-width and padding structure for alignment */}
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 flex-1 w-full">
         {/* Inner content constraint for readability - centered for better balance */}
-        <div className="max-w-[1200px] mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           {/* Page Title - aligned with nav menu */}
           <div className="mb-8">
             <h1 className="text-[28px] sm:text-[32px] text-[#00205B] font-semibold mb-2">
@@ -947,9 +984,11 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
             </p>
           </div>
 
-          {/* Case-context bar: only when there's a real persisted case (post-handoff).
-              Fresh forms have no ID yet and no multi-party context to show. */}
-          {initialReport && !isAssignedSectionFlow && (
+          {/* Case-context bar: shown for handoff / review scenarios. Hidden for an operator
+              filing their own report (no multi-party context to surface) — except when their
+              section was returned for correction, where the case history genuinely matters. */}
+          {initialReport && !isAssignedSectionFlow
+            && !(roleConfig.role === 'Operator' && initiatedBy === 'Operator' && activeSection.status !== 'returned') && (
             <div className="mb-4">
               <RoleContextBar
                 caseId={reportId}
@@ -969,9 +1008,9 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
 
           {activeSectionKey === 'supervisor' && initiatedBy === 'Supervisor' && formData.is_on_behalf !== false && (
             <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
-              <p className="text-sm font-semibold text-[#00205B] font-['Poppins']">Supervisor Section</p>
+              <p className="text-sm font-semibold text-[#00205B] font-['Poppins']">Field Supervisor Section</p>
               <p className="mt-1 text-sm text-slate-700 font-['Poppins']">
-                You are completing the Supervisor-owned portion of this case. The employee will complete their Operator Section separately.
+                You are completing the Field Supervisor portion of this case. The employee will complete their Operator Section separately.
               </p>
             </div>
           )}
@@ -1015,13 +1054,13 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                 </div>
               )}
 
-              {/* Form Content - dedicated white work surface below the navigation deck */}
-              <div className={`bg-white px-4 sm:px-6 md:px-8 pb-6 md:pb-8 ${isAssignedSectionFlow && !showSectionStepper ? 'relative z-20 -mt-1 md:-mt-2 rounded-t-[36px] pt-2 md:pt-4 shadow-[0_10px_16px_-14px_rgba(2,36,79,0.30)]' : 'relative z-10'}`}>
+              {/* Form Content - tinted work surface so section cards float above the floor */}
+              <div className={`bg-[#F6F8FB] px-4 sm:px-6 md:px-8 pb-6 md:pb-8 ${isAssignedSectionFlow && !showSectionStepper ? 'relative z-20 -mt-1 md:-mt-2 rounded-t-[36px] pt-2 md:pt-4 shadow-[0_10px_16px_-14px_rgba(2,36,79,0.30)]' : 'relative z-10'}`}>
               {isCaseRejected && (
                 <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
                   <p className="text-sm font-semibold text-red-900 font-['Poppins']">Case rejected</p>
                   <p className="mt-1 text-xs text-red-800 font-['Poppins']">
-                    Closed as rejected by {rejectedBy || 'a program manager'}
+                    Closed as rejected by {rejectedBy || 'a Safety Program Manager'}
                     {rejectedAt ? ` on ${new Date(rejectedAt).toLocaleString()}` : ''}. No further edits are permitted.
                   </p>
                   {rejectionReason && (
@@ -1046,16 +1085,18 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   }}
                   stepNumber={1}
                   totalSteps={assignedSectionSteps?.length || 1}
-                  title={activeAssignedStepTitle || stageMeta.label}
+                  title={programManagerInActionsMode ? 'Choose next action' : (activeAssignedStepTitle || stageMeta.label)}
                   description={activeSectionKey === 'supervisor'
-                    ? 'Complete the supervisor-owned investigation fields for this case. The operator report is available as read-only reference.'
+                    ? 'Complete the Field Supervisor investigation fields for this case. The operator report is available as read-only reference.'
+                    : programManagerInActionsMode
+                    ? 'Select what should happen next. Your choice will update the workflow status and assignment.'
                     : currentStepperStep === 1
                     ? 'Confirm the case context and record your investigation notes. Field supervisor and police statements go here.'
                     : currentStepperStep === 2
                     ? 'Analyze contributing factors, log damage and tow details, and record any fatalities or injuries.'
                     : currentStepperStep === 3
-                    ? 'Record your final classification decision, then continue to actions.'
-                    : 'Review your classification, then take action: approve and close, hold for correction, reassign, or reject.'}
+                    ? 'Record your final classification decision, then continue to review.'
+                    : 'Review everything you entered before confirming the next workflow action.'}
                   showStepBadge={false}
                   showBackButton={false}
                   submitLabel={stageMeta.submitLabel}
@@ -1081,6 +1122,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                     setCurrentStep(step);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   } : undefined}
+                  onProgramManagerActionsModeChange={activeSectionKey === 'programManager' ? setProgramManagerInActionsMode : undefined}
                   pmReviewEnabled={pmCanTakeReviewAction && supervisorSectionSubmitted}
                   pmSupervisorSection={sections.supervisor}
                   pmOnOpenOperatorReport={() => { setReferenceDrawerTab('operator'); setReferenceDrawerOpen(true); }}
@@ -1105,11 +1147,14 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   showStepBadge={!isInitiatingPM && !isInitiatingSupervisor}
                   lockEventAndMode={roleConfig.role === 'Operator' && initiatedBy !== 'Operator'}
                   onSaveDraft={handleSaveDraft}
+                  existingReports={existingReports}
+                  currentReportId={initialReport?.id ?? null}
                 />
               )}
 
-              {/* Initiating supervisor: after case setup, fill their OWN supervisor section
-                  (not the operator's Vehicle/People steps). Section self-manages its sub-steps. */}
+              {/* Initiating supervisor: after case setup, fill their OWN supervisor section in the
+                  same flow (not the operator's Vehicle/People steps). Section self-manages its sub-steps.
+                  On submit, the operator gets their task. */}
               {!isAssignedSectionFlow && isInitiatingSupervisor && currentStep >= 2 && (
                 <Step4ReviewSubmit
                   data={formData}
@@ -1227,6 +1272,8 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
           />
         </div>
       </div>
+      </>
+      )}
 
       <DARTFooter />
     </div>

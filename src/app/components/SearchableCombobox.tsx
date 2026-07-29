@@ -57,13 +57,13 @@ export function SearchableCombobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full px-4 py-3 rounded-lg border-2 text-left flex items-center justify-between transition-all min-h-[44px] font-['Poppins'] bg-white text-slate-800",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,32,91,0.16)] focus-visible:border-[#00205B]",
+            "w-full px-3.5 py-3 rounded-[11px] border-[1.5px] text-left flex items-center justify-between transition-all min-h-[44px] font-['Poppins'] bg-white text-slate-800 shadow-[0_1px_2px_rgba(15,45,74,0.045)]",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(17,36,88,0.15)] focus-visible:border-[#112458]",
             open 
-              ? "border-[#00205B] ring-2 ring-[rgba(0,32,91,0.16)]" 
+              ? "border-[#112458] ring-2 ring-[rgba(17,36,88,0.15)]" 
               : hasError 
                 ? "border-red-300 hover:border-red-400" 
-                : "border-slate-300 hover:border-slate-400",
+                : "border-[#dbe4ee] hover:border-[#b7cadd]",
             disabled && "opacity-50 cursor-not-allowed bg-slate-50",
             className
           )}

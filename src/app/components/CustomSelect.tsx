@@ -168,18 +168,18 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={`
-          w-full px-4 py-3 rounded-lg border-2 transition-all min-h-[44px]
+          w-full px-3.5 py-3 rounded-[11px] border-[1.5px] transition-all min-h-[44px]
           flex items-center justify-between gap-2
-          font-['Poppins'] text-sm text-left
+          font-['Poppins'] text-sm text-left shadow-[0_1px_2px_rgba(15,45,74,0.045)]
           ${disabled
-            ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
+            ? 'border-[#dbe4ee] bg-slate-50 cursor-not-allowed'
             : isOpen
-            ? 'border-[#00205B] bg-white ring-2 ring-[rgba(0,32,91,0.16)]'
+            ? 'border-[#112458] bg-white ring-2 ring-[rgba(17,36,88,0.15)]'
             : error
             ? 'border-red-400 bg-white hover:border-red-500'
-            : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50/50'
+            : 'border-[#dbe4ee] bg-white hover:border-[#b7cadd]'
           }
-          focus:outline-none focus-visible:border-[#00205B] focus-visible:ring-2 focus-visible:ring-[rgba(0,32,91,0.16)]
+          focus:outline-none focus-visible:border-[#112458] focus-visible:ring-2 focus-visible:ring-[rgba(17,36,88,0.15)]
         `}
       >
         <span className={`min-w-0 flex-1 truncate ${selectedOption ? (disabled ? 'text-slate-600' : 'text-slate-900') : 'text-slate-500'}`}>

@@ -1,4 +1,4 @@
-import { Bell, Check, ChevronDown, Users, Shield, Briefcase, Menu, X } from 'lucide-react';
+import { Bell, Check, ChevronDown, Users, Shield, Briefcase, ClipboardCheck, Menu, X } from 'lucide-react';
 import { NotificationPanel, Notification } from './NotificationPanel';
 import dartLogo from 'figma:asset/596faef70915e56e9eb4660104f6daec380e23d0.png';
 import { useState, useRef, useEffect } from 'react';
@@ -13,15 +13,17 @@ interface DARTHeaderProps {
 }
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
-  'Operator':        Users,
-  'Supervisor':      Shield,
-  'Program Manager': Briefcase,
+  'Operator':          Users,
+  'Supervisor':        Shield,
+  'Assistant Manager': ClipboardCheck,
+  'Program Manager':   Briefcase,
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  'Operator':        '#007DBA',
-  'Supervisor':      '#5C35A8',
-  'Program Manager': '#0F7B6C',
+  'Operator':          '#007DBA',
+  'Supervisor':        '#5C35A8',
+  'Assistant Manager': '#0A6E9E',
+  'Program Manager':   '#0F7B6C',
 };
 
 export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle, isMobileMenuOpen }: DARTHeaderProps) {
@@ -62,7 +64,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
       id: '3',
       type: 'comment',
       title: 'New Comment',
-      message: 'Program Manager Jude Bellingham commented on your Rail incident case #AR-2024-1142.',
+      message: 'Safety Program Manager Jude Bellingham commented on your Rail incident case #AR-2024-1142.',
       timestamp: '1 day ago',
       isRead: true,
       actionLabel: 'View Comment',
@@ -228,7 +230,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
       {/* Liquid Glass Top Nav Shell */}
       <div className="mx-auto px-6 pt-6">
         <div
-          className="max-w-[1200px] mx-auto rounded-3xl relative"
+          className="max-w-[1600px] mx-auto rounded-3xl relative"
           style={{
             background: 'linear-gradient(110deg, rgba(10, 68, 140, 0.06) 0%, rgba(255, 255, 255, 0.78) 45%, rgba(255, 255, 255, 0.78) 100%)',
             border: '1px solid rgba(216, 228, 246, 0.55)',
@@ -332,7 +334,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
 
       {/* Main Nav */}
       <div className="mx-auto px-4 sm:px-6 mt-4 sm:mt-6">
-        <div className="max-w-[1200px] mx-auto h-12 px-2 sm:px-6 bg-slate-50/40 border-b border-slate-200/60 rounded-t-lg overflow-x-auto no-scrollbar">
+        <div className="max-w-[1600px] mx-auto h-12 px-2 sm:px-6 bg-slate-50/40 border-b border-slate-200/60 rounded-t-lg overflow-x-auto no-scrollbar">
           <nav className="flex items-center justify-start sm:justify-center gap-3 sm:gap-8 h-full min-w-max sm:min-w-0">
             {navItems.map(item => {
               const isActive = activeNav === item.id;

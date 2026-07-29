@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Schedule — Option A visual preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --navy:#00205B; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:'Poppins',system-ui,sans-serif; color:#1e293b;
+    background-color:#E7EDF5;
+    background-image:
+      radial-gradient(1150px 620px at 8% -6%, rgba(0,120,174,0.10), transparent 60%),
+      radial-gradient(1000px 560px at 102% 2%, rgba(0,32,91,0.075), transparent 55%),
+      radial-gradient(1200px 900px at 50% 118%, rgba(0,164,181,0.06), transparent 62%);
+    background-attachment:fixed;
+    padding:40px 0 80px;
+  }
+  .wrap { max-width:1500px; margin:0 auto; padding:0 32px; }
+  .caption { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#64748b; margin:0 0 10px; }
+  .note { font-size:13px; color:#475569; margin:0 0 6px; }
+  /* the tinted "floor" the cards float on (mirrors #F6F8FB in the app) */
+  .floor { background:#F6F8FB; border-radius:20px; padding:26px; }
+  /* dart-card + dart-card--surface with the approved float */
+  .card {
+    background:linear-gradient(180deg,#FFFFFF 0%,#FBFDFF 100%);
+    border:1px solid #E2E8F0; border-radius:16px; padding:24px 28px;
+    box-shadow:0 1px 2px rgba(15,23,42,0.05), 0 10px 28px -14px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.85);
+  }
+  .h3 { color:var(--navy); font-size:15px; font-weight:600; margin:0; line-height:1.2; }
+  .help { color:#64748b; font-size:12px; margin:4px 0 0; }
+  .head { margin-bottom:22px; }
+  .lbl { display:block; font-size:11px; font-weight:700; letter-spacing:.01em; text-transform:capitalize; color:#64748b; margin-bottom:8px; }
+  /* segmented control */
+  .seg { display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(226,232,240,.8); background:rgba(241,245,249,.7); border-radius:12px; padding:4px; }
+  .seg button { border:0; background:transparent; font-family:inherit; font-size:14px; color:#64748b; padding:8px 20px; border-radius:8px; cursor:pointer; }
+  .seg button.on { background:var(--navy); color:#fff; font-weight:600; box-shadow:0 2px 8px -2px rgba(0,32,91,.45); }
+  /* input / dropdown */
+  .field { width:100%; min-height:44px; border:1.5px solid #dbe3ec; border-radius:10px; background:#fff; padding:11px 16px; color:#94a3b8; font-size:14px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  .field.filled { color:#1e293b; }
+  .chev { color:#94a3b8; font-size:12px; }
+  .measure-tag { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#0078AE; background:#eaf4fb; border:1px solid #cfe6f4; border-radius:999px; padding:3px 10px; margin-bottom:12px; }
+  .guide { border-left:2px dashed #cbd5e1; border-right:2px dashed #cbd5e1; }
+  section { margin-bottom:44px; }
+  h2.title { font-size:18px; color:#0f172a; margin:0 0 4px; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h2 class="title">Schedule section — Option A preview</h2>
+  <p class="note">Static mock (not the live app). It uses the real card, colors, toggles, and input styles so the proportions are accurate. Compare the two.</p>
+  <p class="note" style="margin-bottom:32px;">The dashed lines mark the constrained field column so you can see where content lives vs. margin.</p>
+
+  <!-- ============ BEFORE ============ -->
+  <section>
+    <p class="caption">Now — fields lead from the left, big empty right</p>
+    <div class="floor">
+      <div class="card">
+        <div class="head">
+          <p class="h3">Schedule</p>
+          <p class="help">Confirm the operator's schedule details.</p>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:20px 40px;">
+          <div>
+            <span class="lbl">Student Employee?</span>
+            <div class="seg"><button class="on">Yes</button><button>No</button></div>
+          </div>
+          <div>
+            <span class="lbl">Regular Day Off</span>
+            <div class="seg"><button class="on">Consecutive days</button><button>Split days</button></div>
+          </div>
+        </div>
+        <div style="margin-top:20px; max-width:420px;">
+          <span class="lbl">Regular Days Off (RDO) – Consecutive</span>
+          <div class="field"><span>Select RDO pair</span><span class="chev">▾</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPTION A — CONSECUTIVE ============ -->
+  <section>
+    <p class="caption" style="color:#0078AE;">Option A — constrained, centered field column</p>
+    <div class="floor">
+      <div class="card">
+        <div class="head">
+          <p class="h3">Schedule</p>
+          <p class="help">Confirm the operator's schedule details.</p>
+        </div>
+        <div class="guide" style="max-width:680px; margin:0 auto; padding:0 20px;">
+          <span class="measure-tag">Field column · ~680px · centered</span>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:22px 24px;">
+            <div>
+              <span class="lbl">Student Employee?</span>
+              <div class="seg"><button class="on">Yes</button><button>No</button></div>
+            </div>
+            <div>
+              <span class="lbl">Regular Day Off</span>
+              <div class="seg"><button class="on">Consecutive days</button><button>Split days</button></div>
+            </div>
+            <div>
+              <span class="lbl">Regular Days Off (RDO) – Consecutive</span>
+              <div class="field filled"><span>Mon / Tue</span><span class="chev">▾</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPTION A — SPLIT ============ -->
+  <section>
+    <p class="caption" style="color:#0078AE;">Option A — split-days state (fills the column, both pickers even)</p>
+    <div class="floor">
+      <div class="card">
+        <div class="head">
+          <p class="h3">Schedule</p>
+          <p class="help">Confirm the operator's schedule details.</p>
+        </div>
+        <div class="guide" style="max-width:680px; margin:0 auto; padding:0 20px;">
+          <span class="measure-tag">Field column · ~680px · centered</span>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:22px 24px;">
+            <div>
+              <span class="lbl">Student Employee?</span>
+              <div class="seg"><button class="on">Yes</button><button>No</button></div>
+            </div>
+            <div>
+              <span class="lbl">Regular Day Off</span>
+              <div class="seg"><button>Consecutive days</button><button class="on">Split days</button></div>
+            </div>
+            <div>
+              <span class="lbl">RDO Split – Day 1</span>
+              <div class="field filled"><span>Monday</span><span class="chev">▾</span></div>
+            </div>
+            <div>
+              <span class="lbl">RDO Split – Day 2</span>
+              <div class="field filled"><span>Thursday</span><span class="chev">▾</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="note" style="margin-top:8px;">
+    <strong>What changes:</strong> the fields sit in one readable ~680px column, centered, so the leftover width becomes balanced margin on both sides instead of a hole on the right — and inputs stop stretching. Same idea would apply to every section, so dense steps get right-sized inputs too. Left-aligned instead of centered is a one-word switch if you prefer it.
+  </p>
+
+</div>
+</body>
+</html>

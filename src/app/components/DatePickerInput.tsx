@@ -20,6 +20,7 @@ interface DatePickerInputProps {
   value: string; // YYYY-MM-DD
   onChange: (value: string) => void;
   placeholder?: string;
+  align?: 'left' | 'right';
 }
 
 const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -28,6 +29,7 @@ export function DatePickerInput({
   value,
   onChange,
   placeholder = 'MM/DD/YYYY',
+  align = 'left',
 }: DatePickerInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -101,7 +103,7 @@ export function DatePickerInput({
 
       {/* Calendar popover */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 left-0 bg-white rounded-2xl border border-slate-200 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_20px_48px_-8px_rgba(0,0,0,0.08)] p-4 w-[296px]">
+        <div className={`absolute z-50 mt-2 ${align === 'right' ? 'right-0' : 'left-0'} bg-white rounded-2xl border border-slate-200 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_20px_48px_-8px_rgba(0,0,0,0.08)] p-4 w-[296px]`}>
           {/* Month / Year header */}
           <div className="flex items-center justify-between mb-4">
             <button

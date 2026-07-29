@@ -185,9 +185,19 @@ export interface Person {
   id: string;
   role: 'Passenger' | 'Operator' | 'Pedestrian' | 'Other driver' | 'Other';
   name: string;
-  injury_level: 'None' | 'Minor' | 'Serious' | 'Fatal';
+  injured?: boolean;                 // was this person injured? (drives "number injured")
+  fatal?: boolean;                   // fatal injury? (drives "number of fatalities")
+  injured_body_part?: string;
   transported_to_hospital: boolean;
   hospital_name?: string;
+  fled_scene?: boolean;
+  // Passenger-specific
+  passenger_action?: string;
+  which_door?: string;
+  courtesy_card?: boolean;
+  // Pedestrian-specific
+  pedestrian_type?: string;
+  pedestrian_action?: string;
 }
 ```
 

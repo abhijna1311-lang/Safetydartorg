@@ -177,10 +177,10 @@ export function EmployeeInfoSection({ data, onUpdate, isOnBehalf }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="dart-card dart-card--surface overflow-hidden">
       {/* Card header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${lookupState === 'found' ? 'bg-[#007DBA]' : data.employee_badge_number && data.employee_name ? 'bg-[#007DBA]' : 'bg-slate-300'}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${lookupState === 'found' ? 'bg-emerald-500' : data.employee_badge_number && data.employee_name ? 'bg-emerald-500' : 'bg-slate-300'}`} />
         <span className="text-sm font-semibold text-slate-800 font-['Poppins']">Employee information</span>
         <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 font-['Poppins']">
           <Lock className="w-3 h-3" /> Workday record
@@ -204,7 +204,7 @@ export function EmployeeInfoSection({ data, onUpdate, isOnBehalf }: Props) {
                 {isOnBehalf ? (
                   <>
                     <p className="text-sm font-semibold text-[#00205B] font-['Poppins']">
-                      Filing on behalf of {data.employee_name}
+                      This case is for {data.employee_name}
                     </p>
                     <p className="text-xs text-slate-600 font-['Poppins'] mt-0.5">
                       Badge #{data.employee_badge_number} - details are pulled from Workday and displayed read-only.

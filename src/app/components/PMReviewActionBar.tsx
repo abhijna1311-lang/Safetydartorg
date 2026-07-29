@@ -54,7 +54,7 @@ const ACTION_META: Record<PMActionKey, {
   return: {
     label: 'Return for correction',
     noteLabel: 'Correction note (required)',
-    noteHint: 'Sends the Supervisor section back with your note. Your classification work is preserved.',
+    noteHint: 'Sends the Field Supervisor section back with your note. Your classification work is preserved.',
     confirmLabel: 'Send back to Supervisor',
     placeholder: 'e.g. Add field supervisor statement and confirm passenger injury severity.',
     tone: 'amber',
@@ -62,7 +62,7 @@ const ACTION_META: Record<PMActionKey, {
   reassign: {
     label: 'Reassign supervisor',
     noteLabel: 'Reassignment note (required)',
-    noteHint: 'Routes the Supervisor section to a different supervisor. Your classification work is preserved.',
+    noteHint: 'Routes the Field Supervisor section to a different Field Supervisor. Your classification work is preserved.',
     confirmLabel: 'Reassign supervisor',
     placeholder: 'e.g. Original supervisor is out on leave. Please pick this up.',
     tone: 'sky',

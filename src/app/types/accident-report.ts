@@ -1,10 +1,37 @@
 export interface Person {
   id: string;
-  role: 'Passenger' | 'Operator' | 'Pedestrian' | 'Other driver' | 'Other';
-  name: string;
-  injury_level: 'None' | 'Minor' | 'Serious' | 'Fatal';
+  role: 'Passenger' | 'Pedestrian';
+  name?: string;
+  injured?: boolean;
+  fatal?: boolean;
+  injured_body_part?: string;
   transported_to_hospital: boolean;
-  hospital_name?: string;
+  fled_scene?: boolean;
+  // Passenger-specific
+  passenger_action?: string;
+  which_door?: string;
+  courtesy_card?: boolean;
+  // Pedestrian-specific
+  pedestrian_type?: string;
+  pedestrian_action?: string;
+}
+
+// The other party in a collision. Occupants are recorded as counts (not named line items).
+export interface OtherVehicle {
+  id: string;
+  occupants?: number;
+  fatalities?: number;
+  injuries?: number;
+  fled?: number;
+  transported?: number;
+  dart_dart?: boolean;        // collision between two DART vehicles — changes the type list
+  vehicle_type?: string;
+  action?: string;
+  point_of_impact?: string;
+  direction?: string;         // direction relative to the DART vehicle
+  damage?: boolean;
+  damage_area?: string;
+  tow_away?: boolean;
 }
 
 export interface PedestrianRecord {
@@ -238,6 +265,9 @@ export interface AccidentReportData {
   supervisor_cross_street?: string;
   supervisor_city?: string;
   supervisor_zip?: string;
+  supervisor_event_at_bus_stop?: boolean;
+  supervisor_bus_stop_name?: string;
+  supervisor_has_bike_lane?: boolean;
   supervisor_location_category?: string;
   supervisor_station_applicable?: string;
   supervisor_grade_crossing_applicable?: string;
@@ -258,6 +288,9 @@ export interface AccidentReportData {
   supervisor_lrv_fleet_type?: string;
   supervisor_operating_route_number?: string;
   supervisor_block_number?: string;
+  supervisor_end_of_line_destination?: string;
+  supervisor_bus_status_before?: string;
+  supervisor_bus_status_after?: string;
   supervisor_rail_line?: string;
   supervisor_derailment_confirmed?: boolean;
   supervisor_derailment_details?: string;
@@ -303,6 +336,7 @@ export interface AccidentReportData {
 
   // Program manager review
   operator_datetime_correct?: boolean;
+  employee_contacted_program_manager?: boolean;
   employee_contacted_program_manager_date?: string;
   employee_contact_method?: string;
   shared_corridor?: boolean;
@@ -393,11 +427,12 @@ export interface AccidentReportData {
   operator_waived_at?: string;
 
   // Impact diagram markers
-  impact_markers?: { x: number; y: number }[];
+  impact_markers?: { x: number; y: number; label?: string }[];
 
   // ── Legacy / Step 4 ───────────────────────────────────────────
-  any_injuries?: boolean;
+  people_involved?: boolean;
   people?: Person[];
+  other_vehicles?: OtherVehicle[];
   total_people_involved?: number;
   severity_level?: string;
   assigned_route?: string;

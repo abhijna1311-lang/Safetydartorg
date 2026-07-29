@@ -64,7 +64,7 @@ function Field({ label, required, helper, error, children }: { label: string; re
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div className={error ? 'rounded-lg ring-2 ring-red-400/70' : ''}>{children}</div>
+      <div className={error ? 'rounded-[11px] ring-2 ring-red-400/70' : ''}>{children}</div>
       {error ? <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p> : helper ? <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p> : null}
     </div>
   );
@@ -72,7 +72,7 @@ function Field({ label, required, helper, error, children }: { label: string; re
 
 function Card({ title, complete, children }: { title: string; complete?: boolean; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="dart-card dart-card--surface">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${complete ? 'bg-emerald-500' : 'bg-slate-300'}`} />
         <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">{title}</h3>
@@ -94,8 +94,8 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
   return (
     <div className="space-y-5">
 
-      {/* Description + Date/Time */}
-      <Card title="Event description & timing" complete={!!(data.description_of_event && data.incident_date && data.incident_time)}>
+      {/* Description — incident date & time now live on Step 1 */}
+      <Card title="Event description" complete={!!data.description_of_event}>
         <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
           <textarea
             rows={4}
@@ -106,14 +106,6 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
             className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Event date" required error={showErrors && !data.incident_date}>
-            <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
-          </Field>
-          <Field label="Event time" required error={showErrors && !data.incident_time}>
-            <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
-          </Field>
-        </div>
       </Card>
 
       {/* Train Vehicle */}

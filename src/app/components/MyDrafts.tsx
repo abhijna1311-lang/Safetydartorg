@@ -110,7 +110,7 @@ export function MyDrafts({ onNavigate, onResumeReport, onDeleteDraft, drafts, on
     <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="drafts" onNavigate={onNavigate} />
 
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         {/* Page Header with Stats */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-8">
           {/* Left: Page Title */}

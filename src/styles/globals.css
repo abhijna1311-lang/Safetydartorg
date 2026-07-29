@@ -58,12 +58,31 @@
   /* Motion */
   --dart-motion-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
   --dart-motion-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ==========================================================
+     Control system (2026-07-24 spec) — navy selection + magenta accent.
+     Selection navy #112458 (gradient #1c3570 -> #112458); accent #6C1B7E
+     used sparingly (required asterisk). Applies to all form controls.
+     ========================================================== */
+  --ctl-navy: #112458;
+  --ctl-navy-gradient: linear-gradient(135deg, #1c3570, #112458);
+  --ctl-accent: #6C1B7E;
+  --ctl-ink: #0f2d4a;
+  --ctl-label: #33485f;
+  --ctl-muted: #7a8aa0;
+  --ctl-placeholder: #9fb0c3;
+  --ctl-field-border: #dbe4ee;
+  --ctl-field-border-hover: #b7cadd;
+  --ctl-track-bg: #eef3f8;
+  --ctl-track-border: #e3eaf2;
+  --ctl-icon: #62788f;
 }
 
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #E9EEF5;
 }
 
 html {
@@ -82,11 +101,11 @@ html {
    Usage: add `dart-canvas` to a full-page root (min-h-screen) container.
    ============================================ */
 .dart-canvas {
-  background-color: #F4F7FB;
+  background-color: #E7EDF5;
   background-image:
-    radial-gradient(1150px 620px at 8% -6%, rgba(0, 120, 174, 0.07), transparent 60%),
-    radial-gradient(1000px 560px at 102% 2%, rgba(0, 32, 91, 0.055), transparent 55%),
-    radial-gradient(1200px 900px at 50% 118%, rgba(0, 164, 181, 0.05), transparent 62%);
+    radial-gradient(1150px 620px at 8% -6%, rgba(0, 120, 174, 0.10), transparent 60%),
+    radial-gradient(1000px 560px at 102% 2%, rgba(0, 32, 91, 0.075), transparent 55%),
+    radial-gradient(1200px 900px at 50% 118%, rgba(0, 164, 181, 0.06), transparent 62%);
   background-attachment: fixed;
 }
 
@@ -103,59 +122,287 @@ html {
   display: block;
   margin-bottom: 0.5rem;
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.35;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.012em;
   text-transform: capitalize;
-  color: var(--color-label);
+  color: var(--ctl-label);
 }
 
 .dart-input-base {
   width: 100%;
   min-height: 44px;
-  padding: 0.75rem 1rem;
-  border: 2px solid #cbd5e1;
-  border-radius: 0.5rem;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ctl-field-border);
+  border-radius: 11px;
   background: #ffffff;
-  color: #1e293b;
+  color: var(--ctl-ink);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 14.5px;
+  font-weight: 500;
   line-height: 1.4;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 45, 74, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
 }
 
 .dart-input-base::placeholder {
-  color: var(--color-placeholder);
+  color: var(--ctl-placeholder);
+}
+
+.dart-input-base:hover:not(:focus) {
+  border-color: var(--ctl-field-border-hover);
+  box-shadow: 0 2px 7px rgba(15, 45, 74, 0.08);
 }
 
 .dart-input-base:focus {
   outline: none;
-  border-color: var(--color-focus-border);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--ctl-navy);
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.15), 0 8px 20px -6px rgba(17, 36, 88, 0.24);
+  transform: translateY(-1px);
 }
 
 .dart-input-compact {
   width: 100%;
   min-height: 40px;
   padding: 0.625rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
+  border: 1.5px solid var(--ctl-field-border);
+  border-radius: 11px;
   background: #ffffff;
-  color: #1e293b;
+  color: var(--ctl-ink);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 1.35;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.035);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 45, 74, 0.045);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.dart-input-compact:hover:not(:focus) {
+  border-color: var(--ctl-field-border-hover);
+  box-shadow: 0 2px 7px rgba(15, 45, 74, 0.08);
 }
 
 .dart-input-compact:focus {
   outline: none;
-  border-color: var(--color-focus-border);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--ctl-navy);
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.15), 0 8px 20px -6px rgba(17, 36, 88, 0.24);
 }
+
+/* ==========================================================
+   Segmented toggle (Yes/No, Consecutive/Split) — 2026-07-24 spec.
+   inline-grid keeps the track compact with equal-width segments.
+   ========================================================== */
+.dart-seg {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 13px;
+  background: var(--ctl-track-bg);
+  border: 1.5px solid var(--ctl-track-border);
+  box-shadow: inset 0 1px 2px rgba(15, 45, 74, 0.05);
+}
+.dart-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #5c7085;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.dart-seg-btn:hover:not(.dart-seg-btn--on):not(:disabled) {
+  transform: translateY(-1px);
+  color: var(--ctl-ink);
+}
+.dart-seg-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.28);
+}
+.dart-seg-btn--on {
+  background: var(--ctl-navy-gradient);
+  color: #fff;
+  box-shadow: 0 8px 16px -6px rgba(17, 36, 88, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.dart-seg-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* Schedule row — controls share the width equally, so they stretch wide when alone and
+   shrink as RDO selects appear, keeping the row's right edge aligned with the fields above.
+   The roomier gap gives breathing space between the questions on start. */
+.dart-schedule-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 32px; }
+.dart-schedule-row > * { flex: 1 1 0%; min-width: 160px; display: flex; flex-direction: column; }
+.dart-schedule-row .dart-seg { display: grid; width: 100%; }
+/* All four controls share the taller toggle height: each select column stretches to the
+   row height and its button fills, so every control's bottom edge lines up. */
+.dart-schedule-row .relative { flex: 1 1 auto; }
+.dart-schedule-row .relative > button { height: 100%; }
+
+/* Locked / auto-filled field — read-only value carried from another source. */
+.dart-input-locked,
+.dart-input-locked:hover:not(:focus) {
+  background: #E6F4FB;
+  border-color: #b8ddf2;
+  color: #0d3a5c;
+  box-shadow: inset 0 1px 2px rgba(13, 58, 92, 0.06);
+}
+
+/* Vehicle info strip — source-pulled details as a clean white card. Each value carries a small
+   brand-blue icon tile (bus, route, calendar, clock, flag) for scannability; a soft border and
+   gentle shadow give calm depth in the app's white/navy language. */
+.dart-vehicle-strip {
+  display: flex;
+  align-items: stretch;
+  min-height: 64px;
+  border: 1px solid #e6edf5;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(15, 45, 74, 0.04),
+    0 10px 24px -16px rgba(17, 36, 88, 0.2);
+  overflow: hidden;
+}
+.dart-vehicle-item {
+  flex: 1 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 18px;
+}
+.dart-vehicle-item + .dart-vehicle-item {
+  border-left: 1px solid #eef2f7;
+}
+.dart-vehicle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #eaf1fb, #dae7f7);
+  color: #1c3570;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.dart-vehicle-icon .material-symbols-rounded { font-size: 18px; line-height: 1; }
+.dart-vehicle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dart-vehicle-label {
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93a4b6;
+  line-height: 1.25;
+}
+.dart-vehicle-value {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f2d4a;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Required asterisk — accent, used sparingly. */
+.dart-req { color: var(--ctl-accent); font-weight: 700; }
+
+/* ==========================================================
+   Selection card (vehicle mode) — 2026-07-24 spec.
+   ========================================================== */
+.dart-mode-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 20px 12px;
+  border-radius: 16px;
+  border: 1.5px solid #e2eaf2;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 45, 74, 0.04);
+  cursor: pointer;
+  text-align: center;
+  transform: translateY(0);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+.dart-mode-card:hover:not(.dart-mode-card--on):not(:disabled) {
+  border-color: #8ba4c4;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -12px rgba(17, 36, 88, 0.3);
+}
+.dart-mode-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.28);
+}
+.dart-mode-card:disabled { cursor: not-allowed; opacity: 0.6; }
+/* Selected = pressed-in / neumorphic. Two opposing insets (soft slate + white) with a
+   neutral slate edge (never navy) so it stays smooth and never reads as disabled. The
+   card sits flush; the raised navy icon tile provides the depth contrast that sells the press. */
+.dart-mode-card--on {
+  border-color: #dde5f0;
+  background: linear-gradient(145deg, #eef2f8, #fcfdff);
+  box-shadow: inset 4px 5px 13px rgba(158, 172, 192, 0.28), inset -4px -5px 13px rgba(255, 255, 255, 1);
+  transform: translateY(0);
+}
+.dart-mode-card--error { border-color: #e6a9b6; }
+.dart-mode-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #eef3f8;
+  color: #5b7488;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.dart-mode-tile--on {
+  background: var(--ctl-navy-gradient);
+  color: #fff;
+  box-shadow: 0 8px 16px -5px rgba(17, 36, 88, 0.5);
+}
+.dart-mode-title { font-family: var(--font-sans); font-size: 14.5px; font-weight: 600; color: #0d3a5c; }
+.dart-mode-sub { font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: #8496a8; }
+.dart-mode-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--ctl-navy-gradient);
+  color: #fff;
+  box-shadow: 0 3px 8px -2px rgba(17, 36, 88, 0.55);
+}
+
+/* Material Symbols Rounded (filled) — icon font loaded in index.html. */
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+}
+.dart-mode-tile .material-symbols-rounded { font-size: 26px; }
+.dart-mode-badge .material-symbols-rounded { font-size: 16px; }
 
 .dart-action-link {
   font-family: var(--font-sans);
@@ -189,8 +436,11 @@ html {
 }
 
 .dart-card--surface {
-  background: linear-gradient(180deg, #FFFFFF 0%, #FCFDFF 100%);
-  box-shadow: var(--dart-elevation-1), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBFDFF 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 28px -14px rgba(15, 23, 42, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .dart-card--primary {
@@ -292,10 +542,9 @@ html {
   text-wrap: balance;
 }
 
-/* Heading case convention: Title Case (first letter of every word capitalized).
-   Applied to all heading elements so the whole site stays consistent. Acronyms
-   (e.g., DART, PM) keep their existing uppercase — `capitalize` only affects the
-   first letter of each word and never lowercases the rest. */
+/* Heading case convention: Title Case (first letter of every word capitalized). Applied to
+   all heading elements so the whole site stays consistent. `capitalize` only affects the first
+   letter of each word and never lowercases the rest, so acronyms (DART, PM) stay intact. */
 h1, h2, h3, h4, h5, h6 {
   text-transform: capitalize;
 }

@@ -23,9 +23,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export function PoliceSection({ data, onUpdate }: Props) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="dart-card dart-card--surface">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${data.police_at_scene !== undefined ? 'bg-[#007DBA]' : 'bg-slate-300'}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${data.police_at_scene !== undefined ? 'bg-emerald-500' : 'bg-slate-300'}`} />
         <Shield className="w-4 h-4 text-slate-500" />
         <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">Police section</h3>
         <span className="ml-auto text-xs text-slate-400 font-['Poppins'] italic">Not required</span>

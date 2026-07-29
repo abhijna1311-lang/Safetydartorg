@@ -43,7 +43,7 @@ function getCurrentTask(sectionKey: WorkflowSectionKey, section: WorkflowSection
   }
 
   if (sectionKey === 'supervisor') {
-    return 'Complete Supervisor Collision Investigation';
+    return 'Complete Field Supervisor Collision Investigation';
   }
 
   if (sectionKey === 'programManager') {
@@ -63,7 +63,7 @@ function getContextNote(initiatedBy: UserRole, currentRole: UserRole, currentUse
   }
 
   if (currentRole === 'Supervisor' && initiatedBy === 'Supervisor' && data?.is_on_behalf === true) {
-    return 'You are completing the Supervisor section. The employee will complete their Operator section separately.';
+    return 'You are completing the Field Supervisor section. The employee will complete their Operator section separately.';
   }
 
   if (currentRole === 'Program Manager') {

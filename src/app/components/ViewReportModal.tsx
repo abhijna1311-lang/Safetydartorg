@@ -169,15 +169,15 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
             {canSeeSupervisorDetails ? (
               <SectionCard title="Supervisor section collision" sectionNumber={3}>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  <FieldValue label="Supervisor" value={data?.supervisor_name} />
-                  <FieldValue label="Supervisor badge" value={data?.supervisor_badge_number} />
+                  <FieldValue label="Field Supervisor" value={data?.supervisor_name} />
+                  <FieldValue label="Field Supervisor badge" value={data?.supervisor_badge_number} />
                   <FieldValue label="Division" value={data?.supervisor_division} />
                   <FieldValue label="Arrival" value={data?.supervisor_arrival_date && data?.supervisor_arrival_time ? `${data.supervisor_arrival_date} at ${data.supervisor_arrival_time}` : undefined} />
                   <FieldValue label="Damage count" value={data?.supervisor_damage_count} />
                   <FieldValue label="Tow count" value={data?.supervisor_tow_count} />
                   <FieldValue label="Police report" value={data?.supervisor_police_report_number} />
                   <div className="col-span-2">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2 font-medium">Supervisor description</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2 font-medium">Field Supervisor description</p>
                     <p className="text-sm text-slate-700 leading-relaxed bg-white rounded-lg p-4 border border-slate-200">
                       {data?.supervisor_event_description || '—'}
                     </p>

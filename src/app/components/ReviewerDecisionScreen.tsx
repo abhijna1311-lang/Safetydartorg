@@ -221,7 +221,7 @@ export function ReviewerDecisionScreen({
       tone: 'amber',
     },
     reassign: {
-      title: 'Reassign supervisor section',
+      title: 'Reassign Field Supervisor section',
       noteLabel: 'Reassignment note (required)',
       noteHint: 'Explain why the case needs a different supervisor to complete this section.',
       confirmLabel: 'Reassign supervisor',
@@ -424,13 +424,13 @@ export function ReviewerDecisionScreen({
       >
         <div className="space-y-5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Supervisor identity and arrival</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Field Supervisor identity and arrival</p>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Supervisor" value={supervisorName !== '—' ? `${supervisorName}${data.supervisor_badge_number ? ` · ${data.supervisor_badge_number}` : ''}` : '—'} />
+              <Field label="Field Supervisor" value={supervisorName !== '—' ? `${supervisorName}${data.supervisor_badge_number ? ` · ${data.supervisor_badge_number}` : ''}` : '—'} />
               <Field label="Division" value={data.supervisor_division} />
               <Field label="Arrival on scene" value={supervisorArrival} />
-              <Field label="Incident recorded" value={data.supervisor_incident_date && data.supervisor_incident_time ? `${data.supervisor_incident_date} at ${data.supervisor_incident_time}` : data.supervisor_incident_date} />
-              <Field label="DART vehicle type" value={data.supervisor_dart_vehicle_type} />
+              <Field label="Incident recorded" value={(data.supervisor_incident_date || data.incident_date) && (data.supervisor_incident_time || data.incident_time) ? `${data.supervisor_incident_date || data.incident_date} at ${data.supervisor_incident_time || data.incident_time}` : (data.supervisor_incident_date || data.incident_date)} />
+              <Field label="DART vehicle type" value={data.supervisor_dart_vehicle_type || data.mode} />
               <Field label="Revenue service" value={yesNo(data.supervisor_revenue_service)} />
               <Field label="Operating route" value={data.supervisor_operating_route_number} />
               <Field label="Block" value={data.supervisor_block_number} />
@@ -503,7 +503,7 @@ export function ReviewerDecisionScreen({
           </div>
           {data.supervisor_event_description && (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Supervisor description</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Field Supervisor description</p>
               <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_event_description}</p>
             </div>
           )}
@@ -543,7 +543,7 @@ export function ReviewerDecisionScreen({
             tone="blue"
             icon={UserCog}
             title="Reassign"
-            description="Route the Supervisor section to a different Supervisor."
+            description="Route the Field Supervisor section to a different Field Supervisor."
             active={pendingAction === 'reassign'}
             onClick={() => handleActionClick('reassign')}
           />

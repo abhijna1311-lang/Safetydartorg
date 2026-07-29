@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Step 1 (Incident Basics) — Premium pass</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{ --navy:#00205B; --blue:#0078AE; --teal:#00A4B5; --ink:#0f172a; --slate7:#334155; --slate5:#64748b; --slate4:#94a3b8; --line:#E6ECF3; --floor:#EEF2F8; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Poppins',system-ui,sans-serif; color:var(--ink); -webkit-font-smoothing:antialiased;
+    background:#EAEFF6; background-image:radial-gradient(1150px 620px at 8% -6%, rgba(0,120,174,.08), transparent 60%),radial-gradient(1000px 560px at 102% 2%, rgba(0,32,91,.06), transparent 55%); background-attachment:fixed;}
+  .hdr{ position:sticky; top:0; z-index:20; background:rgba(255,255,255,.82); backdrop-filter:blur(14px); border-bottom:1px solid var(--line);}
+  .hdr-in{ max-width:1600px; margin:0 auto; padding:0 40px; height:64px; display:flex; align-items:center; justify-content:space-between;}
+  .brand{ display:flex; align-items:center; gap:12px;}
+  .brand .mark{ width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,#00244F,#0067B3); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:15px;}
+  .brand .name{ font-weight:700; color:var(--navy); font-size:15px;}
+  .brand .sub{ font-size:11px; color:var(--slate5); margin-top:-2px;}
+  .rolepill{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--slate7); background:#fff; border:1px solid var(--line); padding:7px 12px; border-radius:9px; font-weight:500;}
+
+  .work{ max-width:1300px; margin:0 auto; padding:36px 40px 80px; display:grid; grid-template-columns:320px 1fr; gap:40px; align-items:start;}
+  .rail{ position:sticky; top:96px; display:flex; flex-direction:column; gap:20px;}
+  .ctx{ background:linear-gradient(135deg,#001B40,#003D7A); border-radius:16px; padding:20px 22px; color:#fff; box-shadow:0 16px 34px -20px rgba(0,32,91,.7);}
+  .ctx .k{ font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.6);}
+  .ctx .case{ font-size:16px; font-weight:600; margin-top:4px;}
+  .ctx .row{ display:flex; justify-content:space-between; gap:10px; margin-top:14px; font-size:12.5px;}
+  .ctx .row span:first-child{ color:rgba(255,255,255,.6);}
+  .ctx .row span:last-child{ color:#fff; font-weight:500;}
+  .steps{ background:linear-gradient(180deg,#fff,#FBFDFF); border:1px solid var(--line); border-radius:16px; padding:18px 20px; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 14px 32px -20px rgba(15,23,42,.2);}
+  .steps .title{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--slate4); margin-bottom:14px;}
+  .step{ display:flex; gap:12px; padding:9px 0; position:relative;}
+  .step .bullet{ width:26px; height:26px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; z-index:2;}
+  .step.now .bullet{ background:var(--navy); color:#fff; box-shadow:0 0 0 4px rgba(0,32,91,.12);}
+  .step.todo .bullet{ background:#fff; color:var(--slate4); border:1.5px solid #d7dfea;}
+  .step:not(:last-child)::after{ content:""; position:absolute; left:12.5px; top:34px; bottom:-9px; width:1.5px; background:#e2e8f0; z-index:1;}
+  .step .lab{ padding-top:3px;}
+  .step .lab .t{ font-size:13.5px; font-weight:600; color:var(--slate7);}
+  .step.now .lab .t{ color:var(--navy);}
+  .step.todo .lab .t{ color:var(--slate4); font-weight:500;}
+  .step .lab .s{ font-size:11px; color:var(--slate4); margin-top:1px;}
+
+  .stephead{ margin-bottom:24px;}
+  .stephead .kick{ font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin-bottom:8px;}
+  .stephead h1{ font-size:27px; font-weight:600; color:var(--navy); letter-spacing:-.02em; line-height:1.15;}
+  .stephead p{ font-size:13.5px; color:var(--slate5); margin-top:8px; max-width:560px;}
+  .card{ background:linear-gradient(180deg,#fff,#FBFDFF); border:1px solid var(--line); border-radius:16px; padding:24px 26px; margin-bottom:18px; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 14px 32px -20px rgba(15,23,42,.2);}
+  .card .sh{ margin-bottom:20px;}
+  .card .sh h3{ font-size:15px; font-weight:600; color:var(--navy);}
+  .card .sh p{ font-size:12px; color:var(--slate5); margin-top:3px;}
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;}
+  .lbl{ display:block; font-size:11px; font-weight:700; text-transform:capitalize; color:var(--slate5); margin-bottom:7px;}
+  .req{ color:#ef4444;}
+  .inp{ width:100%; min-height:44px; border:1.5px solid #dbe3ec; border-radius:10px; background:#fff; padding:11px 14px; font-size:14px; color:var(--ink); box-shadow:0 1px 2px rgba(15,23,42,.04);}
+  .inp.ph{ color:var(--slate4);}
+  .sel{ display:flex; align-items:center; justify-content:space-between;}
+  .sel .chev{ color:var(--slate4); font-size:12px;}
+  .seg{ display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(226,232,240,.8); background:rgba(241,245,249,.7); border-radius:12px; padding:4px;}
+  .seg button{ border:0; background:transparent; font-family:inherit; font-size:14px; color:var(--slate5); padding:8px 20px; border-radius:8px; cursor:pointer;}
+  .seg button.on{ background:var(--navy); color:#fff; font-weight:600; box-shadow:0 2px 8px -2px rgba(0,32,91,.45);}
+  .rdo{ margin-top:16px;}
+  .subq{ margin-top:20px; padding-top:20px; border-top:1px solid var(--line);}
+  .subq .q{ font-size:14px; font-weight:500; color:var(--navy);}
+  .subq .h{ font-size:12px; color:var(--slate5); margin:3px 0 12px;}
+  /* mode cards */
+  .modes{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  .mode{ border:1.5px solid #e2e8f0; background:#fff; border-radius:12px; padding:18px 10px; text-align:center; cursor:pointer; transition:.15s;}
+  .mode .ic{ font-size:22px;}
+  .mode .nm{ font-size:12.5px; color:var(--slate7); font-weight:500; margin-top:8px;}
+  .mode.on{ border-color:var(--navy); background:rgba(0,32,91,.05);}
+  .mode.on .nm{ color:var(--navy); font-weight:600;}
+  .foot{ display:flex; align-items:center; justify-content:space-between; margin-top:26px; padding-top:22px; border-top:1px solid var(--line);}
+  .btn{ font-family:inherit; font-size:14px; font-weight:600; border-radius:11px; padding:12px 22px; cursor:pointer; border:0;}
+  .btn.ghost{ background:#fff; border:1px solid #d7dfea; color:var(--slate7);}
+  .btn.link{ background:transparent; color:var(--slate5); padding:12px 8px;}
+  .btn.primary{ background:var(--navy); color:#fff; display:inline-flex; align-items:center; gap:9px; box-shadow:0 10px 22px -12px rgba(0,32,91,.7);}
+</style>
+</head>
+<body>
+
+<div class="hdr"><div class="hdr-in">
+  <div class="brand"><div class="mark">D</div><div><div class="name">DART Safety</div><div class="sub">Accident Reporting</div></div></div>
+  <div class="rolepill">● Operator · Alex L.</div>
+</div></div>
+
+<div class="work">
+  <aside class="rail">
+    <div class="ctx">
+      <div class="k">New report</div>
+      <div class="case">Draft · not yet submitted</div>
+      <div class="row"><span>Reporting for</span><span>Yourself</span></div>
+      <div class="row"><span>Event</span><span>Being classified</span></div>
+      <div class="row"><span>Started</span><span>Today, 9:42 AM</span></div>
+    </div>
+    <div class="steps">
+      <div class="title">Your progress</div>
+      <div class="step now"><div class="bullet">1</div><div class="lab"><div class="t">Incident basics</div><div class="s">In progress</div></div></div>
+      <div class="step todo"><div class="bullet">2</div><div class="lab"><div class="t">Vehicle &amp; location</div><div class="s">Up next</div></div></div>
+      <div class="step todo"><div class="bullet">3</div><div class="lab"><div class="t">People &amp; impact</div><div class="s">Not started</div></div></div>
+      <div class="step todo"><div class="bullet">4</div><div class="lab"><div class="t">Review &amp; submit</div><div class="s">Not started</div></div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="stephead">
+      <div class="kick">Step 1 of 4</div>
+      <h1>Incident basics</h1>
+      <p>Confirm the schedule, then classify the event type and vehicle mode. This shapes the rest of the report.</p>
+    </div>
+
+    <!-- Schedule -->
+    <div class="card">
+      <div class="sh"><h3>Schedule</h3><p>Confirm the operator's schedule details.</p></div>
+      <div class="grid2">
+        <div>
+          <label class="lbl">Student Employee?</label>
+          <div class="seg"><button class="on">Yes</button><button>No</button></div>
+        </div>
+        <div>
+          <label class="lbl">Regular Day Off</label>
+          <div class="seg"><button class="on">Consecutive</button><button>Split</button></div>
+          <div class="rdo">
+            <label class="lbl">Regular Days Off (RDO) – Consecutive</label>
+            <div class="inp sel filled"><span>Mon / Tue</span><span class="chev">▾</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Type of event -->
+    <div class="card">
+      <div class="sh"><h3>Type of event</h3><p>This determines which questions appear next.</p></div>
+      <div class="grid2">
+        <div>
+          <label class="lbl">Type of event <span class="req">*</span></label>
+          <div class="inp sel"><span>Operator/Passenger event (non-collision)</span><span class="chev">▾</span></div>
+        </div>
+        <div></div>
+      </div>
+      <div class="subq">
+        <p class="q">Were you operating a DART vehicle? <span class="req">*</span></p>
+        <p class="h">Were you driving, operating, or in possession of a DART vehicle at the time of the event?</p>
+        <div class="seg"><button class="on">Yes</button><button>No</button></div>
+      </div>
+    </div>
+
+    <!-- Vehicle mode -->
+    <div class="card">
+      <div class="sh"><h3>Vehicle mode</h3><p>Which DART vehicle mode is involved?</p></div>
+      <div class="modes">
+        <div class="mode on"><div class="ic">🚌</div><div class="nm">Bus</div></div>
+        <div class="mode"><div class="ic">🚊</div><div class="nm">Light Rail</div></div>
+        <div class="mode"><div class="ic">🚋</div><div class="nm">Streetcar</div></div>
+        <div class="mode"><div class="ic">🚐</div><div class="nm">Paratransit</div></div>
+        <div class="mode"><div class="ic">🚗</div><div class="nm">Other</div></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <button class="btn ghost">← Back</button>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="btn link">Save as draft</button>
+        <button class="btn primary">Continue <span>→</span></button>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
