@@ -50,7 +50,7 @@ const MODES = [
   { value: 'Non-Revenue Vehicle',  label: 'Non-Revenue',sublabel: 'Non-revenue vehicle',        glyph: 'directions_car' },
 ] as const;
 
-const DERAILMENT_MODES = ['Light Rail Vehicle', 'Hi-Rail'];
+const DERAILMENT_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
 
 const EMPTY_EMPLOYEE_FIELDS: Partial<AccidentReportData> = {
   on_behalf_employee: '',
@@ -838,7 +838,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         <Section
           title={<>Vehicle mode <span className="dart-req">*</span></>}
           help={isDerailmentEvent
-            ? 'Derailment reports are available only for Light Rail Vehicle and Hi-Rail.'
+            ? 'Derailment reports are available only for Light Rail Vehicle, Streetcar, and Hi-Rail.'
             : 'Which DART vehicle mode is involved?'}
           complete={hasMode}
         >
@@ -873,7 +873,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           </div>
           {isDerailmentEvent && (
             <p id="derailment-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
-              Bus, Streetcar, and Non-Revenue Vehicle cannot be selected for this event type.
+              Bus and Non-Revenue Vehicle cannot be selected for this event type.
             </p>
           )}
           {errMode && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Select the vehicle mode involved.</p>}
