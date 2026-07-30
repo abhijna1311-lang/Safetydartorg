@@ -1,5 +1,10 @@
 # DART Accident Reporting — Design System Spec
 
+> ⚠️ **For exact, current values use [`design-system/STYLE-GUIDE.md`](../design-system/STYLE-GUIDE.md)**
+> (developer + AI‑agent reference) and the live gallery `design-system/index.html`. Both read from the
+> real stylesheet `src/styles/dart-design-system.css`. This document is the *rationale / vibe* spec and
+> may lag the code on specific numbers — trust the STYLE‑GUIDE when they disagree.
+
 > **Purpose:** One source of truth for how this app looks and feels, so the vibe is defined
 > **once** and applied **everywhere** — instead of screen-by-screen fixes.
 > **Status:** DRAFT v1 — Abhi to tear apart. Nothing here is precious; correct it and it becomes law.

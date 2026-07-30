@@ -12,6 +12,8 @@ interface Props {
   markers: ImpactMarker[];
   onChange: (markers: ImpactMarker[]) => void;
   maxMarkers?: number;
+  /** Vehicle-specific silhouette and impact zones. */
+  variant?: 'bus' | 'rail' | 'streetcar' | 'nrv';
 }
 
 // ── diagram model ───────────────────────────────────────────────────────────────
@@ -44,6 +46,63 @@ const DOTS: Dot[] = [
   { id: 'Front/Rear Wheel',      cx: 300, cy: 360, lx: 300, ly: 385, anchor: 'middle' },
 ];
 
+// ── rail (LRV) model ──────────────────────────────────────────────────────────
+// Top-down light-rail car on the same 1000×460 canvas. FRONT (cab) on the right,
+// REAR on the left; LEFT flank along the top, RIGHT flank along the bottom. Uses the
+// exact rail "Point of impact" values: front/rear ends + side impact/sideswipe flanks
+// are tappable REGIONS; Roof/Top and Underbody are labelled DOTS.
+const RAIL_REGIONS: Region[] = [
+  { id: 'Rear Impact',          x: 96,  y: 165, w: 112, h: 160, rx: 20, lx: 152, ly: 245 },
+  { id: 'Front Impact',         x: 772, y: 165, w: 112, h: 160, rx: 20, lx: 828, ly: 245 },
+  { id: 'Left Side Impact',     x: 224, y: 150, w: 250, h: 52,  rx: 14, lx: 349, ly: 176 },
+  { id: 'Left Sideswipe',       x: 484, y: 150, w: 250, h: 52,  rx: 14, lx: 609, ly: 176 },
+  { id: 'Right Side Impact',    x: 224, y: 288, w: 250, h: 52,  rx: 14, lx: 349, ly: 314 },
+  { id: 'Right Side Sideswipe', x: 484, y: 288, w: 250, h: 52,  rx: 14, lx: 609, ly: 314 },
+];
+
+const RAIL_DOTS: Dot[] = [
+  { id: 'Roof/Top of Vehicle', cx: 430, cy: 245, lx: 430, ly: 222, anchor: 'middle' },
+  { id: 'Underbody',           cx: 560, cy: 245, lx: 560, ly: 268, anchor: 'middle' },
+];
+
+// ── streetcar model ──────────────────────────────────────────────────────────
+// A shorter, single-car modern streetcar with rounded cabs at both ends, visible
+// side doors/windows, and no LRV articulation seams. The same eight requirement
+// values remain selectable, but their regions follow the compact streetcar body.
+const STREETCAR_REGIONS: Region[] = [
+  { id: 'Rear Impact',          x: 146, y: 168, w: 112, h: 154, rx: 42, lx: 202, ly: 245 },
+  { id: 'Front Impact',         x: 742, y: 168, w: 112, h: 154, rx: 42, lx: 798, ly: 245 },
+  { id: 'Left Side Impact',     x: 272, y: 154, w: 218, h: 52,  rx: 14, lx: 381, ly: 180 },
+  { id: 'Left Sideswipe',       x: 510, y: 154, w: 218, h: 52,  rx: 14, lx: 619, ly: 180 },
+  { id: 'Right Side Impact',    x: 272, y: 284, w: 218, h: 52,  rx: 14, lx: 381, ly: 310 },
+  { id: 'Right Side Sideswipe', x: 510, y: 284, w: 218, h: 52,  rx: 14, lx: 619, ly: 310 },
+];
+
+const STREETCAR_DOTS: Dot[] = [
+  { id: 'Roof/Top of Vehicle', cx: 445, cy: 245, lx: 445, ly: 222, anchor: 'middle' },
+  { id: 'Underbody',           cx: 570, cy: 245, lx: 570, ly: 268, anchor: 'middle' },
+];
+
+// ── non-revenue vehicle model ─────────────────────────────────────────────────
+// Compact road vehicle (car/SUV) with the exact NRV impact vocabulary. Unlike
+// the bus, there is no bike-rack zone.
+const NRV_REGIONS: Region[] = [
+  { id: 'Rear Impact',       x: 190, y: 172, w: 112, h: 146, rx: 42, lx: 246, ly: 245 },
+  { id: 'Front Impact',      x: 698, y: 172, w: 112, h: 146, rx: 52, lx: 754, ly: 245 },
+  { id: 'Left Side Impact',  x: 316, y: 158, w: 178, h: 52,  rx: 14, lx: 405, ly: 184 },
+  { id: 'Left Sideswipe',    x: 506, y: 158, w: 178, h: 52,  rx: 14, lx: 595, ly: 184 },
+  { id: 'Right Side Impact', x: 316, y: 280, w: 178, h: 52,  rx: 14, lx: 405, ly: 306 },
+  { id: 'Right Sideswipe',   x: 506, y: 280, w: 178, h: 52,  rx: 14, lx: 595, ly: 306 },
+];
+
+const NRV_DOTS: Dot[] = [
+  { id: 'Top',                   cx: 440, cy: 245, lx: 440, ly: 222, anchor: 'middle' },
+  { id: 'Underbody',             cx: 555, cy: 245, lx: 555, ly: 268, anchor: 'middle' },
+  { id: 'Drivers Side Mirror',   cx: 650, cy: 132, lx: 650, ly: 112, anchor: 'middle' },
+  { id: 'Passenger Side Mirror', cx: 650, cy: 358, lx: 650, ly: 380, anchor: 'middle' },
+  { id: 'Front/Rear Wheel',      cx: 340, cy: 356, lx: 340, ly: 380, anchor: 'middle' },
+];
+
 const REGION_CENTER = (r: Region) => ({ cx: r.x + r.w / 2, cy: r.y + r.h / 2 });
 
 // ── colours (assigned in selection order) ─────────────────────────────────────────
@@ -63,8 +122,15 @@ const COLORS = [
 ];
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12 }: Props) {
+export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, variant = 'bus' }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const isStreetcar = variant === 'streetcar';
+  const isNRV = variant === 'nrv';
+  const isRail = variant === 'rail' || variant === 'streetcar';
+  const regions = isNRV ? NRV_REGIONS : isStreetcar ? STREETCAR_REGIONS : isRail ? RAIL_REGIONS : REGIONS;
+  const dots = isNRV ? NRV_DOTS : isStreetcar ? STREETCAR_DOTS : isRail ? RAIL_DOTS : DOTS;
+  const noun = isNRV ? 'NRV' : isStreetcar ? 'streetcar' : isRail ? 'train' : 'bus';
+  const vehicleLabel = isNRV ? 'NRV' : isStreetcar ? 'Streetcar' : isRail ? 'Train' : 'Bus';
   const atMax = markers.length >= maxMarkers;
 
   const indexOf = (id: string) => markers.findIndex(m => m.label === id);
@@ -113,7 +179,7 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12 }: Pro
           <Info className="w-3.5 h-3.5 text-[#007DBA] flex-shrink-0" />
           <p className="text-[11px] text-slate-600 font-['Poppins'] flex-1">
             {markers.length === 0
-              ? 'Tap the part of the bus that was hit'
+              ? `Tap the part of the ${noun} that was hit`
               : atMax
                 ? 'Maximum reached — tap a marked part to remove it'
                 : `${markers.length} marked — tap another part to add, or tap a marked one to remove`}
@@ -129,33 +195,104 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12 }: Pro
             viewBox={`0 0 ${VB_W} ${VB_H}`}
             className="w-full h-auto block"
             role="group"
-            aria-label="Bus impact diagram — tap a part to mark it"
+            aria-label={`${vehicleLabel} impact diagram — tap a part to mark it`}
           >
             {/* orientation hints */}
-            <text x={912} y={162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>FRONT</text>
-            <text x={95} y={162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>REAR</text>
+            <text x={isNRV ? 754 : isStreetcar ? 798 : isRail ? 828 : 912} y={isRail || isNRV ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>FRONT</text>
+            <text x={isNRV ? 246 : isStreetcar ? 202 : isRail ? 152 : 95} y={isRail || isNRV ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>REAR</text>
 
-            {/* ── Bus body illustration (non-interactive) ─────────────────── */}
-            <g pointerEvents="none">
-              {/* wheels peeking at the edges */}
-              {[250, 686].map(wx => (
-                <g key={wx}>
-                  <rect x={wx} y={142} width={64} height={16} rx={7} fill="#7A8AA0" />
-                  <rect x={wx} y={332} width={64} height={16} rx={7} fill="#7A8AA0" />
+            {/* ── Vehicle body illustration (non-interactive) ───────────── */}
+            {isNRV ? (
+              <g pointerEvents="none">
+                {/* wheels tucked under a compact road vehicle */}
+                {[302, 638].map(wx => (
+                  <g key={wx}>
+                    <rect x={wx} y={148} width={58} height={15} rx={7} fill="#7A8AA0" />
+                    <rect x={wx} y={327} width={58} height={15} rx={7} fill="#7A8AA0" />
+                  </g>
+                ))}
+                {/* car/SUV body with a distinct hood and rear hatch */}
+                <rect x={184} y={150} width={632} height={190} rx={58} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={2.5} />
+                <path d="M 690 156 L 754 166 Q 808 184 808 245 Q 808 306 754 324 L 690 334 Z" fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
+                <path d="M 306 174 L 644 174 L 684 206 L 684 284 L 644 316 L 306 316 Q 238 300 238 245 Q 238 190 306 174 Z" fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={1.5} />
+                {/* windshield and rear glass */}
+                <path d="M 626 182 L 674 212 L 674 278 L 626 308 Z" fill="#C6D7EA" />
+                <path d="M 310 184 L 274 206 L 274 284 L 310 306 Z" fill="#D3E2F1" />
+                {/* roof seam and door line */}
+                <line x1={474} y1={178} x2={474} y2={312} stroke="#D7E1EC" strokeWidth={2} />
+              </g>
+            ) : isStreetcar ? (
+              <g pointerEvents="none">
+                {/* track remains visible past the shorter single-car body */}
+                {[50, 82, 112, 888, 918, 950].map(tx => (
+                  <rect key={tx} x={tx} y={196} width={8} height={98} rx={2} fill="#C4D1DF" />
+                ))}
+                <line x1={38} y1={206} x2={962} y2={206} stroke="#A9BACB" strokeWidth={5} strokeLinecap="round" />
+                <line x1={38} y1={284} x2={962} y2={284} stroke="#A9BACB" strokeWidth={5} strokeLinecap="round" />
+                {/* compact, double-ended streetcar body */}
+                <rect x={140} y={150} width={720} height={190} rx={42} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={2.5} />
+                {/* rounded rear and front cab glazing */}
+                <path d="M 208 156 L 174 162 Q 146 180 146 245 Q 146 310 174 328 L 208 334 Z" fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
+                <path d="M 792 156 L 826 162 Q 854 180 854 245 Q 854 310 826 328 L 792 334 Z" fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
+                <rect x={160} y={198} width={34} height={94} rx={10} fill="#C6D7EA" />
+                <rect x={806} y={198} width={34} height={94} rx={10} fill="#C6D7EA" />
+                {/* passenger windows and paired doors along the car */}
+                {[286, 350, 586, 650].map(wx => (
+                  <rect key={wx} x={wx} y={211} width={48} height={68} rx={7} fill="#D9E6F2" stroke="#CBD8E6" strokeWidth={1.5} />
+                ))}
+                <g stroke="#C4D2E0" strokeWidth={2} fill="#EEF4F9">
+                  <rect x={414} y={198} width={68} height={94} rx={8} />
+                  <rect x={518} y={198} width={68} height={94} rx={8} />
+                  <line x1={448} y1={202} x2={448} y2={288} />
+                  <line x1={552} y1={202} x2={552} y2={288} />
                 </g>
-              ))}
-              {/* main body */}
-              <rect x={96} y={150} width={762} height={190} rx={44} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={2.5} />
-              {/* windshield / cab at the front (right) */}
-              <path d="M 786 156 L 812 156 Q 852 172 852 245 Q 852 318 812 334 L 786 334 Z" fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
-              {/* roof surface where the Top / Underbody markers sit */}
-              <rect x={150} y={188} width={600} height={114} rx={20} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={1.5} />
-              {/* subtle roof seam */}
-              <line x1={450} y1={192} x2={450} y2={298} stroke="#E1E9F2" strokeWidth={1.5} />
-            </g>
+                {/* compact rooftop equipment differentiates it from the long LRV roof */}
+                <rect x={350} y={224} width={90} height={42} rx={10} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={1.5} />
+                <rect x={560} y={224} width={90} height={42} rx={10} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={1.5} />
+              </g>
+            ) : isRail ? (
+              <g pointerEvents="none">
+                {/* railroad track — cross-ties + two rails running the length, exposed past both ends */}
+                {[28, 56, 926, 954].map(tx => (
+                  <rect key={tx} x={tx} y={196} width={9} height={98} rx={2} fill="#C4D1DF" />
+                ))}
+                <line x1={20} y1={206} x2={980} y2={206} stroke="#A9BACB" strokeWidth={5} strokeLinecap="round" />
+                <line x1={20} y1={284} x2={980} y2={284} stroke="#A9BACB" strokeWidth={5} strokeLinecap="round" />
+                {/* coupler at the rear (left) */}
+                <rect x={74} y={236} width={22} height={18} rx={4} fill="#7A8AA0" />
+                {/* main car body — long and rectangular (rail, not bus) */}
+                <rect x={92} y={150} width={798} height={190} rx={16} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={2.5} />
+                {/* blunt cab + windshield band at the front (right) */}
+                <path d="M 802 150 L 858 150 Q 890 150 890 190 L 890 300 Q 890 340 858 340 L 802 340 Z" fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
+                <rect x={816} y={196} width={50} height={98} rx={9} fill="#C6D7EA" />
+                {/* articulation seams — the LRV bends between sections */}
+                <line x1={358} y1={152} x2={358} y2={338} stroke="#D2DCE8" strokeWidth={2} />
+                <line x1={624} y1={152} x2={624} y2={338} stroke="#D2DCE8" strokeWidth={2} />
+                {/* roof surface where the Roof / Underbody markers sit */}
+                <rect x={150} y={200} width={600} height={90} rx={14} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={1.5} opacity={0.7} />
+              </g>
+            ) : (
+              <g pointerEvents="none">
+                {/* wheels peeking at the edges */}
+                {[250, 686].map(wx => (
+                  <g key={wx}>
+                    <rect x={wx} y={142} width={64} height={16} rx={7} fill="#7A8AA0" />
+                    <rect x={wx} y={332} width={64} height={16} rx={7} fill="#7A8AA0" />
+                  </g>
+                ))}
+                {/* main body */}
+                <rect x={96} y={150} width={762} height={190} rx={44} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={2.5} />
+                {/* windshield / cab at the front (right) */}
+                <path d="M 786 156 L 812 156 Q 852 172 852 245 Q 852 318 812 334 L 786 334 Z" fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
+                {/* roof surface where the Top / Underbody markers sit */}
+                <rect x={150} y={188} width={600} height={114} rx={20} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={1.5} />
+                {/* subtle roof seam */}
+                <line x1={450} y1={192} x2={450} y2={298} stroke="#E1E9F2" strokeWidth={1.5} />
+              </g>
+            )}
 
             {/* ── Regions (big panels) ─────────────────────────────────────── */}
-            {REGIONS.map(r => {
+            {regions.map(r => {
               const idx = indexOf(r.id);
               const on = idx >= 0;
               const isHov = hovered === r.id;
@@ -191,7 +328,7 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12 }: Pro
             })}
 
             {/* ── Part dots (mirrors, wheel, bike rack, roof, underbody) ────── */}
-            {DOTS.map(d => {
+            {dots.map(d => {
               const idx = indexOf(d.id);
               const on = idx >= 0;
               const isHov = hovered === d.id;

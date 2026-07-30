@@ -5,7 +5,7 @@ export interface Person {
   injured?: boolean;
   fatal?: boolean;
   injured_body_part?: string;
-  transported_to_hospital: boolean;
+  transported_to_hospital?: boolean;
   fled_scene?: boolean;
   // Passenger-specific
   passenger_action?: string;
@@ -192,6 +192,9 @@ export interface AccidentReportData {
   runaway_train?: boolean;
   operator_in_train_runaway?: string;
   lrv_evacuation?: boolean;
+
+  // Derailment-only fields
+  derailment_type?: 'Mainline' | 'Yard';
 
   // Weather (shared – option sets differ by mode)
   weather?: string;

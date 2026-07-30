@@ -1,0 +1,870 @@
+/* ==========================================================================
+   DART Accident Reporting — Design System
+   --------------------------------------------------------------------------
+   This is the SINGLE SOURCE OF TRUTH for the app's look & feel: every design
+   token (color, type, spacing, elevation, motion) and every reusable
+   `.dart-*` component class the prototype is built from.
+
+   It is intentionally FRAMEWORK-AGNOSTIC — pure CSS, no Tailwind required.
+   Drop it into any project (Next.js, Vite, or a plain .html file) and the
+   prototype look comes with it. Only two external things are needed:
+     1. Poppins            (UI font)   — Google Fonts
+     2. Material Symbols   (icons)     — Google Fonts, weight FILL,GRAD@24,400,1,0
+   See design-system/index.html for a live, interactive gallery of everything
+   defined here.
+
+   NOTE: The prototype loads this file via src/styles/globals.css (which adds
+   the Tailwind layer). Edit design tokens & classes HERE, not in globals.css,
+   so the prototype and the developer hand-off can never drift apart.
+   ========================================================================== */
+
+:root {
+  /* Font — declared here so the system is self-contained without Tailwind. */
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+
+  --dart-brand-navy: #00205B;
+  --dart-brand-blue: #0078AE;
+  --dart-brand-gray: #A7A8AA;
+  --dart-surface-soft: #F5F7FB;
+  --dart-surface-muted: #EEF3F7;
+  --dart-text-strong: #0F172A;
+  --dart-text-muted: #64748B;
+
+  /* UI state hierarchy tokens — blue communicates only: primary action, focus, selected */
+  --color-text-strong: #0F172A;
+  --color-text-default: #334155;
+  --color-text-muted: #64748B;
+
+  --color-label: #475569;
+
+  --color-field-bg: #FFFFFF;
+  --color-field-border: #CBD5E1;
+  --color-field-border-hover: #94A3B8;
+  --color-placeholder: #94A3B8;
+
+  --color-primary-bg: #0078AE;
+  --color-primary-bg-hover: #006491;
+  --color-primary-text: #FFFFFF;
+  --color-primary-focus-ring: rgba(0, 120, 174, 0.30);
+
+  --color-selected-bg: #EAF1F8;
+  --color-selected-border: #00205B;
+  --color-selected-text: #00205B;
+
+  --color-focus-border: #00205B;
+  --color-focus-ring: rgba(0, 32, 91, 0.16);
+
+  /* ==========================================================
+     Elevation scale — apply depth intentionally, not everywhere.
+     0 = flat (borders only)   → reference / read-only surfaces
+     1 = subtle raised         → default work cards
+     2 = floating / interactive → action bars, sticky control panels
+     3 = overlay               → drawers, popovers, modals
+     brand = branded glow     → focused primary CTA groups
+     ========================================================== */
+  --dart-elevation-1: 0 2px 6px -2px rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --dart-elevation-2: 0 12px 28px -14px rgba(15, 23, 42, 0.18), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
+  --dart-elevation-3: 0 28px 56px -24px rgba(15, 23, 42, 0.38), 0 12px 24px -10px rgba(15, 23, 42, 0.16);
+  --dart-elevation-brand: 0 14px 32px -14px rgba(0, 32, 91, 0.32), 0 4px 12px -4px rgba(0, 32, 91, 0.12);
+
+  /* Spacing scale — pick from these three, not every Tailwind size */
+  --dart-space-sm: 0.75rem;   /* 12px */
+  --dart-space-md: 1.25rem;   /* 20px */
+  --dart-space-lg: 2rem;      /* 32px */
+
+  /* Motion */
+  --dart-motion-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --dart-motion-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ==========================================================
+     Control system (2026-07-24 spec) — navy selection + magenta accent.
+     Selection navy #112458 (gradient #1c3570 -> #112458); accent #6C1B7E
+     used sparingly (required asterisk). Applies to all form controls.
+     ========================================================== */
+  --ctl-navy: #112458;
+  --ctl-navy-gradient: linear-gradient(135deg, #1c3570, #112458);
+  --ctl-accent: #6C1B7E;
+  --ctl-ink: #0f2d4a;
+  --ctl-label: #33485f;
+  --ctl-muted: #7a8aa0;
+  --ctl-placeholder: #9fb0c3;
+  --ctl-field-border: #dbe4ee;
+  --ctl-field-border-hover: #b7cadd;
+  --ctl-track-bg: #eef3f8;
+  --ctl-track-border: #e3eaf2;
+  --ctl-icon: #62788f;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #E9EEF5;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(0, 120, 174, 0.16);
+  color: var(--dart-brand-navy);
+}
+
+/* ============================================
+   Ambient page canvas — the single biggest anti-wireframe win.
+   Replaces flat solid backgrounds with a soft, layered field of light so
+   every screen has depth. Calm and near-invisible, never busy.
+   Usage: add `dart-canvas` to a full-page root (min-h-screen) container.
+   ============================================ */
+.dart-canvas {
+  background-color: #E7EDF5;
+  background-image:
+    radial-gradient(1150px 620px at 8% -6%, rgba(0, 120, 174, 0.10), transparent 60%),
+    radial-gradient(1000px 560px at 102% 2%, rgba(0, 32, 91, 0.075), transparent 55%),
+    radial-gradient(1200px 900px at 50% 118%, rgba(0, 164, 181, 0.06), transparent 62%);
+  background-attachment: fixed;
+}
+
+/* ============================================
+   Tabular figures — for data that must line up and stop shivering.
+   Apply to case IDs, dates, times, counts, money, badge numbers.
+   ============================================ */
+.dart-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.dart-field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.012em;
+  text-transform: capitalize;
+  color: var(--ctl-label);
+}
+
+.dart-input-base {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ctl-field-border);
+  border-radius: 11px;
+  background: #ffffff;
+  color: var(--ctl-ink);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 1px 2px rgba(15, 45, 74, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.dart-input-base::placeholder {
+  color: var(--ctl-placeholder);
+}
+
+.dart-input-base:hover:not(:focus) {
+  border-color: var(--ctl-field-border-hover);
+  box-shadow: 0 2px 7px rgba(15, 45, 74, 0.08);
+}
+
+.dart-input-base:focus {
+  outline: none;
+  border-color: var(--ctl-navy);
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.15), 0 8px 20px -6px rgba(17, 36, 88, 0.24);
+  transform: translateY(-1px);
+}
+
+/* Validation belongs on the real control border, never on its outer wrapper. The second
+   selector reaches date/time/custom-select triggers inside their positioning container. */
+.dart-field-error > :is(input, textarea, button),
+.dart-field-error > div > button:first-child {
+  border-color: rgba(239, 68, 68, 0.72) !important;
+}
+
+.dart-input-compact {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.625rem 0.75rem;
+  border: 1.5px solid var(--ctl-field-border);
+  border-radius: 11px;
+  background: #ffffff;
+  color: var(--ctl-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  box-shadow: 0 1px 2px rgba(15, 45, 74, 0.045);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.dart-input-compact:hover:not(:focus) {
+  border-color: var(--ctl-field-border-hover);
+  box-shadow: 0 2px 7px rgba(15, 45, 74, 0.08);
+}
+
+.dart-input-compact:focus {
+  outline: none;
+  border-color: var(--ctl-navy);
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.15), 0 8px 20px -6px rgba(17, 36, 88, 0.24);
+}
+
+/* ==========================================================
+   Segmented toggle (Yes/No, Consecutive/Split) — 2026-07-24 spec.
+   inline-grid keeps the track compact with equal-width segments.
+   ========================================================== */
+.dart-seg {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 13px;
+  background: var(--ctl-track-bg);
+  border: 1.5px solid var(--ctl-track-border);
+  box-shadow: inset 0 1px 2px rgba(15, 45, 74, 0.05);
+}
+.dart-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #5c7085;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.dart-seg-btn:hover:not(.dart-seg-btn--on):not(:disabled) {
+  transform: translateY(-1px);
+  color: var(--ctl-ink);
+}
+.dart-seg-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.28);
+}
+.dart-seg-btn--on {
+  background: var(--ctl-navy-gradient);
+  color: #fff;
+  box-shadow: 0 8px 16px -6px rgba(17, 36, 88, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.dart-seg-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* Schedule row — controls share the width equally, so they stretch wide when alone and
+   shrink as RDO selects appear, keeping the row's right edge aligned with the fields above.
+   The roomier gap gives breathing space between the questions on start. */
+.dart-schedule-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 32px; }
+.dart-schedule-row > * { flex: 1 1 0%; min-width: 160px; display: flex; flex-direction: column; }
+.dart-schedule-row .dart-seg { display: grid; width: 100%; }
+/* All four controls share the taller toggle height: each select column stretches to the
+   row height and its button fills, so every control's bottom edge lines up. */
+.dart-schedule-row .relative { flex: 1 1 auto; }
+.dart-schedule-row .relative > button { height: 100%; }
+
+/* Locked / auto-filled field — read-only value carried from another source. */
+.dart-input-locked,
+.dart-input-locked:hover:not(:focus) {
+  background: #E6F4FB;
+  border-color: #b8ddf2;
+  color: #0d3a5c;
+  box-shadow: inset 0 1px 2px rgba(13, 58, 92, 0.06);
+}
+
+/* Vehicle info strip — source-pulled details as a clean white card. Each value carries a small
+   brand-blue icon tile (bus, route, calendar, clock, flag) for scannability; a soft border and
+   gentle shadow give calm depth in the app's white/navy language. */
+.dart-vehicle-strip {
+  display: flex;
+  align-items: stretch;
+  min-height: 64px;
+  border: 1px solid #e6edf5;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(15, 45, 74, 0.04),
+    0 10px 24px -16px rgba(17, 36, 88, 0.2);
+  overflow: hidden;
+}
+.dart-vehicle-item {
+  flex: 1 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 18px;
+}
+.dart-vehicle-item + .dart-vehicle-item {
+  border-left: 1px solid #eef2f7;
+}
+.dart-vehicle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #eaf1fb, #dae7f7);
+  color: #1c3570;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.dart-vehicle-icon .material-symbols-rounded { font-size: 18px; line-height: 1; }
+.dart-vehicle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dart-vehicle-label {
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93a4b6;
+  line-height: 1.25;
+}
+.dart-vehicle-value {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f2d4a;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Required asterisk — accent, used sparingly. */
+.dart-req { color: var(--ctl-accent); font-weight: 700; }
+
+/* ==========================================================
+   Selection card (vehicle mode) — 2026-07-24 spec.
+   ========================================================== */
+.dart-mode-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 20px 12px;
+  border-radius: 16px;
+  border: 1.5px solid #e2eaf2;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 45, 74, 0.04);
+  cursor: pointer;
+  text-align: center;
+  transform: translateY(0);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+.dart-mode-card:hover:not(.dart-mode-card--on):not(:disabled) {
+  border-color: #8ba4c4;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -12px rgba(17, 36, 88, 0.3);
+}
+.dart-mode-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 36, 88, 0.28);
+}
+.dart-mode-card:disabled { cursor: not-allowed; opacity: 0.6; }
+/* Selected = pressed-in / neumorphic. Two opposing insets (soft slate + white) with a
+   neutral slate edge (never navy) so it stays smooth and never reads as disabled. The
+   card sits flush; the raised navy icon tile provides the depth contrast that sells the press. */
+.dart-mode-card--on {
+  border-color: #dde5f0;
+  background: linear-gradient(145deg, #eef2f8, #fcfdff);
+  box-shadow: inset 4px 5px 13px rgba(158, 172, 192, 0.28), inset -4px -5px 13px rgba(255, 255, 255, 1);
+  transform: translateY(0);
+}
+.dart-mode-card--error { border-color: #e6a9b6; }
+.dart-mode-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #eef3f8;
+  color: #5b7488;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.dart-mode-tile--on {
+  background: var(--ctl-navy-gradient);
+  color: #fff;
+  box-shadow: 0 8px 16px -5px rgba(17, 36, 88, 0.5);
+}
+.dart-mode-title { font-family: var(--font-sans); font-size: 14.5px; font-weight: 600; color: #0d3a5c; }
+.dart-mode-sub { font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: #8496a8; }
+.dart-mode-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--ctl-navy-gradient);
+  color: #fff;
+  box-shadow: 0 3px 8px -2px rgba(17, 36, 88, 0.55);
+}
+
+/* Material Symbols Rounded (filled) — icon font loaded in index.html. */
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+}
+.dart-mode-tile .material-symbols-rounded { font-size: 26px; }
+.dart-mode-badge .material-symbols-rounded { font-size: 16px; }
+
+.dart-action-link {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--dart-brand-blue);
+  transition: color 0.2s ease;
+}
+
+.dart-action-link:hover {
+  color: var(--dart-brand-navy);
+}
+
+/* ============================================
+   Buttons — canonical action buttons.
+   Codifies the button recipe used across the app (matches GlassButton) so
+   there is ONE reusable button instead of ad-hoc per-screen styling.
+   Primary  = brand-blue fill  (main action: Continue, Approve, Initiate)
+   Secondary = white + border  (Save as draft, Cancel)
+   Ghost    = text-only blue    (View more, Go to step)
+   ============================================ */
+.dart-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.625rem; /* 10px */
+  border: 1.5px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--dart-motion-base),
+    border-color var(--dart-motion-base),
+    box-shadow var(--dart-motion-base),
+    transform var(--dart-motion-fast);
+}
+.dart-btn:focus-visible { outline: none; }
+.dart-btn:active:not(:disabled) { transform: scale(0.98); }
+.dart-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.dart-btn--primary {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary-bg);
+  color: var(--color-primary-text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.dart-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-bg-hover);
+  border-color: var(--color-primary-bg-hover);
+}
+.dart-btn--primary:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-primary-focus-ring);
+}
+
+.dart-btn--secondary {
+  background: #ffffff;
+  border-color: var(--color-field-border);
+  color: var(--color-text-default);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.dart-btn--secondary:hover:not(:disabled) {
+  background: #F8FAFC;
+  border-color: var(--color-field-border-hover);
+}
+.dart-btn--secondary:focus-visible {
+  border-color: var(--color-focus-border);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.dart-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--dart-brand-blue);
+}
+.dart-btn--ghost:hover:not(:disabled) {
+  background: rgba(0, 120, 174, 0.08);
+  color: var(--dart-brand-navy);
+}
+.dart-btn--ghost:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* ============================================
+   Elevation utilities
+   ============================================ */
+.dart-elev-1 { box-shadow: var(--dart-elevation-1); }
+.dart-elev-2 { box-shadow: var(--dart-elevation-2); }
+.dart-elev-3 { box-shadow: var(--dart-elevation-3); }
+.dart-elev-brand { box-shadow: var(--dart-elevation-brand); }
+
+/* ============================================
+   Card system — pick the variant that matches purpose.
+   .dart-card is the base; combine with one modifier.
+   ============================================ */
+.dart-card {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 1rem;
+  transition: box-shadow var(--dart-motion-base), border-color var(--dart-motion-base);
+}
+
+.dart-card--surface {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBFDFF 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 28px -14px rgba(15, 23, 42, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.dart-card--primary {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAFCFF 100%);
+  border-color: #DBE4EE;
+  box-shadow: var(--dart-elevation-2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border-radius: 1.25rem;
+}
+
+.dart-card--floating {
+  border-color: rgba(0, 32, 91, 0.14);
+  box-shadow: var(--dart-elevation-brand);
+  border-radius: 1.25rem;
+}
+
+.dart-card--reference {
+  background: #F6F8FB;
+  border-color: #E2E8F0;
+  box-shadow: none;
+  border-radius: 0.875rem;
+}
+
+.dart-card--alert-warn {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-left: 4px solid #F59E0B;
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+.dart-card--alert-info {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-left: 4px solid #3B82F6;
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+.dart-card--alert-danger {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-left: 4px solid #EF4444;
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+/* Card header strip — use inside .dart-card to introduce a section */
+.dart-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #E2E8F0;
+  background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
+}
+
+.dart-card-body {
+  padding: 1.25rem;
+}
+
+.dart-card-body--roomy {
+  padding: 1.5rem 1.5rem 1.75rem;
+}
+
+/* ============================================
+   Typography scale — codified. Use these instead of ad-hoc text sizes.
+   ============================================ */
+.dart-h1 {
+  font-family: var(--font-sans);
+  font-size: 1.75rem;   /* 28px */
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.dart-h2 {
+  font-family: var(--font-sans);
+  font-size: 1.375rem;   /* 22px */
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+  text-wrap: balance;
+}
+
+.dart-h3 {
+  font-family: var(--font-sans);
+  font-size: 1rem;       /* 16px */
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+  text-wrap: balance;
+}
+
+.dart-h4 {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;   /* 14px */
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--dart-brand-navy);
+  text-wrap: balance;
+}
+
+/* Heading case convention: Title Case (first letter of every word capitalized). Applied to
+   all heading elements so the whole site stays consistent. `capitalize` only affects the first
+   letter of each word and never lowercases the rest, so acronyms (DART, PM) stay intact. */
+h1, h2, h3, h4, h5, h6 {
+  text-transform: capitalize;
+}
+
+.dart-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;  /* 11px */
+  line-height: 1.35;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748B;
+}
+
+.dart-body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #334155;
+  text-wrap: pretty;
+}
+
+.dart-caption {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #64748B;
+  text-wrap: pretty;
+}
+
+/* ============================================
+   Interactive primitives
+   ============================================ */
+.dart-press {
+  transition: transform var(--dart-motion-fast), box-shadow var(--dart-motion-base), background-color var(--dart-motion-base), border-color var(--dart-motion-base);
+}
+
+.dart-press:active {
+  transform: scale(0.985);
+}
+
+.dart-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--color-focus-border);
+}
+
+/* Divider under card headers */
+.dart-hr-soft {
+  border-top: 1px solid #E2E8F0;
+}
+
+/* ============================================
+   Modern Custom Scrollbars
+   ============================================ */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.4);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.3) 0%, rgba(0, 164, 181, 0.3) 100%);
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.6) 0%, rgba(0, 164, 181, 0.6) 100%);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.8) 0%, rgba(0, 164, 181, 0.8) 100%);
+  background-clip: padding-box;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 125, 186, 0.3) rgba(241, 245, 249, 0.4);
+}
+
+/* Sleeker scrollbars for dropdown menus and small containers */
+.scroll-area::-webkit-scrollbar,
+[role="listbox"]::-webkit-scrollbar,
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb,
+[role="listbox"]::-webkit-scrollbar-thumb,
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.25) 0%, rgba(0, 164, 181, 0.25) 100%);
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.scroll-area::-webkit-scrollbar-thumb:hover,
+[role="listbox"]::-webkit-scrollbar-thumb:hover,
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(0, 125, 186, 0.5) 0%, rgba(0, 164, 181, 0.5) 100%);
+  background-clip: padding-box;
+}
+
+/* Hide scrollbar for elements that should not show it */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================
+   Date & Time Native Input Fixes
+   ============================================ */
+
+/*
+  Make the invisible calendar/clock indicator span the full input
+  so clicking anywhere on the field opens the native picker.
+  This works across Chromium-based browsers.
+*/
+input[type="date"],
+input[type="time"] {
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* ============================================
+   Hero Card Breathing Animation
+   ============================================ */
+
+@keyframes heroBreathing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes heroBreathingBrighten {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+
+.hero-card {
+  animation: heroBreathing 4800ms ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #00244F 0%, #005BA9 45%, #0067B3 100%);
+  opacity: 0;
+  transition: opacity 2400ms ease-in-out;
+  pointer-events: none;
+  animation: heroBreathingBrighten 4800ms ease-in-out infinite;
+  border-radius: inherit;
+}
+
+.hero-card:hover {
+  animation: none;
+  transform: scale(1.03) !important;
+  box-shadow: 0 24px 60px 0 rgba(0, 16, 40, 0.55) !important;
+  transition: all 200ms ease-out;
+}
+
+.hero-card:hover::before {
+  animation: none;
+  opacity: 0.3;
+  transition: opacity 200ms ease-out;
+}
+
+/* Button micro-interactions on hero hover */
+.hero-card:hover .hero-button {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
+  transition: all 200ms ease-out;
+}
+
+/* Icon tile micro-interactions on hero hover */
+.hero-card:hover .hero-icon {
+  transform: scale(1.04);
+  box-shadow: inset 0 2px 12px rgba(255, 255, 255, 0.28) !important;
+  transition: all 200ms ease-out;
+}
+
+/* Icon glyph micro-interactions on hero hover */
+.hero-card:hover .hero-icon-glyph {
+  transform: scale(1.06);
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35)) !important;
+  transition: all 200ms ease-out;
+}

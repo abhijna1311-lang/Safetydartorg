@@ -47,9 +47,9 @@ function Field({ label, required, className = '', children }: { label: string; r
   );
 }
 
-function NumberField({ label, value, onChange, className = '' }: { label: string; value?: number; onChange: (v: number | undefined) => void; className?: string }) {
+function NumberField({ label, value, onChange, className = '', required = false }: { label: string; value?: number; onChange: (v: number | undefined) => void; className?: string; required?: boolean }) {
   return (
-    <Field label={label} className={className}>
+    <Field label={label} required={required} className={className}>
       <input
         type="number"
         min={0}
@@ -69,10 +69,10 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 }
 
 // A stacked question row: label on the left, control on the right (matches the Police section).
-function BoolRow({ label, children }: { label: string; children: React.ReactNode }) {
+function BoolRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}</p>
+      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
       <div className="shrink-0">{children}</div>
     </div>
   );
@@ -81,9 +81,11 @@ function BoolRow({ label, children }: { label: string; children: React.ReactNode
 interface Props {
   vehicles: OtherVehicle[];
   onChange: (vehicles: OtherVehicle[]) => void;
+  showErrors?: boolean;
+  injuryDetailsRequired?: boolean;
 }
 
-export function OtherVehiclesEditor({ vehicles, onChange }: Props) {
+export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const update = (id: string, patch: Partial<OtherVehicle>) =>
@@ -116,12 +118,12 @@ export function OtherVehiclesEditor({ vehicles, onChange }: Props) {
       <button
         type="button"
         onClick={addVehicle}
-        className="group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center transition-colors hover:border-[#007DBA]/40 hover:bg-[#f2f8fc] focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+        className={`group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/70 px-6 py-10 text-center transition-colors hover:border-[#007DBA]/40 hover:bg-[#f2f8fc] focus:outline-none focus:ring-2 focus:ring-[#FFCD00] ${showErrors ? 'border-red-300' : 'border-slate-200'}`}
       >
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70 transition-all group-hover:ring-[#007DBA]/30 group-hover:shadow-md">
           <span className="material-symbols-rounded text-[26px] text-[#007DBA]/70">directions_car</span>
         </span>
-        <p className="mt-4 text-sm font-semibold text-slate-700 font-['Poppins']">No other vehicles added</p>
+        <p className="mt-4 text-sm font-semibold text-slate-700 font-['Poppins']">No other vehicles added <span className="dart-req">*</span></p>
         <p className="mt-1 text-xs text-slate-400 font-['Poppins']">Add each vehicle involved besides the DART vehicle.</p>
       </button>
     );
@@ -134,10 +136,14 @@ export function OtherVehiclesEditor({ vehicles, onChange }: Props) {
         const hasOccupants = (v.occupants ?? 0) > 0;
         const hasInjuries = (v.injuries ?? 0) > 0;
         const typeOptions = v.dart_dart ? TYPES_DART : TYPES_NON_DART;
+        const recordComplete = v.occupants !== undefined
+          && (!hasOccupants || (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined)))))
+          && v.dart_dart !== undefined && !!v.vehicle_type && !!v.action && !!v.point_of_impact
+          && !!v.direction && v.damage !== undefined && (!v.damage || !!v.damage_area);
         const subtitle = [v.vehicle_type || 'Type not set', `${v.occupants ?? 0} occ.`, v.damage ? 'damaged' : null, v.tow_away ? 'towed' : null].filter(Boolean).join(' · ');
 
         return (
-          <div key={v.id} className={`overflow-hidden rounded-xl border bg-white transition-shadow ${open ? 'border-[#112458]/30 shadow-sm' : 'border-slate-200/70'}`}>
+          <div key={v.id} className={`overflow-hidden rounded-xl border bg-white transition-shadow ${showErrors && !recordComplete ? 'border-red-300' : open ? 'border-[#112458]/30 shadow-sm' : 'border-slate-200/70'}`}>
             {/* Summary row */}
             <div className="flex items-center gap-3 px-4 py-3">
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#eaf1fb] text-[#1c3570]">
@@ -174,14 +180,14 @@ export function OtherVehiclesEditor({ vehicles, onChange }: Props) {
                     <div>
                       <GroupLabel>Occupants</GroupLabel>
                       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
-                        <NumberField label="Number of occupants" value={v.occupants} onChange={n => setOccupants(v.id, n)} />
+                        <NumberField label="Number of occupants" required value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
-                            <NumberField label="Occupant fatalities" value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
-                            <NumberField label="Occupant injuries" value={v.injuries} onChange={n => setInjuries(v.id, n)} />
-                            <NumberField label="Occupants who fled the scene" value={v.fled} onChange={n => update(v.id, { fled: n })} />
+                            <NumberField label="Occupant fatalities" required value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
+                            <NumberField label="Occupant injuries" required={injuryDetailsRequired} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
+                            <NumberField label="Occupants who fled the scene" required={injuryDetailsRequired} value={v.fled} onChange={n => update(v.id, { fled: n })} />
                             {hasInjuries && (
-                              <NumberField label="Occupants transported to hospital" value={v.transported} onChange={n => update(v.id, { transported: n })} />
+                              <NumberField label="Occupants transported to hospital" required={injuryDetailsRequired} value={v.transported} onChange={n => update(v.id, { transported: n })} />
                             )}
                           </>
                         )}
@@ -192,21 +198,21 @@ export function OtherVehiclesEditor({ vehicles, onChange }: Props) {
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
                       <div className="mb-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-                        <BoolRow label="Was this a collision between DART vehicles?">
+                        <BoolRow label="Was this a collision between DART vehicles?" required>
                           <YesNoToggle value={v.dart_dart} onChange={val => update(v.id, { dart_dart: val, vehicle_type: undefined })} />
                         </BoolRow>
                       </div>
                       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
-                        <Field label="Vehicle type" className="sm:col-span-2">
+                        <Field label="Vehicle type" required className="sm:col-span-2">
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
-                        <Field label="Vehicle action">
+                        <Field label="Vehicle action" required>
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
                         </Field>
-                        <Field label="Point of impact">
+                        <Field label="Point of impact" required>
                           <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
                         </Field>
-                        <Field label="Direction relative to DART vehicle" className="sm:col-span-2">
+                        <Field label="Direction relative to DART vehicle" required className="sm:col-span-2">
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
                         </Field>
                       </div>
@@ -216,11 +222,11 @@ export function OtherVehiclesEditor({ vehicles, onChange }: Props) {
                     <div>
                       <GroupLabel>Damage</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                        <BoolRow label="Was there damage to this vehicle?">
+                        <BoolRow label="Was there damage to this vehicle?" required>
                           <YesNoToggle value={v.damage} onChange={val => update(v.id, { damage: val, damage_area: val ? v.damage_area : undefined })} />
                         </BoolRow>
                         {v.damage && (
-                          <BoolRow label="Damage area">
+                          <BoolRow label="Damage area" required>
                             <div className="w-full sm:w-60">
                               <CustomSelect value={v.damage_area || ''} onChange={val => update(v.id, { damage_area: val })} options={DAMAGE_AREAS} placeholder="Select" />
                             </div>

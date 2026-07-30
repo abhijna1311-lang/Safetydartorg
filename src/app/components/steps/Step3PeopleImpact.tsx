@@ -72,7 +72,7 @@ function Field({ label, required, error, children }: { label: string; required?:
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div className={error ? 'rounded-[11px] ring-2 ring-red-400/70' : ''}>{children}</div>
+      <div className={error ? 'dart-field-error' : ''}>{children}</div>
       {error && <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p>}
     </div>
   );
@@ -125,6 +125,7 @@ export function Step3PeopleImpact({
   const collisionType = data.collision_type || data.lrv_collision_type || '';
   const isAutoCollision = /auto/i.test(collisionType);
   const isRevenueMode = ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '');
+  const isHiRail = data.mode === 'Hi-Rail';
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
@@ -151,13 +152,38 @@ export function Step3PeopleImpact({
     { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: byRole('Pedestrian', p => p.transported_to_hospital) },
   ];
 
-  const operatorAnswered = data.operator_injured !== undefined
-    && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined));
-  const passengersAnswered = !isRevenueMode || data.passengers_on_board !== undefined;
-  const policeAnswered = data.police_at_scene !== undefined;
+  const personComplete = (person: Person) => {
+    const passengerComplete = person.role !== 'Passenger' || !!person.passenger_action
+      && (!['Boarding Bus', 'Alighting Bus'].includes(person.passenger_action) || !!person.which_door);
+    const pedestrianComplete = person.role !== 'Pedestrian' || !!person.pedestrian_type && !!person.pedestrian_action;
+    const injuryComplete = isHiRail || (person.injured !== undefined
+      && (!person.injured || (person.fatal !== undefined && !!person.injured_body_part && person.transported_to_hospital !== undefined)));
+    const followUpComplete = isHiRail || (person.fled_scene !== undefined
+      && (person.role !== 'Passenger' || !person.injured || person.courtesy_card !== undefined));
+    return passengerComplete && pedestrianComplete && injuryComplete && followUpComplete;
+  };
+  const vehicleComplete = (vehicle: NonNullable<AccidentReportData['other_vehicles']>[number]) => (
+    vehicle.occupants !== undefined
+    && ((vehicle.occupants || 0) < 1 || (
+      vehicle.fatalities !== undefined
+      && (isHiRail || (vehicle.injuries !== undefined && vehicle.fled !== undefined
+      && ((vehicle.injuries || 0) < 1 || vehicle.transported !== undefined)))
+    ))
+    && vehicle.dart_dart !== undefined && !!vehicle.vehicle_type && !!vehicle.action
+    && !!vehicle.point_of_impact && !!vehicle.direction && vehicle.damage !== undefined
+    && (!vehicle.damage || !!vehicle.damage_area)
+  );
+  const operatorAnswered = isHiRail || (data.operator_injured !== undefined
+    && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined))
+    && data.other_employees_injured_count !== undefined);
+  const passengersAnswered = data.passengers_on_board !== undefined;
+  const peopleAnswered = data.people_involved !== undefined
+    && (data.people_involved !== true || (people.length > 0 && people.every(personComplete)));
+  const vehiclesAnswered = !isAutoCollision
+    || ((data.other_vehicles?.length || 0) > 0 && (data.other_vehicles || []).every(vehicleComplete));
   const canProceed = isInitiationStage || isSupervisorReview
     ? true
-    : (operatorAnswered && passengersAnswered && policeAnswered && data.people_involved !== undefined);
+    : (operatorAnswered && passengersAnswered && peopleAnswered && vehiclesAnswered);
   const [showErrors, setShowErrors] = useState(false);
   const handleNextClick = () => {
     if (canProceed) {
@@ -297,7 +323,7 @@ export function Step3PeopleImpact({
               {/* 1 — Operator and employees */}
               <Section title="Operator and employees" help="Your injury status is required. Other DART employees on board are recorded as a count.">
                 <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && !operatorAnswered ? 'border-red-300' : 'border-slate-200/70'}`}>
-                  <BoolRow label="Were you injured in this event?" required>
+                  <BoolRow label="Were you injured in this event?" required={!isHiRail}>
                     <YesNoToggle value={data.operator_injured} onChange={v => onUpdate({ operator_injured: v, operator_injured_body_part: v ? data.operator_injured_body_part : undefined, operator_transported: v ? data.operator_transported : undefined })} />
                   </BoolRow>
                   <AnimatePresence initial={false}>
@@ -310,18 +336,18 @@ export function Step3PeopleImpact({
                         transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
                         className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50"
                       >
-                        <BoolRow label="Injured body part" required>
+                        <BoolRow label="Injured body part" required={!isHiRail}>
                           <div className="w-full sm:w-60">
                             <CustomSelect value={data.operator_injured_body_part || ''} onChange={v => onUpdate({ operator_injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !data.operator_injured_body_part} />
                           </div>
                         </BoolRow>
-                        <BoolRow label="Were you transported to hospital?" required>
+                        <BoolRow label="Were you transported to hospital?" required={!isHiRail}>
                           <YesNoToggle value={data.operator_transported} onChange={v => onUpdate({ operator_transported: v })} />
                         </BoolRow>
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <BoolRow label="Other employees injured (excluding you)">
+                  <BoolRow label="Other employees injured (excluding you)" required={!isHiRail}>
                     <input
                       type="number"
                       min={0}
@@ -337,8 +363,8 @@ export function Step3PeopleImpact({
 
               {/* 2 — People involved */}
               <Section title="People involved" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
-                <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && ((isRevenueMode && data.passengers_on_board === undefined) || data.people_involved === undefined) ? 'border-red-300' : 'border-slate-200/70'}`}>
-                  {isRevenueMode && (
+                <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && (data.passengers_on_board === undefined || data.people_involved === undefined) ? 'border-red-300' : 'border-slate-200/70'}`}>
+                  {(
                     <BoolRow label="How many passengers were on board?" required>
                       <input
                         type="number"
@@ -347,7 +373,7 @@ export function Step3PeopleImpact({
                         value={data.passengers_on_board ?? ''}
                         onChange={e => onUpdate({ passengers_on_board: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0) })}
                         placeholder="0"
-                        className={`dart-input-base w-full text-center sm:w-24 ${showErrors && data.passengers_on_board === undefined ? 'border-red-300 ring-2 ring-red-400/70' : ''}`}
+                        className={`dart-input-base w-full text-center sm:w-24 ${showErrors && data.passengers_on_board === undefined ? 'border-red-400' : ''}`}
                       />
                     </BoolRow>
                   )}
@@ -370,7 +396,7 @@ export function Step3PeopleImpact({
                       className="overflow-hidden"
                     >
                       <div className="pt-1">
-                        <PersonListEditor people={people} onChange={list => onUpdate({ people: list })} />
+                        <PersonListEditor people={people} onChange={list => onUpdate({ people: list })} showErrors={showErrors} injuryDetailsRequired={!isHiRail} />
                       </div>
                     </motion.div>
                   )}
@@ -380,14 +406,14 @@ export function Step3PeopleImpact({
               {/* 3 — Other vehicles (auto collisions only) */}
               {isAutoCollision && (
                 <Section title="Other vehicles" help="Add each vehicle involved besides the DART vehicle. Occupants are recorded as counts, not by name.">
-                  <OtherVehiclesEditor vehicles={data.other_vehicles ?? []} onChange={list => onUpdate({ other_vehicles: list })} />
+                  <OtherVehiclesEditor vehicles={data.other_vehicles ?? []} onChange={list => onUpdate({ other_vehicles: list })} showErrors={showErrors} injuryDetailsRequired={!isHiRail} />
                 </Section>
               )}
 
               {/* 4 — Police */}
               <Section title="Police" help="Police presence and DART supervisor investigation.">
-                <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.police_at_scene === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
-                  <BoolRow label="Were police at the scene?" required>
+                <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                  <BoolRow label="Were police at the scene?">
                     <YesNoToggle value={data.police_at_scene} onChange={v => onUpdate({ police_at_scene: v, police_type: undefined })} />
                   </BoolRow>
 

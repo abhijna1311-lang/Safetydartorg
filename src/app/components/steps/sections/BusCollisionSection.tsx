@@ -220,7 +220,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
             <label className="dart-field-label">
               Bus vehicle number <span className="dart-req">*</span>
             </label>
-            <div className={showErrors && !data.vehicle_number ? 'rounded-[11px] ring-2 ring-red-400/70' : ''}>
+            <div className={showErrors && !data.vehicle_number ? 'dart-field-error' : ''}>
               <SearchableCombobox
                 options={vehicleOptions}
                 value={data.vehicle_number || ''}
@@ -260,7 +260,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
             <Field label="Bus action at time of event" required>
               <CustomSelect value={data.bus_action || ''} onChange={v => onUpdate({ bus_action: v })} options={BUS_ACTIONS} placeholder="Select action" />
             </Field>
-            <Field label="Bus speed at time of event (mph)">
+            <Field label="Bus speed at time of event (mph)" required>
               <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="0" className={inputCls} />
             </Field>
           </div>
@@ -281,11 +281,11 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
           <>
 
             <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-              <BoolRow label="Did this event involve an evacuation for life safety reasons?">
+              <BoolRow label="Did this event involve an evacuation for life safety reasons?" required>
                 <YesNoToggle value={data.evacuation_life_safety} onChange={v => onUpdate({ evacuation_life_safety: v })} />
               </BoolRow>
 
-              <BoolRow label="Did this event involve a runaway bus?">
+              <BoolRow label="Did this event involve a runaway bus?" required>
                 <YesNoToggle
                   value={data.runaway_vehicle}
                   onChange={v => onUpdate({ runaway_vehicle: v, operator_in_vehicle_runaway: undefined, parking_brake_engaged: undefined })}
@@ -302,10 +302,10 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
                     transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
                     className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100"
                   >
-                    <BoolRow label="Was the parking brake engaged?">
+                    <BoolRow label="Was the parking brake engaged?" required>
                       <YesNoToggle value={data.parking_brake_engaged} onChange={v => onUpdate({ parking_brake_engaged: v })} />
                     </BoolRow>
-                    <BoolRow label="Was the operator in the vehicle when the bus ran away?">
+                    <BoolRow label="Was the operator in the vehicle when the bus ran away?" required>
                       <YesNoToggle
                         value={data.operator_in_vehicle_runaway === 'Operator in vehicle' ? true : data.operator_in_vehicle_runaway === 'Operator not in vehicle' ? false : undefined}
                         onChange={v => onUpdate({ operator_in_vehicle_runaway: v ? 'Operator in vehicle' : 'Operator not in vehicle' })}
@@ -315,7 +315,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
                 )}
               </AnimatePresence>
 
-              <BoolRow label="Was there visible bus damage at the scene?">
+              <BoolRow label="Was there visible bus damage at the scene?" required>
                 <YesNoToggle value={data.bus_damage} onChange={v => onUpdate({ bus_damage: v, bus_damage_confirmed: v ? data.bus_damage_confirmed : undefined })} />
               </BoolRow>
 
@@ -329,7 +329,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
                     transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
                     className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100"
                   >
-                    <BoolRow label="Was the damage confirmed after inspection?">
+                    <BoolRow label="Was the damage confirmed after inspection?" required>
                       <YesNoToggle value={data.bus_damage_confirmed} onChange={v => onUpdate({ bus_damage_confirmed: v })} />
                     </BoolRow>
                   </motion.div>
@@ -357,13 +357,13 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
           <Field label="Street on" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
-          <Field label="Cross street">
+          <Field label="Cross street" required>
             <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
           </Field>
           <Field label="City" required error={showErrors && !data.city}>
             <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
           </Field>
-          <Field label="ZIP code">
+          <Field label="ZIP code" required>
             <input type="text" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value })} placeholder="e.g. 75201" className={inputCls} />
           </Field>
         </div>
@@ -395,7 +395,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
             )}
           </AnimatePresence>
 
-          <BoolRow label="Does the street have a designated bike lane?">
+          <BoolRow label="Does the street have a designated bike lane?" required>
             <YesNoToggle value={data.has_bike_lane} onChange={v => onUpdate({ has_bike_lane: v })} />
           </BoolRow>
         </div>
@@ -404,7 +404,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
       {/* 4 — Weather and conditions: the environment at the time of the event */}
       {!compactMode && (
         <Section title="Weather and conditions" help="The environment at the time of the event — visibility, road surface, and traffic conditions.">
-          <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare />
+          <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} />
         </Section>
       )}
 

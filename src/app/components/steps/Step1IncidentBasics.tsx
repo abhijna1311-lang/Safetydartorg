@@ -50,6 +50,8 @@ const MODES = [
   { value: 'Non-Revenue Vehicle',  label: 'Non-Revenue',sublabel: 'Non-revenue vehicle',        glyph: 'directions_car' },
 ] as const;
 
+const DERAILMENT_MODES = ['Light Rail Vehicle', 'Hi-Rail'];
+
 const EMPTY_EMPLOYEE_FIELDS: Partial<AccidentReportData> = {
   on_behalf_employee: '',
   employee_badge_number: '',
@@ -105,7 +107,7 @@ function formatIncidentTime(val?: string) {
 // ── helpers ───────────────────────────────────────────────────────────────────
 // Section block. Renders as a divider-separated block on one shared surface (no per-section
 // card chrome) so Step 1 reads as a single continuous form rather than stacked cards.
-function Section({ title, help, children }: { title: string; help?: string; complete?: boolean; children: React.ReactNode }) {
+function Section({ title, help, children }: { title: React.ReactNode; help?: string; complete?: boolean; children: React.ReactNode }) {
   return (
     <section className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
       <div className="mb-6">
@@ -132,11 +134,18 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const [showErrors, setShowErrors] = useState(false);
 
   const hasEventType = !!data.event_type;
+  const isDerailmentEvent = data.event_type?.trim().toLowerCase() === 'derailment';
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
-  const hasMode = !!data.mode;
+  const modeIsAllowed = !isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || '');
+  const hasMode = !!data.mode && modeIsAllowed;
   const hasIncidentDate = !!data.incident_date;
   const hasIncidentTime = !!data.incident_time;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
+  const hasSchedule = data.is_student_employee !== undefined
+    && !!data.regular_day_off_type
+    && (data.regular_day_off_type === 'Consecutive'
+      ? !!data.rdo_consecutive
+      : !!data.rdo_split_1 && !!data.rdo_split_2);
   const hasFilingChoice = !isSupervisor || data.is_on_behalf !== undefined;
   // When a PM (always) or an on-behalf Supervisor initiates, they must state whether the
   // operator can file their own section. "No" waives the operator section and requires a reason.
@@ -145,7 +154,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     || data.operator_availability_confirmed === true
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
-  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
+  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasSchedule && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
 
   // Duplicate guard — if this employee already has a report on this date, surface it before a
   // second one is created. Matches on person + date; the existing report's time and initiator
@@ -168,6 +177,22 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
       ...EMPTY_EMPLOYEE_FIELDS,
     });
   }, [isProgramManager, data.is_on_behalf, onUpdate]);
+
+  // Restored drafts can contain a legacy Derailment + non-rail mode combination. Enforce the
+  // same rule after hydration instead of relying only on the event dropdown change handler.
+  useEffect(() => {
+    if (isDerailmentEvent && data.mode && !DERAILMENT_MODES.includes(data.mode)) {
+      onUpdate({
+        mode: undefined,
+        vehicle_number: undefined,
+        fleet_type: undefined,
+        trip_id: undefined,
+        block_number: undefined,
+        train_number: undefined,
+        lrv_fleet_type: undefined,
+      });
+    }
+  }, [data.mode, isDerailmentEvent, onUpdate]);
 
   // ── Auto-fill employee info from logged-in user ────────────────
   // Runs on mount and whenever the role changes (badge changes)
@@ -292,14 +317,25 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   };
 
   const handleEventTypeChange = (val: string) => {
+    const modeRemainsAllowed = val !== 'Derailment' || DERAILMENT_MODES.includes(data.mode || '');
     onUpdate({
       event_type: val,
+      ...(!modeRemainsAllowed ? {
+        mode: undefined,
+        vehicle_number: undefined,
+        fleet_type: undefined,
+        trip_id: undefined,
+        block_number: undefined,
+        train_number: undefined,
+        lrv_fleet_type: undefined,
+      } : {}),
       // Reset driving question when event type changes
       operating_dart_vehicle: SHOW_DRIVING_QUESTION.includes(val) ? data.operating_dart_vehicle : undefined,
     });
   };
 
   const handleModeChange = (val: string) => {
+    if (isDerailmentEvent && !DERAILMENT_MODES.includes(val)) return;
     if (val !== data.mode) {
       onUpdate({
         mode: val,
@@ -319,6 +355,10 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (!hasIncidentTime) missing.push('incident time');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
+  if (data.is_student_employee === undefined) missing.push('student employee');
+  if (!data.regular_day_off_type) missing.push('regular day off');
+  if (data.regular_day_off_type === 'Consecutive' && !data.rdo_consecutive) missing.push('regular days off');
+  if (data.regular_day_off_type === 'Split' && (!data.rdo_split_1 || !data.rdo_split_2)) missing.push('split regular days off');
 
   const errFilingChoice = showErrors && isSupervisor && !hasFilingChoice;
   const errEmployee = showErrors && (isProgramManager || data.is_on_behalf === true) && !hasEmployee;
@@ -328,6 +368,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const errIncidentTime = showErrors && !hasIncidentTime;
   const errDriving = showErrors && needsDrivingQ && data.operating_dart_vehicle === undefined;
   const errMode = showErrors && !hasMode;
+  const errStudentEmployee = showErrors && data.is_student_employee === undefined;
+  const errRegularDayOff = showErrors && !data.regular_day_off_type;
 
   const handleNextClick = () => {
     if (canProceed) {
@@ -343,8 +385,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   // supervisor) or share one 3-col row with the employee field (program manager).
   const studentEmployeeField = (
     <div>
-      <p className="dart-field-label">Student employee?</p>
-      <div className="dart-seg">
+      <p className="dart-field-label">Student employee? <span className="dart-req">*</span></p>
+      <div className={`dart-seg ${errStudentEmployee ? 'dart-field-error' : ''}`}>
         <button type="button" onClick={() => onUpdate({ is_student_employee: true })} className={`dart-seg-btn ${data.is_student_employee === true ? 'dart-seg-btn--on' : ''}`}>
           {data.is_student_employee === true && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Yes
         </button>
@@ -357,8 +399,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
   const regularDayOffField = (
     <div>
-      <p className="dart-field-label">Regular day off</p>
-      <div className="dart-seg">
+      <p className="dart-field-label">Regular day off <span className="dart-req">*</span></p>
+      <div className={`dart-seg ${errRegularDayOff ? 'dart-field-error' : ''}`}>
         <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Consecutive', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`dart-seg-btn ${data.regular_day_off_type === 'Consecutive' ? 'dart-seg-btn--on' : ''}`}>
           {data.regular_day_off_type === 'Consecutive' && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Consecutive days
         </button>
@@ -373,19 +415,19 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     <AnimatePresence>
       {data.regular_day_off_type === 'Consecutive' && (
         <motion.div {...fade} key="rdo-consec" className="w-full sm:w-[240px]">
-          <label className="dart-field-label">Regular days off (RDO) – Consecutive</label>
-          <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" />
+          <label className="dart-field-label">Regular days off (RDO) – Consecutive <span className="dart-req">*</span></label>
+          <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" error={showErrors && !data.rdo_consecutive} />
         </motion.div>
       )}
       {data.regular_day_off_type === 'Split' && (
         <motion.div {...fade} key="rdo-split" className="flex flex-wrap items-start gap-x-6 gap-y-5">
           <div className="w-full sm:w-[200px]">
-            <label className="dart-field-label">RDO Split – Day 1</label>
-            <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />
+            <label className="dart-field-label">RDO Split – Day 1 <span className="dart-req">*</span></label>
+            <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" error={showErrors && !data.rdo_split_1} />
           </div>
           <div className="w-full sm:w-[200px]">
-            <label className="dart-field-label">RDO Split – Day 2</label>
-            <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" />
+            <label className="dart-field-label">RDO Split – Day 2 <span className="dart-req">*</span></label>
+            <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" error={showErrors && !data.rdo_split_2} />
           </div>
         </motion.div>
       )}
@@ -682,7 +724,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
               <label className="dart-field-label">
                 Date of incident <span className="dart-req">*</span>
               </label>
-              <div className={errIncidentDate ? 'rounded-[0.625rem] ring-2 ring-red-400/70' : ''}>
+              <div className={errIncidentDate ? 'dart-field-error' : ''}>
                 <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
               </div>
               {errIncidentDate && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident date to continue.</p>}
@@ -692,7 +734,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
               <label className="dart-field-label">
                 Time of incident <span className="dart-req">*</span>
               </label>
-              <div className={errIncidentTime ? 'rounded-[0.625rem] ring-2 ring-red-400/70' : ''}>
+              <div className={errIncidentTime ? 'dart-field-error' : ''}>
                 <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
               </div>
               {errIncidentTime && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident time to continue.</p>}
@@ -751,20 +793,26 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
         {/* Vehicle mode */}
         <Section
-          title="Vehicle mode"
-          help="Which DART vehicle mode is involved?"
+          title={<>Vehicle mode <span className="dart-req">*</span></>}
+          help={isDerailmentEvent
+            ? 'Derailment reports are available only for Light Rail Vehicle and Hi-Rail.'
+            : 'Which DART vehicle mode is involved?'}
           complete={hasMode}
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {MODES.map(m => {
               const selected = data.mode === m.value;
+              const unavailableForDerailment = isDerailmentEvent && !DERAILMENT_MODES.includes(m.value);
+              const disabled = lockEventAndMode || unavailableForDerailment;
               return (
                 <button
                   key={m.value}
                   type="button"
-                  disabled={lockEventAndMode}
+                  disabled={disabled}
                   onClick={() => handleModeChange(m.value)}
-                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${errMode && !selected ? 'dart-mode-card--error' : ''}`}
+                  aria-describedby={unavailableForDerailment ? 'derailment-mode-guidance' : undefined}
+                  title={unavailableForDerailment ? 'Not available for Derailment' : undefined}
+                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${unavailableForDerailment ? 'grayscale bg-slate-100/80 border-slate-200' : ''} ${errMode && !selected && !unavailableForDerailment ? 'dart-mode-card--error' : ''}`}
                 >
                   {selected && (
                     <span className="dart-mode-badge">
@@ -775,11 +823,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     <span className="material-symbols-rounded">{m.glyph}</span>
                   </span>
                   <span className="dart-mode-title">{m.label}</span>
-                  <span className="dart-mode-sub">{m.sublabel}</span>
+                  <span className="dart-mode-sub">{unavailableForDerailment ? 'Not available for Derailment' : m.sublabel}</span>
                 </button>
               );
             })}
           </div>
+          {isDerailmentEvent && (
+            <p id="derailment-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+              Bus, Streetcar, and Non-Revenue Vehicle cannot be selected for this event type.
+            </p>
+          )}
           {errMode && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Select the vehicle mode involved.</p>}
           {lockEventAndMode && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">

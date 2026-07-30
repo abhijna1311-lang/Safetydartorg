@@ -4,6 +4,8 @@ import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
 import { BusCollisionSection } from './sections/BusCollisionSection';
 import { LRVCollisionSection } from './sections/LRVCollisionSection';
+import { NRVCollisionSection } from './sections/NRVCollisionSection';
+import { DerailmentSection } from './sections/DerailmentSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
 import { WeatherSection } from './sections/WeatherSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
@@ -66,7 +68,9 @@ export function Step2VehicleLocation({
   isOperatorNarrativeLocked = false,
 }: Props) {
   const isLRV = LRV_MODES.includes(data.mode || '');
-  const isBus = !isLRV; // Bus + Non-Revenue Vehicle
+  const isNRV = data.mode === 'Non-Revenue Vehicle';
+  const isBus = !isLRV && !isNRV;
+  const isStreetcar = data.mode === 'Streetcar';
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
@@ -75,6 +79,7 @@ export function Step2VehicleLocation({
 
   // Check if this is a collision event
   const isCollision = data.event_type === 'Collision';
+  const isDerailment = data.event_type === 'Derailment';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -82,6 +87,60 @@ export function Step2VehicleLocation({
     ? `Vehicle and collision details for the ${data.mode || 'selected mode'}.`
     : `Vehicle and event details for the ${data.mode || 'selected mode'}.`;
   const narrativeRequirementMet = isOperatorNarrativeLocked ? true : Boolean(data.description_of_event);
+  const answered = (value: unknown) => value !== undefined && value !== null && value !== '';
+  const requiredWeatherComplete = !!(
+    data.weather && data.road_conditions && data.lighting_conditions
+    && data.traffic_conditions && data.traffic_controls && data.roadway_configuration
+  );
+  const busCollisionComplete = !!(
+    data.vehicle_number && data.trip_id && data.block_number
+    && data.bus_status_before && data.bus_status_after
+    && data.collision_type && data.bus_action && answered(data.bus_speed)
+    && data.street_on && data.cross_street && data.city && data.zip
+    && answered(data.event_at_bus_stop)
+    && (data.event_at_bus_stop !== true || data.bus_stop_name)
+    && answered(data.has_bike_lane)
+    && answered(data.evacuation_life_safety)
+    && answered(data.runaway_vehicle)
+    && (data.runaway_vehicle !== true || (data.operator_in_vehicle_runaway && answered(data.parking_brake_engaged)))
+    && answered(data.bus_damage)
+    && (data.bus_damage !== true || (answered(data.bus_damage_confirmed) && (data.impact_markers?.length || 0) > 0))
+    && requiredWeatherComplete
+  );
+  const railCollisionComplete = !!(
+    data.train_number && data.car_number
+    && data.train_status_before && data.train_status_after
+    && data.lrv_collision_type && data.train_action && answered(data.train_speed)
+    && data.location_category && data.address_of_event && data.city && data.zip
+    && (data.location_category !== 'Rail Station' || data.station_applicable)
+    && (!['Grade Crossing', 'Bridge'].includes(data.location_category || '') || (data.station_applicable && data.grade_crossing_applicable))
+    && (data.location_category !== 'Tunnel' || data.tunnel_location)
+    && answered(data.lrv_evacuation) && answered(data.runaway_train)
+    && (data.runaway_train !== true || data.operator_in_train_runaway)
+    && answered(data.collision_resulted_in_derailment) && answered(data.train_damage)
+    && (data.train_damage !== true || (answered(data.disabling_damage) && (data.impact_markers?.length || 0) > 0))
+    && requiredWeatherComplete
+  );
+  const nrvCollisionComplete = !!(
+    data.vehicle_number && data.collision_type && data.bus_action && answered(data.bus_speed)
+    && data.street_on && data.city && data.zip && answered(data.runaway_vehicle)
+    && (data.runaway_vehicle !== true || data.operator_in_vehicle_runaway)
+    && answered(data.bus_damage)
+    && (data.bus_damage !== true || (answered(data.bus_damage_confirmed) && (data.impact_markers?.length || 0) > 0))
+    && requiredWeatherComplete
+  );
+  const derailmentComplete = !!(
+    data.train_number && data.derailment_type && data.location_category
+    && (data.location_category !== 'Revenue Facility: Transit Station' || data.station_applicable)
+    && (data.location_category !== 'Right-of-Way: Grade Crossing' || data.grade_crossing_applicable)
+    && data.train_status_before && data.train_status_after
+    && (data.mode !== 'Light Rail Vehicle' || data.car_number)
+    && (!['In Service', 'Pull-In', 'Pull-Out'].includes(data.train_status_before || '') || data.mode !== 'Light Rail Vehicle' || data.rail_line)
+    && data.train_action && answered(data.train_speed)
+    && answered(data.train_damage) && answered(data.runaway_train)
+    && (data.runaway_train !== true || data.operator_in_train_runaway)
+    && answered(data.lrv_evacuation) && requiredWeatherComplete
+  );
 
   // Minimum required to proceed
   const canProceed = isInitiationStage
@@ -90,14 +149,23 @@ export function Step2VehicleLocation({
         data.incident_time &&
         (isBus
           ? data.vehicle_number && data.street_on && data.cross_street && data.city && data.zip && data.route_number && data.block_number
-          : data.train_number && (data.address_of_event || data.station_applicable || data.grade_crossing_applicable))
+          : isNRV
+            ? data.vehicle_number && data.street_on
+            : data.train_number && (data.address_of_event || data.station_applicable || data.grade_crossing_applicable))
       )
     : !!(
         narrativeRequirementMet &&
         data.incident_date &&
         data.incident_time &&
-        (isBus ? data.street_on && data.city : data.train_number) &&
-        (isCollision && isBus ? data.vehicle_number : true)
+        (isDerailment
+          ? derailmentComplete
+          : isCollision && isBus
+            ? busCollisionComplete
+            : isCollision && isNRV
+              ? nrvCollisionComplete
+              : isCollision && isLRV
+                ? railCollisionComplete
+                : isBus || isNRV ? data.street_on : data.train_number)
       );
 
   const handleNextClick = () => {
@@ -202,6 +270,15 @@ export function Step2VehicleLocation({
                       <input type="text" value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value })} placeholder="Enter ZIP code" className={inputCls} />
                     </IntakeField>
                   </>
+                ) : isNRV ? (
+                  <>
+                    <IntakeField label="NRV number" required>
+                      <input type="text" value={data.vehicle_number || ''} onChange={(e) => onUpdate({ vehicle_number: e.target.value })} placeholder="Enter NRV number" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Event location" required>
+                      <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="Enter street address" className={inputCls} />
+                    </IntakeField>
+                  </>
                 ) : (
                   <>
                     <IntakeField label="Train number" required>
@@ -220,13 +297,16 @@ export function Step2VehicleLocation({
               {isCollision ? (
                 <>
                   {isBus  && <BusCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
+                  {isNRV  && <NRVCollisionSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
                   {isLRV  && <LRVCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
                 </>
+              ) : isDerailment ? (
+                <DerailmentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
               ) : (
                 <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
               )}
-              {/* Bus collision embeds weather inside "Where it happened"; other flows keep it standalone */}
-              {!(isCollision && isBus) && <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />}
+              {/* Bus and rail collisions embed weather inside "Weather and conditions"; other flows keep it standalone */}
+              {!isDerailment && !(isCollision && (isBus || isLRV || isNRV)) && <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />}
             </>
           )}
       </div>

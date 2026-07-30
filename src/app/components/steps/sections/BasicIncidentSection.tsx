@@ -48,7 +48,7 @@ function Field({ label, required, helper, error, children }: { label: string; re
       <label className="dart-field-label">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div className={error ? 'rounded-[11px] ring-2 ring-red-400/70' : ''}>{children}</div>
+      <div className={error ? 'dart-field-error' : ''}>{children}</div>
       {error ? <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p> : helper ? <p className="mt-1 text-xs text-slate-500 font-['Poppins']">{helper}</p> : null}
     </div>
   );

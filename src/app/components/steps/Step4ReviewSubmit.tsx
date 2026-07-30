@@ -2701,7 +2701,7 @@ export function Step4ReviewSubmit({
                   <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Confirm what happened based on your review.</p>
                   <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                     <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                      <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Is the operator date/time correct?</div>
+                      <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Is the operator date/time correct? <span className="text-red-500">*</span></div>
                       <div className="shrink-0"><YesNoButtons value={data.operator_datetime_correct} onChange={(value) => onUpdate({ operator_datetime_correct: value })} /></div>
                     </div>
                     {modeIsLRV && (

@@ -45,9 +45,11 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
 interface Props {
   people: Person[];
   onChange: (people: Person[]) => void;
+  showErrors?: boolean;
+  injuryDetailsRequired?: boolean;
 }
 
-export function PersonListEditor({ people, onChange }: Props) {
+export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const update = (id: string, patch: Partial<Person>) =>
@@ -55,7 +57,7 @@ export function PersonListEditor({ people, onChange }: Props) {
 
   const addPerson = () => {
     const id = `person-${Date.now()}`;
-    onChange([...people, { id, role: 'Passenger', name: '', transported_to_hospital: false }]);
+    onChange([...people, { id, role: 'Passenger', name: '' }]);
     setOpenId(id);
   };
 
@@ -87,12 +89,12 @@ export function PersonListEditor({ people, onChange }: Props) {
       <button
         type="button"
         onClick={addPerson}
-        className="group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 px-6 py-11 text-center transition-colors hover:border-[#007DBA]/40 hover:bg-[#f2f8fc] focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+        className={`group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/70 px-6 py-11 text-center transition-colors hover:border-[#007DBA]/40 hover:bg-[#f2f8fc] focus:outline-none focus:ring-2 focus:ring-[#FFCD00] ${showErrors ? 'border-red-300' : 'border-slate-200'}`}
       >
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70 transition-all group-hover:ring-[#007DBA]/30 group-hover:shadow-md">
           <span className="material-symbols-rounded text-[26px] text-[#007DBA]/70">group_add</span>
         </span>
-        <p className="mt-4 text-sm font-semibold text-slate-700 font-['Poppins']">No people added yet</p>
+        <p className="mt-4 text-sm font-semibold text-slate-700 font-['Poppins']">No people added yet <span className="dart-req">*</span></p>
         <p className="mt-1 text-xs text-slate-400 font-['Poppins']">Click to add each person involved &mdash; operator, passengers, or pedestrians.</p>
       </button>
     );
@@ -108,6 +110,16 @@ export function PersonListEditor({ people, onChange }: Props) {
         const isPedestrian = role === 'Pedestrian';
         const showFled = isPassenger || isPedestrian;
         const showDoor = isPassenger && (p.passenger_action === 'Boarding Bus' || p.passenger_action === 'Alighting Bus');
+        const recordComplete = (
+          (!isPassenger || (!!p.passenger_action && (!showDoor || !!p.which_door)))
+          && (!isPedestrian || (!!p.pedestrian_type && !!p.pedestrian_action))
+          && (!injuryDetailsRequired || (
+            p.injured !== undefined
+            && (!p.injured || (p.fatal !== undefined && !!p.injured_body_part && p.transported_to_hospital !== undefined))
+            && p.fled_scene !== undefined
+            && (!isPassenger || !p.injured || p.courtesy_card !== undefined)
+          ))
+        );
         const pedActions = p.pedestrian_type === 'Using Micro Mobility' ? PED_ACTIONS_MICRO : PED_ACTIONS_FOOT;
         const displayName = p.name || `${role} ${idx + 1}`;
         const pedTypeShort = p.pedestrian_type === 'Using Micro Mobility'
@@ -131,7 +143,7 @@ export function PersonListEditor({ people, onChange }: Props) {
         const subtitle = details.join(' · ');
 
         return (
-          <div key={p.id} className={`overflow-hidden rounded-xl border bg-white transition-shadow ${open ? 'border-[#112458]/30 shadow-sm' : 'border-slate-200/70'}`}>
+          <div key={p.id} className={`overflow-hidden rounded-xl border bg-white transition-shadow ${showErrors && !recordComplete ? 'border-red-300' : open ? 'border-[#112458]/30 shadow-sm' : 'border-slate-200/70'}`}>
             {/* Summary row */}
             <div className="flex items-center gap-3 px-4 py-3">
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#eaf1fb] text-[#1c3570]">
@@ -183,8 +195,8 @@ export function PersonListEditor({ people, onChange }: Props) {
                               <CustomSelect value={p.passenger_action || ''} onChange={v => update(p.id, { passenger_action: v, which_door: undefined })} options={PASSENGER_ACTIONS} placeholder="Select" />
                             </Field>
                             {showDoor && (
-                              <Field label="Which door?" className="lg:col-span-2">
-                                <CustomSelect value={p.which_door || ''} onChange={v => update(p.id, { which_door: v })} options={DOORS} placeholder="Select" />
+                              <Field label="Which door?" required className="lg:col-span-2">
+                                <CustomSelect value={p.which_door || ''} onChange={v => update(p.id, { which_door: v })} options={DOORS} placeholder="Select" error={showErrors && !p.which_door} />
                               </Field>
                             )}
                             <Field label="Name (if known)" className={showDoor ? 'lg:col-span-3' : 'lg:col-span-4'}>
@@ -213,7 +225,7 @@ export function PersonListEditor({ people, onChange }: Props) {
                     <div>
                       <GroupLabel>Injury</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                        <BoolRow label="Was this person injured?">
+                        <BoolRow label="Was this person injured?" required={injuryDetailsRequired}>
                           <YesNoToggle value={p.injured} onChange={v => setInjured(p.id, v)} />
                         </BoolRow>
                         <AnimatePresence initial={false}>
@@ -226,15 +238,15 @@ export function PersonListEditor({ people, onChange }: Props) {
                               transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
                               className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50"
                             >
-                              <BoolRow label="Was the injury fatal?">
+                              <BoolRow label="Was the injury fatal?" required={injuryDetailsRequired}>
                                 <YesNoToggle value={p.fatal} onChange={v => update(p.id, { fatal: v })} />
                               </BoolRow>
-                              <BoolRow label="Injured body part">
+                              <BoolRow label="Injured body part" required={injuryDetailsRequired}>
                                 <div className="w-full sm:w-60">
-                                  <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" />
+                                  <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !p.injured_body_part} />
                                 </div>
                               </BoolRow>
-                              <BoolRow label="Transported to hospital?">
+                              <BoolRow label="Transported to hospital?" required={injuryDetailsRequired}>
                                 <YesNoToggle value={p.transported_to_hospital} onChange={v => update(p.id, { transported_to_hospital: v })} />
                               </BoolRow>
                             </motion.div>
@@ -249,12 +261,12 @@ export function PersonListEditor({ people, onChange }: Props) {
                         <GroupLabel>Follow-up</GroupLabel>
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                           {showFled && (
-                            <BoolRow label="Did they flee the scene?">
+                            <BoolRow label="Did they flee the scene?" required={injuryDetailsRequired}>
                               <YesNoToggle value={p.fled_scene} onChange={v => update(p.id, { fled_scene: v })} />
                             </BoolRow>
                           )}
                           {isPassenger && injured && (
-                            <BoolRow label="Courtesy card obtained?">
+                            <BoolRow label="Courtesy card obtained?" required={injuryDetailsRequired}>
                               <YesNoToggle value={p.courtesy_card} onChange={v => update(p.id, { courtesy_card: v })} />
                             </BoolRow>
                           )}
