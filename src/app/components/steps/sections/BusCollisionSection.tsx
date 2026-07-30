@@ -261,7 +261,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
               <CustomSelect value={data.bus_action || ''} onChange={v => onUpdate({ bus_action: v })} options={BUS_ACTIONS} placeholder="Select action" />
             </Field>
             <Field label="Bus speed at time of event (mph)" required>
-              <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="0" className={inputCls} />
+              <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
             </Field>
           </div>
         )}

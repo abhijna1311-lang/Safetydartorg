@@ -47,7 +47,7 @@ export function PassengerInjurySection({ data, onUpdate }: Props) {
               const n = parseInt(e.target.value) || 0;
               onUpdate({ passengers_on_board: n, ...(n < 1 ? { passenger_fatalities: undefined, passengers_injured: undefined, passenger_action: undefined, which_door: undefined, passengers_fled: undefined, courtesy_cards: undefined, passengers_transported: undefined } : {}) });
             }}
-            placeholder="0" className={inputCls}
+            placeholder="Enter count" className={inputCls}
           />
         </Field>
 
@@ -56,7 +56,7 @@ export function PassengerInjurySection({ data, onUpdate }: Props) {
             <motion.div {...fade} key="pax-fields" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Number of passenger fatalities">
-                  <input type="number" min={0} value={data.passenger_fatalities ?? ''} onChange={e => onUpdate({ passenger_fatalities: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                  <input type="number" min={0} value={data.passenger_fatalities ?? ''} onChange={e => onUpdate({ passenger_fatalities: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
                 </Field>
                 <Field label="Number of passengers injured">
                   <input
@@ -66,11 +66,11 @@ export function PassengerInjurySection({ data, onUpdate }: Props) {
                       const n = parseInt(e.target.value) || 0;
                       onUpdate({ passengers_injured: n, ...(n < 1 ? { passenger_action: undefined, which_door: undefined, courtesy_cards: undefined, passengers_transported: undefined } : {}) });
                     }}
-                    placeholder="0" className={inputCls}
+                    placeholder="Enter count" className={inputCls}
                   />
                 </Field>
                 <Field label="Number of passengers who fled the scene">
-                  <input type="number" min={0} value={data.passengers_fled ?? ''} onChange={e => onUpdate({ passengers_fled: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                  <input type="number" min={0} value={data.passengers_fled ?? ''} onChange={e => onUpdate({ passengers_fled: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
                 </Field>
               </div>
 
@@ -90,10 +90,10 @@ export function PassengerInjurySection({ data, onUpdate }: Props) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Number of courtesy cards obtained">
-                      <input type="number" min={0} value={data.courtesy_cards ?? ''} onChange={e => onUpdate({ courtesy_cards: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                      <input type="number" min={0} value={data.courtesy_cards ?? ''} onChange={e => onUpdate({ courtesy_cards: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
                     </Field>
                     <Field label="Number of passengers transported to hospital">
-                      <input type="number" min={0} value={data.passengers_transported ?? ''} onChange={e => onUpdate({ passengers_transported: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                      <input type="number" min={0} value={data.passengers_transported ?? ''} onChange={e => onUpdate({ passengers_transported: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
                     </Field>
                   </div>
                 </motion.div>

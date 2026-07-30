@@ -354,7 +354,7 @@ export function Step3PeopleImpact({
                       inputMode="numeric"
                       value={data.other_employees_injured_count ?? ''}
                       onChange={e => onUpdate({ other_employees_injured_count: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                      placeholder="0"
+                      placeholder="Enter count"
                       className="dart-input-base w-full text-center sm:w-24"
                     />
                   </BoolRow>
@@ -372,7 +372,7 @@ export function Step3PeopleImpact({
                         inputMode="numeric"
                         value={data.passengers_on_board ?? ''}
                         onChange={e => onUpdate({ passengers_on_board: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                        placeholder="0"
+                        placeholder="Enter count"
                         className={`dart-input-base w-full text-center sm:w-24 ${showErrors && data.passengers_on_board === undefined ? 'border-red-400' : ''}`}
                       />
                     </BoolRow>

@@ -161,7 +161,7 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
             <CustomSelect value={data.bus_action || ''} onChange={v => onUpdate({ bus_action: v })} options={NRV_ACTIONS} placeholder="Select action" />
           </Field>
           <Field label="NRV speed at time of event (mph)" required>
-            <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="0" className={inputCls} />
+            <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
           </Field>
         </div>
 

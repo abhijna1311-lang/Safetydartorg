@@ -256,7 +256,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
             <CustomSelect value={data.train_action || ''} onChange={v => onUpdate({ train_action: v })} options={TRAIN_ACTION} placeholder="Select action" />
           </Field>
           <Field label="Train speed at time of event (mph)" required>
-            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={e => onUpdate({ train_speed: e.target.value })} placeholder="0" className={inputCls} />
+            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={e => onUpdate({ train_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
           </Field>
         </div>
 

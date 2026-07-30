@@ -78,7 +78,7 @@ export function LRVCollisionDetailsSection({ data, onUpdate }: Props) {
             <CustomSelect value={data.lrv_point_of_impact || ''} onChange={v => onUpdate({ lrv_point_of_impact: v })} options={LRV_IMPACT} placeholder="Select impact point" />
           </Field>
           <Field label="Train speed at time of event (mph)">
-            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={e => onUpdate({ train_speed: e.target.value })} placeholder="0" className={inputCls} />
+            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={e => onUpdate({ train_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
           </Field>
         </div>
 

@@ -59,7 +59,7 @@ export function PedestrianInjurySection({ data, onUpdate }: Props) {
             type="number" min={1}
             value={count || ''}
             onChange={e => syncGroups(Math.max(0, parseInt(e.target.value) || 0))}
-            placeholder="0" className={inputCls}
+            placeholder="Enter count" className={inputCls}
           />
           {count > 0 && <p className="mt-1 text-xs text-[#007DBA] font-['Poppins']">Enter details for each pedestrian below.</p>}
         </Field>
@@ -109,22 +109,22 @@ export function PedestrianInjurySection({ data, onUpdate }: Props) {
         {count > 0 && (
           <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
             <Field label="Number of pedestrian fatalities">
-              <input type="number" min={0} value={data.pedestrian_fatalities ?? ''} onChange={e => onUpdate({ pedestrian_fatalities: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+              <input type="number" min={0} value={data.pedestrian_fatalities ?? ''} onChange={e => onUpdate({ pedestrian_fatalities: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
             </Field>
             <Field label="Number of pedestrian injuries">
               <input
                 type="number" min={0}
                 value={data.pedestrian_injuries ?? ''}
                 onChange={e => onUpdate({ pedestrian_injuries: parseInt(e.target.value) || 0 })}
-                placeholder="0" className={inputCls}
+                placeholder="Enter count" className={inputCls}
               />
             </Field>
             <Field label="Number of pedestrians who fled">
-              <input type="number" min={0} value={data.pedestrians_fled ?? ''} onChange={e => onUpdate({ pedestrians_fled: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+              <input type="number" min={0} value={data.pedestrians_fled ?? ''} onChange={e => onUpdate({ pedestrians_fled: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
             </Field>
             {injuries > 0 && (
               <Field label="Number of pedestrians transported to hospital">
-                <input type="number" min={0} value={data.pedestrians_transported ?? ''} onChange={e => onUpdate({ pedestrians_transported: parseInt(e.target.value) || 0 })} placeholder="0" className={inputCls} />
+                <input type="number" min={0} value={data.pedestrians_transported ?? ''} onChange={e => onUpdate({ pedestrians_transported: parseInt(e.target.value) || 0 })} placeholder="Enter count" className={inputCls} />
               </Field>
             )}
           </div>

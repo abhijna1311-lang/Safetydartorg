@@ -429,15 +429,15 @@ export function EmployeeInfoSection({ data, onUpdate, isOnBehalf }: Props) {
           <SectionHeader title="Length of service in current job title" />
 
           <Field label="Years" locked={locked}>
-            {locked ? <ReadOnlyValue value={data.service_years} /> : <input type="number" min={0} value={data.service_years || ''} onChange={e => onUpdate({ service_years: e.target.value })} placeholder="0" className={inputEditable} />}
+            {locked ? <ReadOnlyValue value={data.service_years} /> : <input type="number" min={0} value={data.service_years || ''} onChange={e => onUpdate({ service_years: e.target.value })} placeholder="Enter years" className={inputEditable} />}
           </Field>
 
           <Field label="Months" locked={locked}>
-            {locked ? <ReadOnlyValue value={data.service_months} /> : <input type="number" min={0} max={11} value={data.service_months || ''} onChange={e => onUpdate({ service_months: e.target.value })} placeholder="0" className={inputEditable} />}
+            {locked ? <ReadOnlyValue value={data.service_months} /> : <input type="number" min={0} max={11} value={data.service_months || ''} onChange={e => onUpdate({ service_months: e.target.value })} placeholder="Enter months" className={inputEditable} />}
           </Field>
 
           <Field label="Days" locked={locked}>
-            {locked ? <ReadOnlyValue value={data.service_days} /> : <input type="number" min={0} max={30} value={data.service_days || ''} onChange={e => onUpdate({ service_days: e.target.value })} placeholder="0" className={inputEditable} />}
+            {locked ? <ReadOnlyValue value={data.service_days} /> : <input type="number" min={0} max={30} value={data.service_days || ''} onChange={e => onUpdate({ service_days: e.target.value })} placeholder="Enter days" className={inputEditable} />}
           </Field>
 
           {/* ── Schedule ── */}

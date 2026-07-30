@@ -194,7 +194,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
             <CustomSelect value={data.train_action || ''} onChange={value => onUpdate({ train_action: value })} options={TRAIN_ACTIONS} placeholder="Select action" />
           </Field>
           <Field label="Train speed at time of event (mph)" required>
-            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={event => onUpdate({ train_speed: event.target.value })} placeholder="0" className={inputCls} />
+            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={event => onUpdate({ train_speed: event.target.value })} placeholder="Enter speed" className={inputCls} />
           </Field>
         </div>
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">

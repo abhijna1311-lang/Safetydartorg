@@ -88,7 +88,7 @@ export function BusCollisionDetailsSection({ data, onUpdate }: Props) {
             <CustomSelect value={data.point_of_impact || ''} onChange={v => onUpdate({ point_of_impact: v })} options={BUS_IMPACT} placeholder="Select impact point" />
           </Field>
           <Field label="Bus speed at time of event (mph)">
-            <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="0" className={inputCls} />
+            <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
           </Field>
         </div>
 

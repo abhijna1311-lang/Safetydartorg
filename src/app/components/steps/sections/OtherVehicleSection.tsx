@@ -86,7 +86,7 @@ function VehicleBlock({
       </div>
       <div className="p-5 space-y-4">
         <Field label="Number of occupants">
-          <input type="number" min={0} value={occupants ?? ''} onChange={e => onOccupants(parseInt(e.target.value) || 0)} placeholder="0" className={inputCls} />
+          <input type="number" min={0} value={occupants ?? ''} onChange={e => onOccupants(parseInt(e.target.value) || 0)} placeholder="Enter count" className={inputCls} />
         </Field>
 
         <AnimatePresence>
@@ -94,17 +94,17 @@ function VehicleBlock({
             <motion.div {...fade} key="occ-fields" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Fatalities in this vehicle">
-                  <input type="number" min={0} value={fatalities ?? ''} onChange={e => onFatalities(parseInt(e.target.value) || 0)} placeholder="0" className={inputCls} />
+                  <input type="number" min={0} value={fatalities ?? ''} onChange={e => onFatalities(parseInt(e.target.value) || 0)} placeholder="Enter count" className={inputCls} />
                 </Field>
                 <Field label="Injuries in this vehicle">
-                  <input type="number" min={0} value={injuries ?? ''} onChange={e => onInjuries(parseInt(e.target.value) || 0)} placeholder="0" className={inputCls} />
+                  <input type="number" min={0} value={injuries ?? ''} onChange={e => onInjuries(parseInt(e.target.value) || 0)} placeholder="Enter count" className={inputCls} />
                 </Field>
                 <Field label="Occupants who fled the scene">
-                  <input type="number" min={0} value={fled ?? ''} onChange={e => onFled(parseInt(e.target.value) || 0)} placeholder="0" className={inputCls} />
+                  <input type="number" min={0} value={fled ?? ''} onChange={e => onFled(parseInt(e.target.value) || 0)} placeholder="Enter count" className={inputCls} />
                 </Field>
                 {hasInjuries && (
                   <Field label="Occupants transported to hospital">
-                    <input type="number" min={0} value={transported ?? ''} onChange={e => onTransported(parseInt(e.target.value) || 0)} placeholder="0" className={inputCls} />
+                    <input type="number" min={0} value={transported ?? ''} onChange={e => onTransported(parseInt(e.target.value) || 0)} placeholder="Enter count" className={inputCls} />
                   </Field>
                 )}
               </div>

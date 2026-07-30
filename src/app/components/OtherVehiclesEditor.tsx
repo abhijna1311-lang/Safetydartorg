@@ -3,9 +3,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { CustomSelect } from './CustomSelect';
 import { YesNoToggle } from './form/YesNoToggle';
+import { VehicleImpactDiagram } from './VehicleImpactDiagram';
 import type { OtherVehicle } from '../types/accident-report';
 
-const opt = (arr: string[]) => arr.map(v => ({ value: v, label: v }));
+const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
 
 // Vehicle type list changes depending on whether this was a DART-to-DART collision.
 const TYPES_DART = opt([
@@ -36,6 +37,17 @@ const DIRECTIONS = opt([
 ]);
 const DAMAGE_AREAS = opt(['Front', 'Rear', 'Left Side', 'Right Side', 'Top', 'Underbody', 'Front Wheel', 'Rear Wheel']);
 
+// Map the picked "Vehicle type" to the closest impact-diagram silhouette.
+function diagramVariantFor(type?: string): 'bus' | 'rail' | 'streetcar' | 'nrv' | 'motorcycle' {
+  if (!type) return 'nrv';
+  const t = type.toLowerCase();
+  if (t.includes('motorcycle') || t.includes('moped')) return 'motorcycle';
+  if (t.includes('streetcar') || t.includes('trolley')) return 'streetcar';
+  if (t.includes('light rail') || t.includes('commercial rail') || t.includes('amtrak') || t.includes('non-revenue rail')) return 'rail';
+  if (t === 'bus' || t.includes('school bus') || t.includes('charter') || t.includes('tour bus')) return 'bus';
+  return 'nrv';
+}
+
 const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
 
 function Field({ label, required, className = '', children }: { label: string; required?: boolean; className?: string; children: React.ReactNode }) {
@@ -56,7 +68,7 @@ function NumberField({ label, value, onChange, className = '', required = false 
         inputMode="numeric"
         value={value ?? ''}
         onChange={e => onChange(e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0))}
-        placeholder="0"
+        placeholder="Enter count"
         className="dart-input-base"
       />
     </Field>
@@ -69,10 +81,10 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 }
 
 // A stacked question row: label on the left, control on the right (matches the Police section).
-function BoolRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function BoolRow({ label, required, sentenceCase = false, children }: { label: string; required?: boolean; sentenceCase?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0, textTransform: sentenceCase ? 'none' : undefined }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
       <div className="shrink-0">{children}</div>
     </div>
   );
@@ -176,19 +188,40 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                   className="overflow-hidden border-t border-slate-100 bg-slate-50/40"
                 >
                   <div className="space-y-6 px-4 py-5">
+                    {/* This determines which vehicle-type options apply, so ask it first. */}
+                    <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+                      <BoolRow label="Was this a collision between DART vehicles?" required sentenceCase>
+                        <YesNoToggle value={v.dart_dart} onChange={val => update(v.id, { dart_dart: val, vehicle_type: undefined })} />
+                      </BoolRow>
+                    </div>
+
                     {/* Occupants */}
                     <div>
                       <GroupLabel>Occupants</GroupLabel>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+                      {/* Full-width until a count is entered; grows to 4 (then 5 with hospital transport) columns from md up. */}
+                      <div
+                        className={`grid gap-x-5 gap-y-4 ${
+                          hasOccupants
+                            ? hasInjuries
+                              ? 'grid-cols-1 md:grid-cols-5'
+                              : 'grid-cols-1 md:grid-cols-4'
+                            : 'grid-cols-1'
+                        }`}
+                      >
                         <NumberField label="Number of occupants" required value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
                             <NumberField label="Occupant fatalities" required value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
                             <NumberField label="Occupant injuries" required={injuryDetailsRequired} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
-                            <NumberField label="Occupants who fled the scene" required={injuryDetailsRequired} value={v.fled} onChange={n => update(v.id, { fled: n })} />
                             {hasInjuries && (
-                              <NumberField label="Occupants transported to hospital" required={injuryDetailsRequired} value={v.transported} onChange={n => update(v.id, { transported: n })} />
+                              <NumberField
+                                label="Occupants transported to hospital"
+                                required={injuryDetailsRequired}
+                                value={v.transported}
+                                onChange={n => update(v.id, { transported: n })}
+                              />
                             )}
+                            <NumberField label="Occupants who fled the scene" required={injuryDetailsRequired} value={v.fled} onChange={n => update(v.id, { fled: n })} />
                           </>
                         )}
                       </div>
@@ -197,22 +230,15 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      <div className="mb-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-                        <BoolRow label="Was this a collision between DART vehicles?" required>
-                          <YesNoToggle value={v.dart_dart} onChange={val => update(v.id, { dart_dart: val, vehicle_type: undefined })} />
-                        </BoolRow>
-                      </div>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
-                        <Field label="Vehicle type" required className="sm:col-span-2">
+                      {/* 12-col grid gives Vehicle Type more room for long labels like the Wrecker option. */}
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-12">
+                        <Field label="Vehicle type" required className="md:col-span-5">
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
-                        <Field label="Vehicle action" required>
+                        <Field label="Vehicle action" required className="md:col-span-3">
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
                         </Field>
-                        <Field label="Point of impact" required>
-                          <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
-                        </Field>
-                        <Field label="Direction relative to DART vehicle" required className="sm:col-span-2">
+                        <Field label="Direction relative to DART vehicle" required className="md:col-span-4">
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
                         </Field>
                       </div>
@@ -223,14 +249,37 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                       <GroupLabel>Damage</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Was there damage to this vehicle?" required>
-                          <YesNoToggle value={v.damage} onChange={val => update(v.id, { damage: val, damage_area: val ? v.damage_area : undefined })} />
+                          <YesNoToggle value={v.damage} onChange={val => update(v.id, { damage: val, damage_area: val ? v.damage_area : undefined, point_of_impact: val ? v.point_of_impact : undefined, impact_markers: val ? v.impact_markers : undefined })} />
                         </BoolRow>
                         {v.damage && (
-                          <BoolRow label="Damage area" required>
-                            <div className="w-full sm:w-60">
-                              <CustomSelect value={v.damage_area || ''} onChange={val => update(v.id, { damage_area: val })} options={DAMAGE_AREAS} placeholder="Select" />
+                          <>
+                            <BoolRow label="Damage area" required>
+                              <div className="w-full sm:w-60">
+                                <CustomSelect value={v.damage_area || ''} onChange={val => update(v.id, { damage_area: val })} options={DAMAGE_AREAS} placeholder="Select" />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Point of impact" required>
+                              <div className="w-full sm:w-60">
+                                <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
+                              </div>
+                            </BoolRow>
+                            <div className="px-4 py-4">
+                              {(() => {
+                                const variant = diagramVariantFor(v.vehicle_type);
+                                if (!v.vehicle_type) {
+                                  return <p className="text-xs text-slate-500 font-['Poppins']">Pick a vehicle type above to see the matching diagram.</p>;
+                                }
+                                return (
+                                  <VehicleImpactDiagram
+                                    variant={variant}
+                                    nounLabel={variant === 'motorcycle' ? 'motorcycle' : 'vehicle'}
+                                    markers={v.impact_markers || []}
+                                    onChange={markers => update(v.id, { impact_markers: markers })}
+                                  />
+                                );
+                              })()}
                             </div>
-                          </BoolRow>
+                          </>
                         )}
                         <BoolRow label="Was this vehicle towed away?">
                           <YesNoToggle value={v.tow_away} onChange={val => update(v.id, { tow_away: val })} />
