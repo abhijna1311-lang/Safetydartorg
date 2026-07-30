@@ -74,7 +74,22 @@ const EMPTY_EMPLOYEE_FIELDS: Partial<AccidentReportData> = {
 };
 
 const RDO_CONSECUTIVE = ['Sun/Mon', 'Mon/Tue', 'Tue/Wed', 'Wed/Thu', 'Thu/Fri', 'Fri/Sat', 'Sat/Sun'].map(v => ({ value: v, label: v }));
-const RDO_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(v => ({ value: v, label: v }));
+const RDO_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const RDO_DAYS = RDO_DAY_NAMES.map(v => ({ value: v, label: v }));
+
+function areSplitDaysValid(day1?: string, day2?: string) {
+  if (!day1 || !day2) return false;
+  const firstIndex = RDO_DAY_NAMES.indexOf(day1);
+  const secondIndex = RDO_DAY_NAMES.indexOf(day2);
+  if (firstIndex < 0 || secondIndex < 0) return false;
+  const distance = Math.abs(firstIndex - secondIndex);
+  return distance !== 0 && distance !== 1 && distance !== RDO_DAY_NAMES.length - 1;
+}
+
+function splitDayOptions(otherDay?: string) {
+  if (!otherDay) return RDO_DAYS;
+  return RDO_DAYS.filter(({ value }) => areSplitDaysValid(value, otherDay));
+}
 
 const fade = {
   initial: { opacity: 0, y: 10 },
@@ -141,11 +156,12 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const hasIncidentDate = !!data.incident_date;
   const hasIncidentTime = !!data.incident_time;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
+  const splitDaysAreValid = areSplitDaysValid(data.rdo_split_1, data.rdo_split_2);
   const hasSchedule = data.is_student_employee !== undefined
     && !!data.regular_day_off_type
     && (data.regular_day_off_type === 'Consecutive'
       ? !!data.rdo_consecutive
-      : !!data.rdo_split_1 && !!data.rdo_split_2);
+      : splitDaysAreValid);
   const hasFilingChoice = !isSupervisor || data.is_on_behalf !== undefined;
   // When a PM (always) or an on-behalf Supervisor initiates, they must state whether the
   // operator can file their own section. "No" waives the operator section and requires a reason.
@@ -358,7 +374,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (data.is_student_employee === undefined) missing.push('student employee');
   if (!data.regular_day_off_type) missing.push('regular day off');
   if (data.regular_day_off_type === 'Consecutive' && !data.rdo_consecutive) missing.push('regular days off');
-  if (data.regular_day_off_type === 'Split' && (!data.rdo_split_1 || !data.rdo_split_2)) missing.push('split regular days off');
+  if (data.regular_day_off_type === 'Split' && !splitDaysAreValid) missing.push('valid split regular days off');
 
   const errFilingChoice = showErrors && isSupervisor && !hasFilingChoice;
   const errEmployee = showErrors && (isProgramManager || data.is_on_behalf === true) && !hasEmployee;
@@ -370,6 +386,25 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const errMode = showErrors && !hasMode;
   const errStudentEmployee = showErrors && data.is_student_employee === undefined;
   const errRegularDayOff = showErrors && !data.regular_day_off_type;
+  const errSplitDays = showErrors && data.regular_day_off_type === 'Split' && !splitDaysAreValid;
+
+  const handleSplitDay1Change = (value: string) => {
+    onUpdate({
+      rdo_split_1: value,
+      rdo_split_2: data.rdo_split_2 && !areSplitDaysValid(value, data.rdo_split_2)
+        ? undefined
+        : data.rdo_split_2,
+    });
+  };
+
+  const handleSplitDay2Change = (value: string) => {
+    onUpdate({
+      rdo_split_1: data.rdo_split_1 && !areSplitDaysValid(data.rdo_split_1, value)
+        ? undefined
+        : data.rdo_split_1,
+      rdo_split_2: value,
+    });
+  };
 
   const handleNextClick = () => {
     if (canProceed) {
@@ -423,12 +458,15 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         <motion.div {...fade} key="rdo-split" className="flex flex-wrap items-start gap-x-6 gap-y-5">
           <div className="w-full sm:w-[200px]">
             <label className="dart-field-label">RDO Split – Day 1 <span className="dart-req">*</span></label>
-            <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" error={showErrors && !data.rdo_split_1} />
+            <CustomSelect value={data.rdo_split_1 || ''} onChange={handleSplitDay1Change} options={splitDayOptions(data.rdo_split_2)} placeholder="Select day" error={errSplitDays} />
           </div>
           <div className="w-full sm:w-[200px]">
             <label className="dart-field-label">RDO Split – Day 2 <span className="dart-req">*</span></label>
-            <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" error={showErrors && !data.rdo_split_2} />
+            <CustomSelect value={data.rdo_split_2 || ''} onChange={handleSplitDay2Change} options={splitDayOptions(data.rdo_split_1)} placeholder="Select day" error={errSplitDays} />
           </div>
+          <p className={`w-full text-xs font-['Poppins'] ${errSplitDays ? 'font-medium text-red-600' : 'text-slate-500'}`}>
+            Split days must be different and cannot be consecutive.
+          </p>
         </motion.div>
       )}
     </AnimatePresence>
@@ -658,8 +696,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
                   >
-                    <label className="dart-field-label">Regular days off (RDO) – Consecutive</label>
-                    <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" />
+                    <label className="dart-field-label">Regular days off (RDO) – Consecutive <span className="dart-req">*</span></label>
+                    <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" error={showErrors && !data.rdo_consecutive} />
                   </motion.div>
                 )}
                 {data.regular_day_off_type === 'Split' && (
@@ -671,8 +709,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
                   >
-                    <label className="dart-field-label">RDO Split – Day 1</label>
-                    <CustomSelect value={data.rdo_split_1 || ''} onChange={v => onUpdate({ rdo_split_1: v })} options={RDO_DAYS} placeholder="Select day" />
+                    <label className="dart-field-label">RDO Split – Day 1 <span className="dart-req">*</span></label>
+                    <CustomSelect value={data.rdo_split_1 || ''} onChange={handleSplitDay1Change} options={splitDayOptions(data.rdo_split_2)} placeholder="Select day" error={errSplitDays} />
                   </motion.div>
                 )}
                 {data.regular_day_off_type === 'Split' && (
@@ -684,12 +722,17 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
                   >
-                    <label className="dart-field-label">RDO Split – Day 2</label>
-                    <CustomSelect value={data.rdo_split_2 || ''} onChange={v => onUpdate({ rdo_split_2: v })} options={RDO_DAYS} placeholder="Select day" />
+                    <label className="dart-field-label">RDO Split – Day 2 <span className="dart-req">*</span></label>
+                    <CustomSelect value={data.rdo_split_2 || ''} onChange={handleSplitDay2Change} options={splitDayOptions(data.rdo_split_1)} placeholder="Select day" error={errSplitDays} />
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+            {data.regular_day_off_type === 'Split' && (
+              <p className={`mt-2 text-xs font-['Poppins'] ${errSplitDays ? 'font-medium text-red-600' : 'text-slate-500'}`}>
+                Split days must be different and cannot be consecutive.
+              </p>
+            )}
           </Section>
         )}
 
