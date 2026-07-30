@@ -117,8 +117,8 @@ const MOTO_REGIONS: Region[] = [
 ];
 
 const MOTO_DOTS: Dot[] = [
-  { id: 'Drivers Side Mirror',   cx: 700, cy: 152, lx: 700, ly: 130, anchor: 'middle' },
-  { id: 'Passenger Side Mirror', cx: 700, cy: 338, lx: 700, ly: 360, anchor: 'middle' },
+  { id: 'Left Handlebar Mirror',  cx: 700, cy: 152, lx: 700, ly: 130, anchor: 'middle' },
+  { id: 'Right Handlebar Mirror', cx: 700, cy: 338, lx: 700, ly: 360, anchor: 'middle' },
 ];
 
 const REGION_CENTER = (r: Region) => ({ cx: r.x + r.w / 2, cy: r.y + r.h / 2 });
