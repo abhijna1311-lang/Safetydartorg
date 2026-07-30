@@ -241,7 +241,7 @@ export function Step2VehicleLocation({
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <IntakeField label="Event date" required>
-                  <DatePickerInput value={data.incident_date || ''} onChange={(value) => onUpdate({ incident_date: value })} />
+                  <DatePickerInput value={data.incident_date || ''} onChange={(value) => onUpdate({ incident_date: value })} maxDate={new Date()} />
                 </IntakeField>
                 <IntakeField label="Event time" required>
                   <TimePickerInput value={data.incident_time || ''} onChange={(value) => onUpdate({ incident_time: value })} />

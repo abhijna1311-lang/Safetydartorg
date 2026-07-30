@@ -83,7 +83,7 @@ export function LRVVehicleLocationSection({ data, onUpdate }: Props) {
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Event date" required>
-            <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
+            <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} maxDate={new Date()} />
           </Field>
           <Field label="Event time" required>
             <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />

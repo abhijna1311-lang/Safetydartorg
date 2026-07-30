@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { WizardStepper } from './WizardStepper';
 import { Step1IncidentBasics } from './steps/Step1IncidentBasics';
 import { Step2VehicleLocation } from './steps/Step2VehicleLocation';
@@ -16,6 +17,7 @@ import { ReviewerDecisionScreen } from './ReviewerDecisionScreen';
 import { ViewReportModal } from './ViewReportModal';
 import { ReferenceReportDrawer, type ReferenceReportTab } from './ReferenceReportDrawer';
 import type { AccidentReportData } from '../types/accident-report';
+import { findPossibleDuplicate } from '../utils/duplicate-report';
 import { useUserRole, type UserRole } from '../context/UserRoleContext';
 import {
   activateParallelSections,
@@ -193,6 +195,8 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const [rejectionReason, setRejectionReason] = useState<string | null>(initialReport?.rejectionReason || null);
   const [rejectedBy, setRejectedBy] = useState<UserRole | null>(initialReport?.rejectedBy || null);
   const [isFullReportOpen, setIsFullReportOpen] = useState(false);
+  const [duplicateReportToReview, setDuplicateReportToReview] = useState<WorkflowReport | null>(null);
+  const duplicateReviewButtonRef = useRef<HTMLButtonElement>(null);
   const [referenceDrawerOpen, setReferenceDrawerOpen] = useState(false);
   const [referenceDrawerTab, setReferenceDrawerTab] = useState<ReferenceReportTab>('operator');
   const [programManagerInActionsMode, setProgramManagerInActionsMode] = useState(false);
@@ -259,6 +263,24 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       rejectedBy,
     };
   }, [createdAt, currentStep, formData, handoffHistory, handoffNote, initialReport?.closedAt, initialReport?.dueBy, initialReport?.lastSavedAt, initiatedBy, lastSubmittedBy, rejectedAt, rejectedBy, rejectionReason, reportId, sections]);
+
+  // Duplicate detection applies while a case is being initiated by an Operator, Supervisor,
+  // or Program Manager. Assigned reviewers are working inside an existing case and should not
+  // receive a new-record warning.
+  const possibleDuplicate = useMemo(
+    () => isAssignedSectionFlow ? null : findPossibleDuplicate(formData, existingReports, reportId),
+    [existingReports, formData, isAssignedSectionFlow, reportId],
+  );
+  const duplicateNeedsConfirmation = Boolean(
+    possibleDuplicate
+    && formData.duplicate_record_confirmation?.existing_report_id !== possibleDuplicate.report.id,
+  );
+
+  useEffect(() => {
+    if (duplicateNeedsConfirmation && !duplicateReportToReview) {
+      requestAnimationFrame(() => duplicateReviewButtonRef.current?.focus());
+    }
+  }, [duplicateNeedsConfirmation, duplicateReportToReview]);
 
   useEffect(() => {
     if (initialReport || roleConfig.role !== 'Supervisor') {
@@ -350,7 +372,26 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     setFormData((prev) => ({ ...prev, ...nextData }));
   };
 
+  const guardAgainstPossibleDuplicate = () => {
+    if (!duplicateNeedsConfirmation) return true;
+    return false;
+  };
+
+  const handleConfirmNewRecord = () => {
+    if (!possibleDuplicate) return;
+    setFormData((previous) => ({
+      ...previous,
+      duplicate_record_confirmation: {
+        existing_report_id: possibleDuplicate.report.id,
+        confirmed_at: new Date().toISOString(),
+        confirmed_by_role: roleConfig.role,
+        confirmed_by_name: roleConfig.name,
+      },
+    }));
+  };
+
   const handleNext = () => {
+    if (!guardAgainstPossibleDuplicate()) return;
     const maxStep = 4;
     if (currentStep < maxStep) {
       setCurrentStep((prev) => prev + 1);
@@ -389,6 +430,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   // operator who has not / cannot file yet, then route the case out. Their own PM section is
   // completed on the return trip, after the operator (if available) and supervisor submit.
   const handleInitiatePmCase = () => {
+    if (!guardAgainstPossibleDuplicate()) return;
     const timestamp = new Date().toISOString();
     const operatorAvailable = formData.operator_availability_confirmed !== false;
     const nextSections: WorkflowSections = {
@@ -421,7 +463,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   };
 
   const handleSubmit = () => {
-    if (!isRoleAllowedToAdvance) {
+    if (!isRoleAllowedToAdvance || !guardAgainstPossibleDuplicate()) {
       return;
     }
 
@@ -1147,8 +1189,6 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   showStepBadge={!isInitiatingPM && !isInitiatingSupervisor}
                   lockEventAndMode={roleConfig.role === 'Operator' && initiatedBy !== 'Operator'}
                   onSaveDraft={handleSaveDraft}
-                  existingReports={existingReports}
-                  currentReportId={initialReport?.id ?? null}
                 />
               )}
 
@@ -1259,6 +1299,65 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
               onClose={() => setIsFullReportOpen(false)}
               report={liveReport}
             />
+          )}
+
+          {duplicateReportToReview && (
+            <ViewReportModal
+              eventId={duplicateReportToReview.id}
+              onClose={() => setDuplicateReportToReview(null)}
+              report={duplicateReportToReview}
+            />
+          )}
+
+          {possibleDuplicate && duplicateNeedsConfirmation && !duplicateReportToReview && (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px]"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="duplicate-dialog-title"
+              aria-describedby="duplicate-dialog-description"
+            >
+              <div className="w-full max-w-[620px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-[0_24px_70px_-20px_rgba(15,23,42,0.45)]">
+                <div className="flex items-start gap-4 border-b border-amber-100 bg-amber-50 px-6 py-5">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                    <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 pt-0.5">
+                    <h2 id="duplicate-dialog-title" className="text-lg font-semibold text-amber-950 font-['Poppins']">
+                      Possible Duplicate Record Detected.
+                    </h2>
+                    <p className="mt-1 text-xs text-amber-800 font-['Poppins']">
+                      Matching details: {possibleDuplicate.matchingFields.join(', ')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-6 py-5">
+                  <p id="duplicate-dialog-description" className="text-sm leading-6 text-slate-700 font-['Poppins']">
+                    A record with similar details already exists in the system (Unique ID:{' '}
+                    <span className="dart-tabular font-semibold text-[#00205B]">{possibleDuplicate.report.id}</span>). Please review the existing record before proceeding. If this new entry represents a different event, you may confirm and continue creating a new record.
+                  </p>
+
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      ref={duplicateReviewButtonRef}
+                      type="button"
+                      onClick={() => setDuplicateReportToReview(possibleDuplicate.report)}
+                      className="dart-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#00205B] transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00205B]/30 font-['Poppins']"
+                    >
+                      Review Existing Record (Unique ID: {possibleDuplicate.report.id})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmNewRecord}
+                      className="dart-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#00205B] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#003478] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00205B]/40 font-['Poppins']"
+                    >
+                      Confirm and Create New Record
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           <ReferenceReportDrawer

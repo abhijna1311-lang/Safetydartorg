@@ -97,6 +97,14 @@ export interface SupervisorOtherVehicleRecord {
 }
 
 export interface AccidentReportData {
+  // Captured when an initiator acknowledges a possible duplicate and continues.
+  duplicate_record_confirmation?: {
+    existing_report_id: string;
+    confirmed_at: string;
+    confirmed_by_role: string;
+    confirmed_by_name: string;
+  };
+
   // ── STEP 1: Safety Events ──────────────────────────────────────
   event_type?: string;
   operating_dart_vehicle?: boolean;     // Q2 – conditional on Assault/Fire/Op-Passenger

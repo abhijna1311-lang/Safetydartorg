@@ -8,7 +8,6 @@ import { DatePickerInput } from '../DatePickerInput';
 import { TimePickerInput } from '../TimePickerInput';
 import { YesNoToggle } from '../form/YesNoToggle';
 import type { AccidentReportData } from '../../types/accident-report';
-import type { WorkflowReport } from '../../types/workflow-report';
 import { EMPLOYEE_DB } from '../../data/employeeDatabase';
 import { useUserRole } from '../../context/UserRoleContext';
 
@@ -20,8 +19,6 @@ interface Props {
   nextLabel?: string;
   showStepBadge?: boolean;
   lockEventAndMode?: boolean;
-  existingReports?: WorkflowReport[];
-  currentReportId?: string | null;
 }
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -95,29 +92,12 @@ const fade = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: 6 },
-  transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+  transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
 };
 
 // Spring for the Schedule row's layout reflow so the toggles glide to their new width
 // (instead of snapping) as RDO selects appear and disappear.
 const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
-
-// Incident date/time are stored as machine formats (date YYYY-MM-DD, time 24-hr HH:MM).
-// Render them the way the pickers show them so the duplicate notice never surfaces raw values.
-function formatIncidentDate(iso?: string) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return y && m && d ? `${m}/${d}/${y}` : iso;
-}
-function formatIncidentTime(val?: string) {
-  if (!val) return '';
-  const [hStr, mStr = '00'] = val.split(':');
-  const h24 = parseInt(hStr, 10);
-  if (Number.isNaN(h24)) return val;
-  const period = h24 >= 12 ? 'PM' : 'AM';
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  return `${h12}:${mStr.padStart(2, '0')} ${period}`;
-}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 // Section block. Renders as a divider-separated block on one shared surface (no per-section
@@ -141,7 +121,7 @@ function Section({ title, help, children }: { title: React.ReactNode; help?: str
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextLabel, showStepBadge = true, lockEventAndMode = false, existingReports = [], currentReportId = null }: Props) {
+export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextLabel, showStepBadge = true, lockEventAndMode = false }: Props) {
   const { roleConfig } = useUserRole();
   const isSupervisor = roleConfig.role === 'Supervisor';
   const isProgramManager = roleConfig.role === 'Program Manager';
@@ -171,20 +151,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
   const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasSchedule && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
-
-  // Duplicate guard — if this employee already has a report on this date, surface it before a
-  // second one is created. Matches on person + date; the existing report's time and initiator
-  // are shown so the user can confirm whether it is genuinely the same event.
-  const duplicateReport = useMemo(() => {
-    if (!data.employee_badge_number || !data.incident_date) return null;
-    return existingReports.find(r =>
-      r.id !== currentReportId &&
-      r.formData?.employee_badge_number === data.employee_badge_number &&
-      r.formData?.incident_date === data.incident_date,
-    ) ?? null;
-  }, [existingReports, currentReportId, data.employee_badge_number, data.incident_date]);
-  const [duplicateDismissed, setDuplicateDismissed] = useState(false);
-  useEffect(() => { setDuplicateDismissed(false); }, [duplicateReport?.id]);
 
   useEffect(() => {
     if (!isProgramManager || data.is_on_behalf === true) return;
@@ -768,7 +734,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                 Date of incident <span className="dart-req">*</span>
               </label>
               <div className={errIncidentDate ? 'dart-field-error' : ''}>
-                <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} />
+                <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} maxDate={new Date()} />
               </div>
               {errIncidentDate && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident date to continue.</p>}
             </div>
@@ -783,40 +749,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
               {errIncidentTime && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident time to continue.</p>}
             </div>
           </div>
-
-          {/* Duplicate guard — an existing report for this person + date */}
-          <AnimatePresence>
-            {duplicateReport && !duplicateDismissed && (
-              <motion.div {...fade} key="dup-warning" className="mt-4 rounded-xl border border-amber-300/80 bg-amber-50 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-amber-900 font-['Poppins']">
-                      A report may already exist for this incident
-                    </p>
-                    <p className="mt-1 text-[13px] leading-relaxed text-amber-800 font-['Poppins']">
-                      {data.employee_name || 'This employee'} already has a report on{' '}
-                      <span className="dart-tabular font-medium">{formatIncidentDate(data.incident_date)}</span>
-                      {duplicateReport.formData?.incident_time && (
-                        <> at <span className="dart-tabular font-medium">{formatIncidentTime(duplicateReport.formData.incident_time)}</span></>
-                      )}
-                      , started by {duplicateReport.initiatedBy} (case{' '}
-                      <span className="dart-tabular">{duplicateReport.id}</span>). Confirm this is a separate event before continuing.
-                    </p>
-                    <div className="mt-3">
-                      <button
-                        type="button"
-                        onClick={() => setDuplicateDismissed(true)}
-                        className="dart-press inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 font-['Poppins']"
-                      >
-                        This is a different event
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <AnimatePresence>
             {needsDrivingQ && (
