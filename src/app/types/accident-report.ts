@@ -30,7 +30,7 @@ export interface OtherVehicle {
   point_of_impact?: string;
   direction?: string;         // direction relative to the DART vehicle
   damage?: boolean;
-  damage_area?: string;
+  damage_area?: string[];
   impact_markers?: { x: number; y: number; label?: string }[];
   tow_away?: boolean;
 }

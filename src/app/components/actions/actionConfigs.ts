@@ -13,6 +13,41 @@ import type { ComboboxOption } from '../SearchableCombobox';
  */
 
 /**
+ * Operator — the "I've completed my section" moment.
+ *
+ * Per CSV: Operator finishes their form → routes to Field Supervisor for review.
+ * Two paths yield the same next role but different starting-state copy:
+ *  - Operator initiated → "Send to my supervisor for further review"
+ *  - Operator completing an on-behalf case → "Send to Field Supervisor for review"
+ */
+export function buildOperatorActions(params: {
+  initiatedByOperator?: boolean;
+}): ActionCard[] {
+  const { initiatedByOperator = true } = params;
+
+  return [
+    {
+      id: 'send-to-supervisor',
+      icon: CheckCircle2,
+      tone: 'emerald',
+      title: initiatedByOperator
+        ? 'I have completed the form. Send to my supervisor for further review.'
+        : 'I have completed my section. Send to the Field Supervisor for review.',
+      description: initiatedByOperator
+        ? 'Moves the case into the Operator Initiated queue and assigns it to your Field Supervisor.'
+        : 'Returns the case to the Field Supervisor so they can finish their review and route it forward.',
+      context: {
+        kind: 'comment',
+        label: 'Note to Field Supervisor',
+        placeholder: 'Add any context that will help your supervisor review this report.',
+        required: false,
+        maxLength: 1000,
+      },
+    },
+  ];
+}
+
+/**
  * Field Supervisor — the "I've completed my section, now route it" moment.
  *
  * Per CSV, the FS has three preconditions that yield different transitions:

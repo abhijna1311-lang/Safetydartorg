@@ -384,7 +384,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
         currentStep: report.currentStep,
         stepName: getStepName(report),
         sectionName: getActionableSectionForRole(report, roleConfig.role)?.label,
-        nextRequiredField: report.currentStep <= 1 ? 'Incident Basics' : report.currentStep === 2 ? 'Vehicle And Location' : report.currentStep === 3 ? 'People And Impact' : 'Review And Submit',
+        nextRequiredField: report.currentStep <= 1 ? 'Incident Basics' : report.currentStep === 2 ? 'Vehicle And Location' : report.currentStep === 3 ? 'People And Impact' : 'Review',
         savedData: report.formData,
       }));
   }, [reports, roleConfig.role]);

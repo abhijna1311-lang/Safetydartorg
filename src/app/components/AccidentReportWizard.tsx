@@ -55,7 +55,7 @@ const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { 
   supervisor: [
     { number: 1, title: 'Incident Basics' },
     { number: 2, title: 'Injuries And Police' },
-    { number: 3, title: 'Review And Submit' },
+    { number: 3, title: 'Review' },
   ],
   programManager: [
     { number: 1, title: 'Investigate' },
@@ -71,7 +71,7 @@ const INITIATING_SUPERVISOR_STEPS = [
   { number: 1, title: 'Incident Basics' },
   { number: 2, title: 'Investigation Details' },
   { number: 3, title: 'Injuries And Police' },
-  { number: 4, title: 'Review And Submit' },
+  { number: 4, title: 'Review' },
 ];
 
 function getWorkflowStageForSection(sectionKey: WorkflowSectionKey): WorkflowStage {

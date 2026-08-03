@@ -4,10 +4,12 @@ import { OperatorHome } from './components/OperatorHome';
 import { AccidentReportWizard } from './components/AccidentReportWizard';
 import { MyDrafts } from './components/MyDrafts';
 import { MySubmissions } from './components/MySubmissions';
-import { UserRoleProvider } from './context/UserRoleContext';
+import { UserRoleProvider, useUserRole } from './context/UserRoleContext';
 import type { WorkflowReport } from './types/workflow-report';
 import type { AccidentReportData } from './types/accident-report';
 import { EMPLOYEE_DB } from './data/employeeDatabase';
+import { DevScenariosDrawer } from '../dev/DevScenariosDrawer';
+import type { DevScenario } from '../dev/scenarios';
 
 type View = 'home' | 'new-report' | 'drafts' | 'submissions';
 
@@ -265,9 +267,18 @@ const INITIAL_REPORTS: WorkflowReport[] = [
 
 
 export default function App() {
+  return (
+    <UserRoleProvider>
+      <AppBody />
+    </UserRoleProvider>
+  );
+}
+
+function AppBody() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [reports, setReports] = useState<WorkflowReport[]>(INITIAL_REPORTS);
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
+  const { setRole } = useUserRole();
 
   const handleNavigate = (view: View) => {
     setCurrentView(view);
@@ -314,47 +325,99 @@ export default function App() {
 
   const activeReport = activeReportId ? reports.find((report) => report.id === activeReportId) || null : null;
 
+  const handleApplyScenario = (scenario: DevScenario) => {
+    setRole(scenario.role);
+    switch (scenario.action.type) {
+      case 'go-home':
+        setActiveReportId(null);
+        setCurrentView('home');
+        break;
+      case 'new-blank':
+        setActiveReportId(null);
+        setCurrentView('new-report');
+        break;
+      case 'open-existing':
+        setActiveReportId(scenario.action.reportId);
+        setCurrentView('new-report');
+        break;
+      case 'inject-and-open': {
+        const report = scenario.action.report;
+        setReports((prev) => {
+          const idx = prev.findIndex((r) => r.id === report.id);
+          if (idx === -1) return [report, ...prev];
+          const next = [...prev];
+          next[idx] = report;
+          return next;
+        });
+        setActiveReportId(report.id);
+        setCurrentView('new-report');
+        break;
+      }
+      case 'inject-many-and-open': {
+        const incoming = scenario.action.reports;
+        setReports((prev) => {
+          const next = [...prev];
+          for (const r of incoming) {
+            const idx = next.findIndex((existing) => existing.id === r.id);
+            if (idx === -1) next.unshift(r);
+            else next[idx] = r;
+          }
+          return next;
+        });
+        setActiveReportId(scenario.action.openId);
+        setCurrentView('new-report');
+        break;
+      }
+    }
+  };
+
   return (
-    <UserRoleProvider>
-      <>
-        {currentView === 'home' && (
-          <OperatorHome
-            onNavigate={handleNavigate}
-            onStartNewReport={handleStartNewReport}
-            onOpenReport={handleOpenReport}
-            onDeleteDraft={handleDeleteDraft}
-            reports={reports}
-          />
-        )}
+    <>
+      {currentView === 'home' && (
+        <OperatorHome
+          onNavigate={handleNavigate}
+          onStartNewReport={handleStartNewReport}
+          onOpenReport={handleOpenReport}
+          onDeleteDraft={handleDeleteDraft}
+          reports={reports}
+        />
+      )}
 
-        {currentView === 'new-report' && (
-          <AccidentReportWizard
-            onNavigate={handleNavigate}
-            onBackToHome={handleBackToHome}
-            initialReport={activeReport}
-            onSaveReport={handleSaveReport}
-            existingReports={reports}
-          />
-        )}
+      {currentView === 'new-report' && (
+        <AccidentReportWizard
+          onNavigate={handleNavigate}
+          onBackToHome={handleBackToHome}
+          initialReport={activeReport}
+          onSaveReport={handleSaveReport}
+          existingReports={reports}
+        />
+      )}
 
-        {currentView === 'drafts' && (
-          <MyDrafts
-            onNavigate={handleNavigate}
-            onBackToHome={handleBackToHome}
-            onResumeReport={handleOpenReport}
-            onDeleteDraft={handleDeleteDraft}
-            drafts={reports}
-          />
-        )}
+      {currentView === 'drafts' && (
+        <MyDrafts
+          onNavigate={handleNavigate}
+          onBackToHome={handleBackToHome}
+          onResumeReport={handleOpenReport}
+          onDeleteDraft={handleDeleteDraft}
+          drafts={reports}
+        />
+      )}
 
-        {currentView === 'submissions' && (
-          <MySubmissions
-            onNavigate={handleNavigate}
-            onBackToHome={handleBackToHome}
-            reports={reports}
-          />
-        )}
-      </>
-    </UserRoleProvider>
+      {currentView === 'submissions' && (
+        <MySubmissions
+          onNavigate={handleNavigate}
+          onBackToHome={handleBackToHome}
+          reports={reports}
+        />
+      )}
+
+      {import.meta.env.DEV && (
+        <DevScenariosDrawer
+          activeReport={activeReport}
+          currentView={currentView}
+          onApply={handleApplyScenario}
+        />
+      )}
+    </>
   );
 }

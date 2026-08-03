@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { CustomSelect } from './CustomSelect';
 import { YesNoToggle } from './form/YesNoToggle';
-import { VehicleImpactDiagram } from './VehicleImpactDiagram';
 import type { OtherVehicle } from '../types/accident-report';
 
 const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
@@ -36,6 +34,49 @@ const DIRECTIONS = opt([
   'Not moving ahead of DART Vehicle',
 ]);
 const DAMAGE_AREAS = opt(['Front', 'Rear', 'Left Side', 'Right Side', 'Top', 'Underbody', 'Front Wheel', 'Rear Wheel']);
+
+// Grouped for the inline chip picker: body panels first, then wheels — matches how people describe damage aloud.
+const DAMAGE_AREA_GROUPS: { label: string; items: string[] }[] = [
+  { label: 'Body', items: ['Front', 'Rear', 'Left Side', 'Right Side', 'Top', 'Underbody'] },
+  { label: 'Wheels', items: ['Front Wheel', 'Rear Wheel'] },
+];
+
+function DamageAreaChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const toggle = (item: string) => {
+    if (value.includes(item)) onChange(value.filter(x => x !== item));
+    else onChange([...value, item]);
+  };
+  return (
+    <div className="space-y-1.5">
+      {DAMAGE_AREA_GROUPS.map(group => (
+        <div key={group.label} className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 min-w-[42px] text-[10px] font-semibold uppercase tracking-wide text-slate-400 font-['Poppins']">
+            {group.label}
+          </span>
+          {group.items.map(item => {
+            const selected = value.includes(item);
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => toggle(item)}
+                aria-pressed={selected}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium font-['Poppins'] transition-all ${
+                  selected
+                    ? 'border-[#112458] bg-[#112458] text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-[#b7cadd] hover:bg-slate-50'
+                }`}
+              >
+                {selected && <span className="material-symbols-rounded text-[14px]" aria-hidden="true">check</span>}
+                {item}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Map the picked "Vehicle type" to the closest impact-diagram silhouette.
 function diagramVariantFor(type?: string): 'bus' | 'rail' | 'streetcar' | 'nrv' | 'motorcycle' {
@@ -151,7 +192,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const recordComplete = v.occupants !== undefined
           && (!hasOccupants || (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined)))))
           && v.dart_dart !== undefined && !!v.vehicle_type && !!v.action && !!v.point_of_impact
-          && !!v.direction && v.damage !== undefined && (!v.damage || !!v.damage_area);
+          && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         const subtitle = [v.vehicle_type || 'Type not set', `${v.occupants ?? 0} occ.`, v.damage ? 'damaged' : null, v.tow_away ? 'towed' : null].filter(Boolean).join(' · ');
 
         return (
@@ -169,10 +210,12 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                 <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 font-['Poppins']">{v.injuries} injured</span>
               )}
               <button type="button" onClick={() => setOpenId(open ? null : v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.2)]" aria-label={open ? `Collapse vehicle ${idx + 1}` : `Edit vehicle ${idx + 1}`}>
-                {open ? <Check className="h-4 w-4 text-emerald-600" /> : <Pencil className="h-3.5 w-3.5" />}
+                {open
+                  ? <span className="material-symbols-rounded text-[18px] text-emerald-600" aria-hidden="true">check</span>
+                  : <span className="material-symbols-rounded text-[16px]" aria-hidden="true">edit</span>}
               </button>
               <button type="button" onClick={() => remove(v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-300" aria-label={`Remove vehicle ${idx + 1}`}>
-                <Trash2 className="h-3.5 w-3.5" />
+                <span className="material-symbols-rounded text-[16px]" aria-hidden="true">delete</span>
               </button>
             </div>
 
@@ -249,38 +292,33 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                       <GroupLabel>Damage</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Was there damage to this vehicle?" required>
-                          <YesNoToggle value={v.damage} onChange={val => update(v.id, { damage: val, damage_area: val ? v.damage_area : undefined, point_of_impact: val ? v.point_of_impact : undefined, impact_markers: val ? v.impact_markers : undefined })} />
+                          <YesNoToggle value={v.damage} onChange={val => update(v.id, { damage: val, damage_area: val ? v.damage_area : undefined, impact_markers: val ? v.impact_markers : undefined })} />
                         </BoolRow>
                         {v.damage && (
-                          <>
-                            <BoolRow label="Damage area" required>
-                              <div className="w-full sm:w-60">
-                                <CustomSelect value={v.damage_area || ''} onChange={val => update(v.id, { damage_area: val })} options={DAMAGE_AREAS} placeholder="Select" />
-                              </div>
-                            </BoolRow>
-                            <BoolRow label="Point of impact" required>
-                              <div className="w-full sm:w-60">
-                                <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
-                              </div>
-                            </BoolRow>
-                            <div className="px-4 py-4">
-                              {(() => {
-                                const variant = diagramVariantFor(v.vehicle_type);
-                                if (!v.vehicle_type) {
-                                  return <p className="text-xs text-slate-500 font-['Poppins']">Pick a vehicle type above to see the matching diagram.</p>;
-                                }
-                                return (
-                                  <VehicleImpactDiagram
-                                    variant={variant}
-                                    nounLabel={variant === 'motorcycle' ? 'motorcycle' : 'vehicle'}
-                                    markers={v.impact_markers || []}
-                                    onChange={markers => update(v.id, { impact_markers: markers })}
-                                  />
-                                );
-                              })()}
+                          <div className="px-4 py-3">
+                            <div className="mb-2 flex items-baseline justify-between gap-3">
+                              <p className="dart-field-label" style={{ marginBottom: 0, textTransform: 'none' }}>
+                                Damage area<span className="dart-req ml-1">*</span>
+                                <span className="ml-2 text-[11px] font-normal text-slate-400">Tap all that apply</span>
+                              </p>
+                              {(v.damage_area?.length ?? 0) > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => update(v.id, { damage_area: [] })}
+                                  className="text-[11px] font-semibold text-[#007DBA] hover:text-[#00205B] font-['Poppins']"
+                                >
+                                  Clear
+                                </button>
+                              )}
                             </div>
-                          </>
+                            <DamageAreaChips value={v.damage_area || []} onChange={val => update(v.id, { damage_area: val })} />
+                          </div>
                         )}
+                        <BoolRow label="Point of impact" required>
+                          <div className="w-full sm:w-60">
+                            <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
+                          </div>
+                        </BoolRow>
                         <BoolRow label="Was this vehicle towed away?">
                           <YesNoToggle value={v.tow_away} onChange={val => update(v.id, { tow_away: val })} />
                         </BoolRow>
@@ -289,7 +327,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                   </div>
                   <div className="flex justify-end border-t border-slate-100 px-4 py-3">
                     <button type="button" onClick={() => setOpenId(null)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#112458] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0c1a42] focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.3)] font-['Poppins']">
-                      <Check className="h-4 w-4" /> Done
+                      <span className="material-symbols-rounded text-[18px]" aria-hidden="true">check</span> Done
                     </button>
                   </div>
                 </motion.div>
@@ -304,7 +342,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         onClick={addVehicle}
         className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#007DBA]/40 bg-[#f2f8fc] px-3.5 py-2.5 text-sm font-semibold text-[#007DBA] transition-colors hover:border-[#007DBA] hover:bg-[#e8f3fa] focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
       >
-        <Plus className="h-4 w-4" /> Add vehicle
+        <span className="material-symbols-rounded text-[18px]" aria-hidden="true">add</span> Add vehicle
       </button>
     </div>
   );

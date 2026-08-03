@@ -15,7 +15,7 @@ interface RoleContextBarProps {
   onViewCaseStatus: () => void;
 }
 
-const STEP_TITLES = ['Incident Basics', 'Vehicle And Location', 'People And Impact', 'Review And Submit'];
+const STEP_TITLES = ['Incident Basics', 'Vehicle And Location', 'People And Impact', 'Review'];
 
 function getStartedByName(initiatedBy: UserRole, currentRole: UserRole, currentUserName?: string, data?: AccidentReportData) {
   if (initiatedBy === currentRole && currentUserName) {

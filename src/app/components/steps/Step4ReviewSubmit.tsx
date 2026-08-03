@@ -19,7 +19,7 @@ import { EMPLOYEE_DB } from '../../data/employeeDatabase';
 import { type WorkflowSectionKey, type WorkflowSectionState, type WorkflowSectionStatus, type WorkflowSections } from '../../types/workflow-report';
 import { PMReviewActionBar } from '../PMReviewActionBar';
 import { ActionSelectionScreen } from '../actions/ActionSelectionScreen';
-import { buildSpmActions, buildFsActions } from '../actions/actionConfigs';
+import { buildSpmActions, buildFsActions, buildOperatorActions } from '../actions/actionConfigs';
 
 interface Step4Props {
   data: AccidentReportData;
@@ -456,7 +456,7 @@ export function Step4ReviewSubmit({
   onReturnReasonChange,
   stepNumber = 4,
   totalSteps = 4,
-  title = 'Review and Submit',
+  title = 'Review',
   description,
   showStepBadge = true,
   showBackButton = true,
@@ -497,6 +497,8 @@ export function Step4ReviewSubmit({
   const [pmConfirmedAction, setPmConfirmedAction] = useState<{ actionId: string; title: string; description: string } | null>(null);
   const [fsInActionsMode, setFsInActionsMode] = useState(false);
   const [fsConfirmedAction, setFsConfirmedAction] = useState<{ actionId: string; title: string; description: string } | null>(null);
+  const [operatorInActionsMode, setOperatorInActionsMode] = useState(false);
+  const [operatorConfirmedAction, setOperatorConfirmedAction] = useState<{ actionId: string; title: string; description: string } | null>(null);
   const [localSupervisorReviewStep, setLocalSupervisorReviewStep] = useState(1);
   const [localPmReviewStep, setLocalPmReviewStep] = useState(1);
   const attachments = data.attachments || [];
@@ -529,7 +531,10 @@ export function Step4ReviewSubmit({
   const isPmStep3 = isProgramManagerReview && pmReviewStep === 3;
   const isPmStep4 = isProgramManagerReview && pmReviewStep === 4;
   const isSectionAlreadySubmitted = activeSectionStatus === 'submitted' || activeSectionStatus === 'accepted';
-  const showInlineReferenceSummaries = !isSupervisorReview && !isProgramManagerReview;
+  const showInlineReferenceSummaries = !isSupervisorReview && !isProgramManagerReview && !operatorInActionsMode;
+  // The operator ends on a "choose next action" screen just like the FS and PM,
+  // so we can transition to actions mode once they confirm the Review page.
+  const isOperatorFinalReview = activeSectionKey === 'operator' && !isSupervisorReview && !isProgramManagerReview;
   const supervisorWorkdayRecord = roleConfig.role === 'Supervisor' ? EMPLOYEE_DB[roleConfig.badge] : undefined;
   // Vehicle mode is chosen once at Step 1 intake (data.mode). The supervisor section reads it from
   // there instead of asking again — falling back to any previously stored supervisor value (seeds).
@@ -1714,6 +1719,61 @@ export function Step4ReviewSubmit({
             )}
           </div>
         </div>
+        )}
+
+        {/* Operator "choose next action" screen — mirrors the Field Supervisor and PM pattern.
+            Replaces the review summaries + confirmation footer once the operator has confirmed
+            their section is accurate. */}
+        {isOperatorFinalReview && operatorInActionsMode && (
+          operatorConfirmedAction ? (
+            <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/80 via-teal-50/50 to-white p-6 md:p-8 shadow-[0_2px_12px_-2px_rgba(16,185,129,0.10)] animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-start gap-4">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-500 shadow-[0_4px_12px_-2px_rgba(16,185,129,0.35)]">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-semibold text-[#00205B] font-['Poppins']">{operatorConfirmedAction.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-700 font-['Poppins']">{operatorConfirmedAction.description}</p>
+                  {submittedEventId && (
+                    <div className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/60 bg-white/80 px-3 py-1.5">
+                      <FileText className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-xs font-medium text-emerald-900 font-['Poppins']">Case ID {submittedEventId}</span>
+                    </div>
+                  )}
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    {onBackToHome && (
+                      <GlassButton variant="primary" onClick={onBackToHome}>Back to home</GlassButton>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <ActionSelectionScreen
+              title="Choose next action"
+              description="Select what should happen next. Your choice will update the workflow status and assignment."
+              actions={buildOperatorActions({ initiatedByOperator: initiatedBy === 'Operator' })}
+              onBack={() => {
+                setOperatorInActionsMode(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              backLabel="Back to review"
+              onConfirm={(actionId) => {
+                // TODO: swap for workflow engine call when the API contract lands.
+                if (actionId === 'send-to-supervisor') {
+                  onSubmit();
+                  setOperatorConfirmedAction({
+                    actionId,
+                    title: 'Sent to Field Supervisor',
+                    description: initiatedBy === 'Operator'
+                      ? 'The report is now in the Operator Initiated queue and assigned to your Field Supervisor for review.'
+                      : 'Your section has been returned to the Field Supervisor. They will finish their review and route the case forward.',
+                  });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+            />
+          )
         )}
 
         {isSupervisorReview && (
@@ -3435,8 +3495,9 @@ export function Step4ReviewSubmit({
           );
         })()}
 
-        {/* Confirmation — hidden for Program Manager (their Approve action already requires a note) */}
-        {(!isSupervisorReview || (supervisorReviewStep === 3 && !fsInActionsMode)) && !isProgramManagerReview && (
+        {/* Confirmation — hidden for Program Manager (their Approve action already requires a note),
+            and hidden for the Operator once they've moved into the actions screen. */}
+        {(!isSupervisorReview || (supervisorReviewStep === 3 && !fsInActionsMode)) && !isProgramManagerReview && !(isOperatorFinalReview && operatorInActionsMode) && (
         <div className="rounded-xl border border-slate-300 bg-slate-50 p-6">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -3479,8 +3540,8 @@ export function Step4ReviewSubmit({
       )}
 
       {/* Footer Actions — hidden for Program Manager (their step-nav footer inside the PM card owns Back/Save/Continue).
-          Also hidden when Field Supervisor is in Actions mode — the ActionSelectionScreen owns its own footer. */}
-      {(!isSupervisorReview || (supervisorReviewStep === 3 && !fsInActionsMode)) && !isProgramManagerReview && (
+          Also hidden when Field Supervisor or Operator is in Actions mode — the ActionSelectionScreen owns its own footer. */}
+      {(!isSupervisorReview || (supervisorReviewStep === 3 && !fsInActionsMode)) && !isProgramManagerReview && !(isOperatorFinalReview && operatorInActionsMode) && (
       <div className="flex flex-wrap items-center justify-between gap-y-3 mt-8 pt-6 border-t border-slate-200">
         {isSupervisorReview && supervisorReviewStep === 3 ? (
           <button
@@ -3514,11 +3575,16 @@ export function Step4ReviewSubmit({
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
               }
+              if (isOperatorFinalReview) {
+                setOperatorInActionsMode(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+              }
               onSubmit();
             }}
             disabled={submitDisabled}
           >
-            {isSupervisorReview && supervisorReviewStep === 3 ? 'Continue to next action' : submitLabel}
+            {(isSupervisorReview && supervisorReviewStep === 3) || isOperatorFinalReview ? 'Continue to next action' : submitLabel}
           </GlassButton>
         </div>
       </div>

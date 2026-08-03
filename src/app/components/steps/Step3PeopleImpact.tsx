@@ -171,7 +171,7 @@ export function Step3PeopleImpact({
     ))
     && vehicle.dart_dart !== undefined && !!vehicle.vehicle_type && !!vehicle.action
     && !!vehicle.point_of_impact && !!vehicle.direction && vehicle.damage !== undefined
-    && (!vehicle.damage || !!vehicle.damage_area)
+    && (!vehicle.damage || (Array.isArray(vehicle.damage_area) && vehicle.damage_area.length > 0))
   );
   const operatorAnswered = isHiRail || (data.operator_injured !== undefined
     && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined))
