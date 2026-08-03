@@ -411,7 +411,8 @@ function AppBody() {
         />
       )}
 
-      {/* Dev drawer: visible in `vite dev` OR when ?dev=1 is in the URL on any deploy. */}
+      {/* Dev drawer: visible in `vite dev`, on any *.vercel.app deploy, when ?dev=1
+          is in the URL, or once the flag has been persisted via localStorage. */}
       {shouldShowDevScenarios() && (
         <DevScenariosDrawer
           activeReport={activeReport}
@@ -426,6 +427,24 @@ function AppBody() {
 function shouldShowDevScenarios(): boolean {
   if (import.meta.env.DEV) return true;
   if (typeof window === 'undefined') return false;
+
   const params = new URLSearchParams(window.location.search);
-  return params.get('dev') === '1';
+  if (params.get('dev') === '1') {
+    try { window.localStorage.setItem('dart_dev', '1'); } catch {}
+    return true;
+  }
+  if (params.get('dev') === '0') {
+    try { window.localStorage.removeItem('dart_dev'); } catch {}
+    return false;
+  }
+
+  try {
+    if (window.localStorage.getItem('dart_dev') === '1') return true;
+  } catch {}
+
+  // All Vercel review URLs (preview + prod deploys on *.vercel.app) show the drawer
+  // by default so review links don't require a query-string handshake. A real
+  // custom production domain (e.g. safety.dart.org) will NOT match and stays clean.
+  const host = window.location.hostname;
+  return host.endsWith('.vercel.app') || host === 'localhost' || host === '127.0.0.1';
 }
