@@ -411,7 +411,8 @@ function AppBody() {
         />
       )}
 
-      {import.meta.env.DEV && (
+      {/* Dev drawer: visible in `vite dev` OR when ?dev=1 is in the URL on any deploy. */}
+      {shouldShowDevScenarios() && (
         <DevScenariosDrawer
           activeReport={activeReport}
           currentView={currentView}
@@ -420,4 +421,11 @@ function AppBody() {
       )}
     </>
   );
+}
+
+function shouldShowDevScenarios(): boolean {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('dev') === '1';
 }
