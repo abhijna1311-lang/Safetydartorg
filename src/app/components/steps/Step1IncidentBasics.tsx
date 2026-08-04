@@ -580,7 +580,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             complete={data.is_on_behalf !== undefined && (data.is_on_behalf === false || !!data.on_behalf_employee)}
           >
             <div className="flex flex-col md:flex-row md:items-start gap-x-8 gap-y-5">
-              <motion.div layout transition={layoutSpring} className="md:flex-1">
+              <motion.div layout transition={layoutSpring} className="md:flex-1 min-w-0">
                 <label className="dart-field-label">
                   Is this case for another DART employee? <span className="dart-req">*</span>
                 </label>
@@ -606,16 +606,22 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     {employeeSearchField}
                   </motion.div>
                 )}
+                {data.is_on_behalf === true && (
+                  <motion.div
+                    layout
+                    key="op-avail"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
+                    className="md:flex-1 min-w-0"
+                  >
+                    {operatorAvailabilityToggle}
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
-            <AnimatePresence>
-              {data.is_on_behalf === true && (
-                <motion.div {...fade} key="op-avail" className="mt-5 pt-5 border-t border-slate-100">
-                  {operatorAvailabilityToggle}
-                  {operatorUnavailableReason}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {operatorUnavailableReason}
           </Section>
         )}
 
