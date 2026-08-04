@@ -596,26 +596,26 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                 {data.is_on_behalf === true && (
                   <motion.div
                     layout
-                    key="op-avail"
+                    key="behalf-emp"
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
                     className="md:flex-1 min-w-0"
                   >
-                    {operatorAvailabilityToggle}
+                    {employeeSearchField}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
             <AnimatePresence>
               {data.is_on_behalf === true && (
-                <motion.div {...fade} key="behalf-emp" className="mt-5 pt-5 border-t border-slate-100">
-                  {employeeSearchField}
+                <motion.div {...fade} key="op-avail" className="mt-5 pt-5 border-t border-slate-100">
+                  {operatorAvailabilityToggle}
+                  {operatorUnavailableReason}
                 </motion.div>
               )}
             </AnimatePresence>
-            {operatorUnavailableReason}
           </Section>
         )}
 
