@@ -137,11 +137,15 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const hasIncidentTime = !!data.incident_time;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
   const splitDaysAreValid = areSplitDaysValid(data.rdo_split_1, data.rdo_split_2);
-  const hasSchedule = data.is_student_employee !== undefined
-    && !!data.regular_day_off_type
-    && (data.regular_day_off_type === 'Consecutive'
-      ? !!data.rdo_consecutive
-      : splitDaysAreValid);
+  // Schedule section is operator-only. Supervisors and PMs open the case without it —
+  // if scheduling context becomes relevant, it lives on their own section, not intake.
+  const showSchedule = !isSupervisor && !isProgramManager;
+  const hasSchedule = !showSchedule
+    || (data.is_student_employee !== undefined
+      && !!data.regular_day_off_type
+      && (data.regular_day_off_type === 'Consecutive'
+        ? !!data.rdo_consecutive
+        : splitDaysAreValid));
   const hasFilingChoice = !isSupervisor || data.is_on_behalf !== undefined;
   // When a PM (always) or an on-behalf Supervisor initiates, they must state whether the
   // operator can file their own section. "No" waives the operator section and requires a reason.
@@ -621,19 +625,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           </Section>
         )}
 
-        {/* Program manager: subject + schedule share one row (PM always files on behalf) */}
+        {/* Program manager: subject-only row. Schedule is not part of PM intake. */}
         {isProgramManager && (
           <Section
             title="Who is this case for?"
-            help="Program managers open cases on behalf of a DART employee. Select who this case is for, then confirm their schedule."
+            help="Program managers open cases on behalf of a DART employee. Select who this case is for."
             complete={!!data.on_behalf_employee}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5 md:items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 md:items-start">
               <div className="md:col-span-2">{employeeSearchField}</div>
-              {studentEmployeeField}
-              {regularDayOffField}
             </div>
-            <div className="mt-4">{rdoConditional}</div>
             <div className="mt-5 pt-5 border-t border-slate-100">
               {operatorAvailabilityToggle}
               {operatorUnavailableReason}
@@ -641,8 +642,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           </Section>
         )}
 
-        {/* Schedule — operators and supervisors (PM's schedule sits in the row above) */}
-        {!isProgramManager && (
+        {/* Schedule — operators only. Supervisors and PMs skip this on intake. */}
+        {showSchedule && (
           <Section
             title="Schedule"
             help="Confirm the operator's schedule details."
