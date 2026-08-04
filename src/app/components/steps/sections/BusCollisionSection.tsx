@@ -64,6 +64,18 @@ export const FLEET = [
     { trip: 'T-1549', route: 'Route 15', endOfLine: 'Crossroads Station', blocks: [
       { block: 'BLK-217', pulloutDate: '2026-07-24', pulloutTime: '06:05' },
     ] },
+    { trip: 'T-0812', route: 'Route 8', endOfLine: 'Lakeview Terminal', blocks: [
+      { block: 'BLK-108', pulloutDate: '2026-07-24', pulloutTime: '07:20' },
+    ] },
+    { trip: 'T-0311', route: 'Route 3', endOfLine: 'University Station', blocks: [
+      { block: 'BLK-303', pulloutDate: '2026-07-24', pulloutTime: '05:45' },
+    ] },
+    { trip: 'T-4402', route: 'Route 44', endOfLine: 'South Park & Ride', blocks: [
+      { block: 'BLK-444', pulloutDate: '2026-07-24', pulloutTime: '06:30' },
+    ] },
+    { trip: 'T-1901', route: 'Route 19', endOfLine: 'Fairgrounds Loop', blocks: [
+      { block: 'BLK-190', pulloutDate: '2026-07-24', pulloutTime: '08:10' },
+    ] },
   ] },
   { id: '3012', type: '60 ft Articulated', trips: [
     { trip: 'T-2231', route: 'Route 22', endOfLine: 'North Star Mall', blocks: [
@@ -72,10 +84,22 @@ export const FLEET = [
     { trip: 'T-2232', route: 'Route 22', endOfLine: 'Medical Center', blocks: [
       { block: 'BLK-323', pulloutDate: '2026-07-24', pulloutTime: '15:10' },
     ] },
+    { trip: 'T-3301', route: 'Route 33', endOfLine: 'Convention Center', blocks: [
+      { block: 'BLK-330', pulloutDate: '2026-07-24', pulloutTime: '05:55' },
+    ] },
+    { trip: 'T-7702', route: 'Route 77', endOfLine: 'Airport', blocks: [
+      { block: 'BLK-770', pulloutDate: '2026-07-24', pulloutTime: '06:15' },
+    ] },
   ] },
   { id: '1523', type: '35 ft Standard', trips: [
     { trip: 'T-1012', route: 'Route 10', endOfLine: 'Medical Center', blocks: [
       { block: 'BLK-110', pulloutDate: '2026-07-24', pulloutTime: '05:30' },
+    ] },
+    { trip: 'T-2701', route: 'Route 27', endOfLine: 'Westside Transit Plaza', blocks: [
+      { block: 'BLK-270', pulloutDate: '2026-07-24', pulloutTime: '06:40' },
+    ] },
+    { trip: 'T-5201', route: 'Route 52', endOfLine: 'Old Town Loop', blocks: [
+      { block: 'BLK-520', pulloutDate: '2026-07-24', pulloutTime: '07:05' },
     ] },
   ] },
   { id: '4089', type: '40 ft Hybrid', trips: [
@@ -83,10 +107,25 @@ export const FLEET = [
       { block: 'BLK-420', pulloutDate: '2026-07-24', pulloutTime: '06:05' },
       { block: 'BLK-421', pulloutDate: '2026-07-24', pulloutTime: '14:22' },
     ] },
+    { trip: 'T-0611', route: 'Route 6', endOfLine: 'Riverside Depot', blocks: [
+      { block: 'BLK-606', pulloutDate: '2026-07-24', pulloutTime: '05:50' },
+    ] },
+    { trip: 'T-1104', route: 'Route 11', endOfLine: 'East End Terminal', blocks: [
+      { block: 'BLK-111', pulloutDate: '2026-07-24', pulloutTime: '07:35' },
+    ] },
   ] },
   { id: '5201', type: '40 ft Low Floor', trips: [
     { trip: 'T-0523', route: 'Route 5', endOfLine: 'Crossroads Station', blocks: [
       { block: 'BLK-205', pulloutDate: '2026-07-24', pulloutTime: '04:20' },
+    ] },
+    { trip: 'T-9101', route: 'Route 91', endOfLine: 'North Gate Transit', blocks: [
+      { block: 'BLK-910', pulloutDate: '2026-07-24', pulloutTime: '05:15' },
+    ] },
+    { trip: 'T-1401', route: 'Route 14', endOfLine: 'Harbor District', blocks: [
+      { block: 'BLK-140', pulloutDate: '2026-07-24', pulloutTime: '06:25' },
+    ] },
+    { trip: 'T-6602', route: 'Route 66', endOfLine: 'Stadium Loop', blocks: [
+      { block: 'BLK-660', pulloutDate: '2026-07-24', pulloutTime: '07:50' },
     ] },
   ] },
 ];
@@ -146,7 +185,7 @@ function fmtTime(val?: string) {
 function VehicleRecordCard({ data }: { data: AccidentReportData }) {
   const cols = [
     { label: 'Fleet type', value: data.fleet_type, glyph: 'directions_bus' },
-    { label: 'Route', value: data.route_number, glyph: 'route' },
+    { label: 'Trip ID', value: data.trip_id, glyph: 'route' },
     { label: 'Pull-out date', value: fmtDate(data.employee_pullout_date), glyph: 'calendar_month' },
     { label: 'Pull-out time', value: fmtTime(data.employee_pullout_time), glyph: 'schedule' },
     { label: 'End of line destination', value: data.end_of_line_destination, glyph: 'flag' },
@@ -167,12 +206,14 @@ function VehicleRecordCard({ data }: { data: AccidentReportData }) {
 }
 
 export function BusCollisionSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false, showErrors = false }: Props) {
-  // Bus → Trip → Block cascade: each list is filtered by its parent selection.
+  // Bus → Route → Block cascade: each list is filtered by its parent selection.
   const vehicleOptions: ComboboxOption[] = FLEET.map(f => ({
     value: f.id, label: f.id, description: f.type,
   }));
   const selectedBus = FLEET.find(f => f.id === data.vehicle_number);
-  const tripOptions = (selectedBus?.trips ?? []).map(t => ({ value: t.trip, label: t.trip }));
+  const routeOptions = Array.from(
+    new Map((selectedBus?.trips ?? []).map(t => [t.route, { value: t.route, label: t.route }])).values()
+  ).sort((a, b) => (parseInt(a.value.replace(/\D/g, ''), 10) || 0) - (parseInt(b.value.replace(/\D/g, ''), 10) || 0));
   const selectedTrip = selectedBus?.trips.find(t => t.trip === data.trip_id);
   const blockOptions = (selectedTrip?.blocks ?? []).map(b => ({ value: b.block, label: b.block }));
 
@@ -186,11 +227,11 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
       block_number: undefined, employee_pullout_date: undefined, employee_pullout_time: undefined,
     });
   };
-  const handleTripChange = (val: string) => {
-    const t = selectedBus?.trips.find(x => x.trip === val);
+  const handleRouteChange = (val: string) => {
+    const t = selectedBus?.trips.find(x => x.route === val);
     onUpdate({
-      trip_id: val,
-      route_number: t?.route,
+      route_number: val,
+      trip_id: t?.trip,
       end_of_line_destination: t?.endOfLine,
       block_number: undefined, employee_pullout_date: undefined, employee_pullout_time: undefined,
     });
@@ -205,8 +246,8 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
 
-      {/* 1 — The vehicle: bus number + Trip ID + Block ID drive the read-only detail card above */}
-      <Section title="The vehicle" help="Enter the bus number, Trip ID and Block ID — the vehicle's assigned details are pulled in automatically.">
+      {/* 1 — The vehicle: bus number + Route + Block ID drive the read-only detail card above */}
+      <Section title="The vehicle" help="Enter the bus number, Route and Block ID — the vehicle's assigned details are pulled in automatically.">
         <AnimatePresence>
           {hasVehicleRecord && (
             <motion.div {...fade} key="vehicle-record">
@@ -235,11 +276,11 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
             )}
           </div>
 
-          <Field label="Trip ID" required error={showErrors && !data.trip_id}>
-            <CustomSelect value={data.trip_id || ''} onChange={handleTripChange} options={tripOptions} placeholder={data.vehicle_number ? 'Select trip' : 'Select bus first'} disabled={!data.vehicle_number} />
+          <Field label="Route" required error={showErrors && !data.route_number}>
+            <CustomSelect value={data.route_number || ''} onChange={handleRouteChange} options={routeOptions} placeholder={data.vehicle_number ? 'Select route' : 'Select bus first'} disabled={!data.vehicle_number} />
           </Field>
           <Field label="Block ID" required error={showErrors && !data.block_number}>
-            <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.trip_id ? 'Select block' : 'Select trip first'} disabled={!data.trip_id} />
+            <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.route_number ? 'Select block' : 'Select route first'} disabled={!data.route_number} />
           </Field>
           <Field label="Status before event" required>
             <CustomSelect value={data.bus_status_before || ''} onChange={v => onUpdate({ bus_status_before: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />

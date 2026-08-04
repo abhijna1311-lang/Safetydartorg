@@ -238,9 +238,6 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                               transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
                               className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50"
                             >
-                              <BoolRow label="Was the injury fatal?" required={injuryDetailsRequired}>
-                                <YesNoToggle value={p.fatal} onChange={v => update(p.id, { fatal: v })} />
-                              </BoolRow>
                               <BoolRow label="Injured body part" required={injuryDetailsRequired}>
                                 <div className="w-full sm:w-60">
                                   <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !p.injured_body_part} />

@@ -124,6 +124,7 @@ export function Step3PeopleImpact({
   // Determine collision type (Bus vs LRV path) — used in the context banner.
   const collisionType = data.collision_type || data.lrv_collision_type || '';
   const isAutoCollision = /auto/i.test(collisionType);
+  const isPedestrianCollision = /pedestrian/i.test(collisionType);
   const isRevenueMode = ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '');
   const isHiRail = data.mode === 'Hi-Rail';
   const isInitiationStage = workflowStage === 'initiation';
@@ -179,11 +180,12 @@ export function Step3PeopleImpact({
   const passengersAnswered = data.passengers_on_board !== undefined;
   const peopleAnswered = data.people_involved !== undefined
     && (data.people_involved !== true || (people.length > 0 && people.every(personComplete)));
+  const pedestriansAnswered = !isPedestrianCollision || pedestrianCount >= 1;
   const vehiclesAnswered = !isAutoCollision
     || ((data.other_vehicles?.length || 0) > 0 && (data.other_vehicles || []).every(vehicleComplete));
   const canProceed = isInitiationStage || isSupervisorReview
     ? true
-    : (operatorAnswered && passengersAnswered && peopleAnswered && vehiclesAnswered);
+    : (operatorAnswered && passengersAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
   const [showErrors, setShowErrors] = useState(false);
   const handleNextClick = () => {
     if (canProceed) {
@@ -383,6 +385,11 @@ export function Step3PeopleImpact({
                 </div>
                 {isRevenueMode && data.passengers_on_board !== undefined && passengersInjuredCount > data.passengers_on_board && (
                   <p className="text-xs font-medium text-amber-600 font-['Poppins']">Injured passengers ({passengersInjuredCount}) exceed passengers on board — please verify.</p>
+                )}
+                {isPedestrianCollision && data.people_involved === true && pedestrianCount < 1 && (
+                  <p className={`text-xs font-medium font-['Poppins'] ${showErrors ? 'text-red-600' : 'text-amber-600'}`}>
+                    This event type requires at least one pedestrian record. Add a pedestrian to the people list.
+                  </p>
                 )}
 
                 <AnimatePresence initial={false}>

@@ -137,7 +137,7 @@ function fmtSupTime(val?: string) {
 function SupervisorVehicleRecordCard({ data }: { data: AccidentReportData }) {
   const cols = [
     { label: 'Fleet type', value: data.supervisor_fleet, glyph: 'directions_bus' },
-    { label: 'Route', value: data.supervisor_operating_route_number, glyph: 'route' },
+    { label: 'Trip ID', value: data.supervisor_trip_id, glyph: 'route' },
     { label: 'Pull-out date', value: fmtSupDate(data.supervisor_employee_pullout_date), glyph: 'calendar_month' },
     { label: 'Pull-out time', value: fmtSupTime(data.supervisor_employee_pullout_time), glyph: 'schedule' },
     { label: 'End of line destination', value: data.supervisor_end_of_line_destination, glyph: 'flag' },
@@ -597,9 +597,7 @@ export function Step4ReviewSubmit({
     ...(supervisorLocationUsesRail ? [
       { id: 'supervisor-location-category', label: 'Location category', step: 1, missing: !data.supervisor_location_category },
     ] : []),
-    ...(supervisorWentToScene ? [
-      { id: 'supervisor-event-description', label: 'Field Supervisor description of safety event', step: 1, missing: !data.supervisor_event_description },
-    ] : []),
+    { id: 'supervisor-event-description', label: 'Field Supervisor description of safety event', step: 1, missing: !data.supervisor_event_description },
   ].filter((item) => item.missing);
 
   // When the field supervisor tries to advance past sub-step 1 with required items missing,
@@ -723,10 +721,12 @@ export function Step4ReviewSubmit({
     onUpdate({ [field]: parseOptionalCount(value), ...extraUpdates } as Partial<AccidentReportData>);
   };
 
-  // Supervisor bus vehicle cascade (bus → trip → block), mirroring the operator's "The vehicle".
+  // Supervisor bus vehicle cascade (bus → route → block), mirroring the operator's "The vehicle".
   const supervisorFleetOptions: ComboboxOption[] = FLEET.map((f) => ({ value: f.id, label: f.id, description: f.type }));
   const selectedSupervisorBus = FLEET.find((f) => f.id === data.supervisor_vehicle_number);
-  const supervisorTripOptions = (selectedSupervisorBus?.trips ?? []).map((t) => ({ value: t.trip, label: t.trip }));
+  const supervisorRouteOptions = Array.from(
+    new Map((selectedSupervisorBus?.trips ?? []).map((t) => [t.route, { value: t.route, label: t.route }])).values()
+  ).sort((a, b) => (parseInt(a.value.replace(/\D/g, ''), 10) || 0) - (parseInt(b.value.replace(/\D/g, ''), 10) || 0));
   const selectedSupervisorTrip = selectedSupervisorBus?.trips.find((t) => t.trip === data.supervisor_trip_id);
   const supervisorBlockOptions = (selectedSupervisorTrip?.blocks ?? []).map((b) => ({ value: b.block, label: b.block }));
   const supervisorHasVehicleRecord = !!(data.supervisor_vehicle_number && data.supervisor_trip_id?.trim() && data.supervisor_block_number?.trim());
@@ -739,11 +739,11 @@ export function Step4ReviewSubmit({
       supervisor_block_number: undefined, supervisor_employee_pullout_date: undefined, supervisor_employee_pullout_time: undefined,
     });
   };
-  const updateSupervisorTripCascade = (val: string) => {
-    const t = selectedSupervisorBus?.trips.find((x) => x.trip === val);
+  const updateSupervisorRouteCascade = (val: string) => {
+    const t = selectedSupervisorBus?.trips.find((x) => x.route === val);
     onUpdate({
-      supervisor_trip_id: val,
-      supervisor_operating_route_number: t?.route,
+      supervisor_operating_route_number: val,
+      supervisor_trip_id: t?.trip,
       supervisor_end_of_line_destination: t?.endOfLine,
       supervisor_block_number: undefined, supervisor_employee_pullout_date: undefined, supervisor_employee_pullout_time: undefined,
     });
@@ -1837,7 +1837,7 @@ export function Step4ReviewSubmit({
                         value={data.supervisor_went_to_scene}
                         onChange={(v) => onUpdate(v
                           ? { supervisor_went_to_scene: true, supervisor_no_scene_reason: undefined }
-                          : { supervisor_went_to_scene: false, supervisor_arrival_date: undefined, supervisor_arrival_time: undefined, supervisor_event_description: undefined })}
+                          : { supervisor_went_to_scene: false, supervisor_arrival_date: undefined, supervisor_arrival_time: undefined })}
                       />
                     </div>
                   </div>
@@ -1845,35 +1845,30 @@ export function Step4ReviewSubmit({
                     <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">Did you go to the scene? is required.</p>
                   )}
                 </div>
-                <AnimatePresence initial={false} mode="wait">
-                  {data.supervisor_went_to_scene === true && (
-                    <motion.div {...REVEAL_MOTION} key="supervisor-arrival-yes" className="mt-5 pt-5 border-t border-slate-100">
-                      <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-[minmax(0,3fr)_1px_minmax(0,5fr)]">
-                        <div className="flex flex-col gap-5">
-                          <FormField label="Field Supervisor arrival date" required error={supervisorArrivalDateError}>
-                            <DatePickerInput value={data.supervisor_arrival_date || ''} onChange={(value) => onUpdate({ supervisor_arrival_date: value })} />
-                          </FormField>
-                          <FormField label="Field Supervisor arrival time" required error={supervisorArrivalTimeError}>
-                            <TimePickerInput value={data.supervisor_arrival_time || ''} onChange={(value) => onUpdate({ supervisor_arrival_time: value })} />
-                          </FormField>
-                        </div>
-                        <div aria-hidden className="hidden md:block bg-slate-200/70" />
-                        <div className="flex flex-col justify-center">
-                          <FormField label="Field Supervisor description of safety event" required error={supervisorEventDescriptionError}>
-                            <textarea rows={4} value={data.supervisor_event_description || ''} onChange={(e) => onUpdate({ supervisor_event_description: e.target.value })} placeholder="Add supervisor investigation notes" className={`${TEXTAREA_CLASS} flex-1`} />
-                          </FormField>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                  {data.supervisor_went_to_scene === false && (
-                    <motion.div {...REVEAL_MOTION} key="supervisor-arrival-no" className="mt-5 pt-5 border-t border-slate-100">
-                      <FormField label="Why didn't you go to the scene?" required error={supervisorNoSceneReasonError}>
-                        <textarea rows={3} value={data.supervisor_no_scene_reason || ''} onChange={(e) => onUpdate({ supervisor_no_scene_reason: e.target.value })} placeholder="Explain why you did not respond to the scene." className={TEXTAREA_CLASS} />
-                      </FormField>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className="mt-5 pt-5 border-t border-slate-100 flex flex-col gap-7">
+                  <AnimatePresence initial={false} mode="wait">
+                    {data.supervisor_went_to_scene === true && (
+                      <motion.div {...REVEAL_MOTION} key="supervisor-arrival-yes" className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
+                        <FormField label="Field Supervisor arrival date" required error={supervisorArrivalDateError}>
+                          <DatePickerInput value={data.supervisor_arrival_date || ''} onChange={(value) => onUpdate({ supervisor_arrival_date: value })} />
+                        </FormField>
+                        <FormField label="Field Supervisor arrival time" required error={supervisorArrivalTimeError}>
+                          <TimePickerInput value={data.supervisor_arrival_time || ''} onChange={(value) => onUpdate({ supervisor_arrival_time: value })} />
+                        </FormField>
+                      </motion.div>
+                    )}
+                    {data.supervisor_went_to_scene === false && (
+                      <motion.div {...REVEAL_MOTION} key="supervisor-arrival-no">
+                        <FormField label="Why didn't you go to the scene?" required error={supervisorNoSceneReasonError}>
+                          <textarea rows={3} value={data.supervisor_no_scene_reason || ''} onChange={(e) => onUpdate({ supervisor_no_scene_reason: e.target.value })} placeholder="Explain why you did not respond to the scene." className={TEXTAREA_CLASS} />
+                        </FormField>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <FormField label="Field Supervisor description of safety event" required error={supervisorEventDescriptionError}>
+                    <textarea rows={4} value={data.supervisor_event_description || ''} onChange={(e) => onUpdate({ supervisor_event_description: e.target.value })} placeholder="Add supervisor investigation notes" className={TEXTAREA_CLASS} />
+                  </FormField>
+                </div>
               </div>
 
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
@@ -1905,12 +1900,12 @@ export function Step4ReviewSubmit({
                                 />
                               </div>
                               <div>
-                                <div className={FIELD_LABEL_CLASS}>Trip ID <span className="text-red-500">*</span></div>
-                                <CustomSelect value={data.supervisor_trip_id || ''} onChange={updateSupervisorTripCascade} options={supervisorTripOptions} placeholder={data.supervisor_vehicle_number ? 'Select trip' : 'Select bus first'} disabled={!data.supervisor_vehicle_number} />
+                                <div className={FIELD_LABEL_CLASS}>Route <span className="text-red-500">*</span></div>
+                                <CustomSelect value={data.supervisor_operating_route_number || ''} onChange={updateSupervisorRouteCascade} options={supervisorRouteOptions} placeholder={data.supervisor_vehicle_number ? 'Select route' : 'Select bus first'} disabled={!data.supervisor_vehicle_number} />
                               </div>
                               <div>
                                 <div className={FIELD_LABEL_CLASS}>Block ID <span className="text-red-500">*</span></div>
-                                <CustomSelect value={data.supervisor_block_number || ''} onChange={updateSupervisorBlockCascade} options={supervisorBlockOptions} placeholder={data.supervisor_trip_id ? 'Select block' : 'Select trip first'} disabled={!data.supervisor_trip_id} />
+                                <CustomSelect value={data.supervisor_block_number || ''} onChange={updateSupervisorBlockCascade} options={supervisorBlockOptions} placeholder={data.supervisor_operating_route_number ? 'Select block' : 'Select route first'} disabled={!data.supervisor_operating_route_number} />
                               </div>
                               <div>
                                 <div className={FIELD_LABEL_CLASS}>Status before event</div>
