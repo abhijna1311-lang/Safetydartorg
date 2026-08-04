@@ -520,7 +520,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           <label className="dart-field-label" style={{ marginBottom: 0 }}>
             Is the operator available to complete their own section? <span className="dart-req">*</span>
           </label>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Pick "No" only if the operator can't file (STD, hospitalized, etc.).</p>
         </div>
         <div className="shrink-0">
           <YesNoToggle
