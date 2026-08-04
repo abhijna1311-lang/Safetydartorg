@@ -33,8 +33,9 @@ const EVENT_TYPES = [
   'Signal Violation',
 ].map(v => ({ value: v, label: v }));
 
-// The multi-role case workflow only applies to collisions and derailments, so a Program
-// Manager initiating a case on behalf of an operator/employee can only pick those two.
+// The multi-role case workflow only applies to collisions and derailments, so anyone
+// initiating a case on behalf of an operator/employee (PM, or Supervisor filing for someone)
+// can only pick those two.
 const WORKFLOW_EVENT_TYPES = EVENT_TYPES.filter(o => o.value === 'Collision' || o.value === 'Derailment');
 
 const SHOW_DRIVING_QUESTION = ['Assault (Verbal or Physical)', 'Fire', 'Operator/Passenger Events (non-collision)'];
@@ -125,7 +126,9 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const { roleConfig } = useUserRole();
   const isSupervisor = roleConfig.role === 'Supervisor';
   const isProgramManager = roleConfig.role === 'Program Manager';
-  const effectiveIsOnBehalf = isProgramManager || data.is_on_behalf === true;
+  // Supervisors and Program Managers both choose whether they're filing for themselves or someone else.
+  const canFileOnBehalf = isSupervisor || isProgramManager;
+  const effectiveIsOnBehalf = data.is_on_behalf === true;
   const [showErrors, setShowErrors] = useState(false);
 
   const hasEventType = !!data.event_type;
@@ -146,23 +149,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
       && (data.regular_day_off_type === 'Consecutive'
         ? !!data.rdo_consecutive
         : splitDaysAreValid));
-  const hasFilingChoice = !isSupervisor || data.is_on_behalf !== undefined;
-  // When a PM (always) or an on-behalf Supervisor initiates, they must state whether the
-  // operator can file their own section. "No" waives the operator section and requires a reason.
-  const needsOperatorAvailability = isProgramManager || (isSupervisor && data.is_on_behalf === true);
+  const hasFilingChoice = !canFileOnBehalf || data.is_on_behalf !== undefined;
+  // When someone initiates on behalf, they must state whether the operator can file their own
+  // section. "No" waives the operator section and requires a reason.
+  const needsOperatorAvailability = canFileOnBehalf && data.is_on_behalf === true;
   const hasOperatorAvailability = !needsOperatorAvailability
     || data.operator_availability_confirmed === true
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
   const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasSchedule && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
 
-  useEffect(() => {
-    if (!isProgramManager || data.is_on_behalf === true) return;
-    onUpdate({
-      is_on_behalf: true,
-      ...EMPTY_EMPLOYEE_FIELDS,
-    });
-  }, [isProgramManager, data.is_on_behalf, onUpdate]);
 
   // Restored drafts can contain a legacy Derailment + non-rail mode combination. Enforce the
   // same rule after hydration instead of relying only on the event dropdown change handler.
@@ -333,8 +329,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   };
 
   const missing: string[] = [];
-  if (isSupervisor && !hasFilingChoice) missing.push('filing on behalf');
-  if ((isProgramManager || data.is_on_behalf === true) && !hasEmployee) missing.push('employee this case is for');
+  if (canFileOnBehalf && !hasFilingChoice) missing.push('filing on behalf');
+  if (data.is_on_behalf === true && !hasEmployee) missing.push('employee this case is for');
   if (needsOperatorAvailability && !hasOperatorAvailability) missing.push('operator availability');
   if (!hasEventType) missing.push('event type');
   if (!hasIncidentDate) missing.push('incident date');
@@ -346,8 +342,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (data.regular_day_off_type === 'Consecutive' && !data.rdo_consecutive) missing.push('regular days off');
   if (data.regular_day_off_type === 'Split' && !splitDaysAreValid) missing.push('valid split regular days off');
 
-  const errFilingChoice = showErrors && isSupervisor && !hasFilingChoice;
-  const errEmployee = showErrors && (isProgramManager || data.is_on_behalf === true) && !hasEmployee;
+  const errFilingChoice = showErrors && canFileOnBehalf && !hasFilingChoice;
+  const errEmployee = showErrors && data.is_on_behalf === true && !hasEmployee;
   const errAvailability = showErrors && needsOperatorAvailability && !hasOperatorAvailability;
   const errEventType = showErrors && !hasEventType;
   const errIncidentDate = showErrors && !hasIncidentDate;
@@ -519,16 +515,20 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
   const operatorAvailabilityToggle = (
     <div>
-      <label className="dart-field-label">
-        Is the operator available to complete their own section? <span className="dart-req">*</span>
-      </label>
-      <YesNoToggle
-        value={data.operator_availability_confirmed}
-        onChange={v => onUpdate({
-          operator_availability_confirmed: v,
-          operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
-        })}
-      />
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <label className="dart-field-label sm:mb-0 min-w-0">
+          Is the operator available to complete their own section? <span className="dart-req">*</span>
+        </label>
+        <div className="shrink-0">
+          <YesNoToggle
+            value={data.operator_availability_confirmed}
+            onChange={v => onUpdate({
+              operator_availability_confirmed: v,
+              operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
+            })}
+          />
+        </div>
+      </div>
       {errAvailability && data.operator_availability_confirmed === undefined && (
         <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether the operator can file their own section.</p>
       )}
@@ -572,15 +572,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
       )}
       <div className="dart-card dart-card--surface overflow-hidden">
 
-        {/* Supervisor: the two toggles sit side by side; the employee search reveals below once
-            the operator-availability toggle is answered. */}
-        {isSupervisor && (
+        {/* Supervisor + Program Manager: choose whether the case is for themselves or another
+            employee. When filing on behalf, the employee search and operator-availability toggle
+            reveal on the same row. */}
+        {canFileOnBehalf && (
           <Section
             title="Who is this case for?"
             complete={data.is_on_behalf !== undefined && (data.is_on_behalf === false || !!data.on_behalf_employee)}
           >
             <div className="flex flex-col md:flex-row md:items-start gap-x-8 gap-y-5">
-              <motion.div layout transition={layoutSpring} className="md:flex-1 min-w-0">
+              <motion.div layout transition={layoutSpring} className="md:flex-1">
                 <label className="dart-field-label">
                   Is this case for another DART employee? <span className="dart-req">*</span>
                 </label>
@@ -606,39 +607,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     {employeeSearchField}
                   </motion.div>
                 )}
-                {data.is_on_behalf === true && (
-                  <motion.div
-                    layout
-                    key="op-avail"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
-                    className="md:flex-1 min-w-0"
-                  >
-                    {operatorAvailabilityToggle}
-                  </motion.div>
-                )}
               </AnimatePresence>
             </div>
-            {operatorUnavailableReason}
-          </Section>
-        )}
-
-        {/* Program manager: subject-only row. Schedule is not part of PM intake. */}
-        {isProgramManager && (
-          <Section
-            title="Who is this case for?"
-            help="Program managers open cases on behalf of a DART employee. Select who this case is for."
-            complete={!!data.on_behalf_employee}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 md:items-start">
-              <div className="md:col-span-2">{employeeSearchField}</div>
-            </div>
-            <div className="mt-5 pt-5 border-t border-slate-100">
-              {operatorAvailabilityToggle}
-              {operatorUnavailableReason}
-            </div>
+            <AnimatePresence>
+              {data.is_on_behalf === true && !!data.on_behalf_employee && (
+                <motion.div {...fade} key="op-avail" className="mt-5 pt-5 border-t border-slate-100">
+                  {operatorAvailabilityToggle}
+                  {operatorUnavailableReason}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Section>
         )}
 
@@ -704,7 +682,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
         {/* Type of event + incident timing (+ conditional driving sub-question) */}
         <Section
-          title="Event classification"
+          title="Incident type and timing"
           help="Select the type of incident and confirm when it occurred. These details determine the information required later in the report."
           complete={hasEventType && hasIncidentDate && hasIncidentTime && (!needsDrivingQ || data.operating_dart_vehicle !== undefined)}
         >
@@ -716,7 +694,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
               <CustomSelect
                 value={data.event_type || ''}
                 onChange={handleEventTypeChange}
-                options={isProgramManager ? WORKFLOW_EVENT_TYPES : EVENT_TYPES}
+                options={effectiveIsOnBehalf ? WORKFLOW_EVENT_TYPES : EVENT_TYPES}
                 placeholder="Select incident type"
                 disabled={lockEventAndMode}
                 error={errEventType}

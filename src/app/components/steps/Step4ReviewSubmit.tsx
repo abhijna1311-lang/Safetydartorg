@@ -575,9 +575,17 @@ export function Step4ReviewSubmit({
     : isProgramManagerReview
     ? Boolean(data.program_manager_confirmation_checked)
     : Boolean(data.confirmation_checked);
+  const supervisorWentToScene = data.supervisor_went_to_scene === true;
+  const supervisorDidNotGoToScene = data.supervisor_went_to_scene === false;
   const supervisorRequiredReviewItems = [
-    { id: 'supervisor-arrival-date', label: 'Field Supervisor arrival date', step: 1, missing: !data.supervisor_arrival_date },
-    { id: 'supervisor-arrival-time', label: 'Field Supervisor arrival time', step: 1, missing: !data.supervisor_arrival_time },
+    { id: 'supervisor-went-to-scene', label: 'Did you go to the scene?', step: 1, missing: data.supervisor_went_to_scene === undefined },
+    ...(supervisorWentToScene ? [
+      { id: 'supervisor-arrival-date', label: 'Field Supervisor arrival date', step: 1, missing: !data.supervisor_arrival_date },
+      { id: 'supervisor-arrival-time', label: 'Field Supervisor arrival time', step: 1, missing: !data.supervisor_arrival_time },
+    ] : []),
+    ...(supervisorDidNotGoToScene ? [
+      { id: 'supervisor-no-scene-reason', label: 'Reason you did not go to the scene', step: 1, missing: !data.supervisor_no_scene_reason?.trim() },
+    ] : []),
     ...(hasSupervisorVehicleType ? [
       { id: 'supervisor-vehicle-number', label: 'Vehicle number', step: 1, missing: !data.supervisor_vehicle_number },
       { id: 'supervisor-fleet', label: 'Fleet or asset type', step: 1, missing: !data.supervisor_fleet },
@@ -589,7 +597,9 @@ export function Step4ReviewSubmit({
     ...(supervisorLocationUsesRail ? [
       { id: 'supervisor-location-category', label: 'Location category', step: 1, missing: !data.supervisor_location_category },
     ] : []),
-    { id: 'supervisor-event-description', label: 'Field Supervisor description of safety event', step: 1, missing: !data.supervisor_event_description },
+    ...(supervisorWentToScene ? [
+      { id: 'supervisor-event-description', label: 'Field Supervisor description of safety event', step: 1, missing: !data.supervisor_event_description },
+    ] : []),
   ].filter((item) => item.missing);
 
   // When the field supervisor tries to advance past sub-step 1 with required items missing,
@@ -598,12 +608,20 @@ export function Step4ReviewSubmit({
     ? supervisorRequiredReviewItems.filter((item) => item.step === 1)
     : [];
   const supervisorSubStep1MissingIds = new Set(supervisorSubStep1MissingItems.map((item) => item.id));
+  const supervisorWentToSceneError = supervisorSubStep1MissingIds.has('supervisor-went-to-scene');
+  const supervisorNoSceneReasonError = supervisorSubStep1MissingIds.has('supervisor-no-scene-reason');
   const supervisorArrivalDateError = supervisorSubStep1MissingIds.has('supervisor-arrival-date');
   const supervisorArrivalTimeError = supervisorSubStep1MissingIds.has('supervisor-arrival-time');
   const supervisorEventDescriptionError = supervisorSubStep1MissingIds.has('supervisor-event-description');
   const supervisorDetailsReviewFields = [
-    { label: 'Field Supervisor arrival date', value: formatReviewValue(data.supervisor_arrival_date), required: true },
-    { label: 'Field Supervisor arrival time', value: formatReviewValue(data.supervisor_arrival_time), required: true },
+    { label: 'Went to the scene', value: data.supervisor_went_to_scene === undefined ? '—' : (data.supervisor_went_to_scene ? 'Yes' : 'No'), required: true },
+    ...(supervisorWentToScene ? [
+      { label: 'Field Supervisor arrival date', value: formatReviewValue(data.supervisor_arrival_date), required: true },
+      { label: 'Field Supervisor arrival time', value: formatReviewValue(data.supervisor_arrival_time), required: true },
+    ] : []),
+    ...(supervisorDidNotGoToScene ? [
+      { label: 'Reason you did not go to the scene', value: formatReviewValue(data.supervisor_no_scene_reason), required: true },
+    ] : []),
     ...(hasSupervisorVehicleType ? [
       { label: supervisorVehicleType === 'Bus' ? 'Bus vehicle number' : supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : supervisorVehicleType === 'Light Rail Vehicle' ? 'Train number' : 'Vehicle number', value: formatReviewValue(data.supervisor_vehicle_number), required: true },
       { label: supervisorVehicleType === 'Bus' ? 'Fleet type' : 'Fleet or asset type', value: formatReviewValue(data.supervisor_fleet), required: true },
@@ -660,7 +678,6 @@ export function Step4ReviewSubmit({
     ] : []),
     { label: 'Scene diagram completed', value: formatReviewValue(data.supervisor_scene_diagram_completed) },
     { label: 'Scene photos taken', value: formatReviewValue(data.supervisor_scene_photos_taken) },
-    { label: 'Equipment or property damage description', value: formatReviewValue(data.supervisor_equipment_damage_description), wide: true },
   ];
   const supervisorInjuryPoliceReviewFields = [
     { label: 'Employee fatalities', value: formatReviewValue(data.supervisor_dart_employee_fatalities) },
@@ -1810,22 +1827,53 @@ export function Step4ReviewSubmit({
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Field Supervisor arrival</h3>
                 <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">When you reached the scene, and your account of what happened.</p>
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-[minmax(0,3fr)_1px_minmax(0,5fr)]">
-                  <div className="flex flex-col gap-5">
-                    <FormField label="Field Supervisor arrival date" required error={supervisorArrivalDateError}>
-                      <DatePickerInput value={data.supervisor_arrival_date || ''} onChange={(value) => onUpdate({ supervisor_arrival_date: value })} />
-                    </FormField>
-                    <FormField label="Field Supervisor arrival time" required error={supervisorArrivalTimeError}>
-                      <TimePickerInput value={data.supervisor_arrival_time || ''} onChange={(value) => onUpdate({ supervisor_arrival_time: value })} />
-                    </FormField>
+                <div>
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                    <label className="dart-field-label sm:mb-0 min-w-0">
+                      Did you go to the scene? <span className="dart-req ml-1">*</span>
+                    </label>
+                    <div className="shrink-0">
+                      <YesNoButtons
+                        value={data.supervisor_went_to_scene}
+                        onChange={(v) => onUpdate(v
+                          ? { supervisor_went_to_scene: true, supervisor_no_scene_reason: undefined }
+                          : { supervisor_went_to_scene: false, supervisor_arrival_date: undefined, supervisor_arrival_time: undefined, supervisor_event_description: undefined })}
+                      />
+                    </div>
                   </div>
-                  <div aria-hidden className="hidden md:block bg-slate-200/70" />
-                  <div className="flex flex-col">
-                    <FormField label="Field Supervisor description of safety event" required error={supervisorEventDescriptionError}>
-                      <textarea rows={4} value={data.supervisor_event_description || ''} onChange={(e) => onUpdate({ supervisor_event_description: e.target.value })} placeholder="Add supervisor investigation notes" className={`${TEXTAREA_CLASS} flex-1`} />
-                    </FormField>
-                  </div>
+                  {supervisorWentToSceneError && (
+                    <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">Did you go to the scene? is required.</p>
+                  )}
                 </div>
+                <AnimatePresence initial={false} mode="wait">
+                  {data.supervisor_went_to_scene === true && (
+                    <motion.div {...REVEAL_MOTION} key="supervisor-arrival-yes" className="mt-5 pt-5 border-t border-slate-100">
+                      <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-[minmax(0,3fr)_1px_minmax(0,5fr)]">
+                        <div className="flex flex-col gap-5">
+                          <FormField label="Field Supervisor arrival date" required error={supervisorArrivalDateError}>
+                            <DatePickerInput value={data.supervisor_arrival_date || ''} onChange={(value) => onUpdate({ supervisor_arrival_date: value })} />
+                          </FormField>
+                          <FormField label="Field Supervisor arrival time" required error={supervisorArrivalTimeError}>
+                            <TimePickerInput value={data.supervisor_arrival_time || ''} onChange={(value) => onUpdate({ supervisor_arrival_time: value })} />
+                          </FormField>
+                        </div>
+                        <div aria-hidden className="hidden md:block bg-slate-200/70" />
+                        <div className="flex flex-col justify-center">
+                          <FormField label="Field Supervisor description of safety event" required error={supervisorEventDescriptionError}>
+                            <textarea rows={4} value={data.supervisor_event_description || ''} onChange={(e) => onUpdate({ supervisor_event_description: e.target.value })} placeholder="Add supervisor investigation notes" className={`${TEXTAREA_CLASS} flex-1`} />
+                          </FormField>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  {data.supervisor_went_to_scene === false && (
+                    <motion.div {...REVEAL_MOTION} key="supervisor-arrival-no" className="mt-5 pt-5 border-t border-slate-100">
+                      <FormField label="Why didn't you go to the scene?" required error={supervisorNoSceneReasonError}>
+                        <textarea rows={3} value={data.supervisor_no_scene_reason || ''} onChange={(e) => onUpdate({ supervisor_no_scene_reason: e.target.value })} placeholder="Explain why you did not respond to the scene." className={TEXTAREA_CLASS} />
+                      </FormField>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
@@ -2143,10 +2191,6 @@ export function Step4ReviewSubmit({
                         </AnimatePresence>
                       </div>
                     </DecisionGroup>
-                  </div>
-                  <div>
-                    <div className={FIELD_LABEL_CLASS}>Equipment or property damage description</div>
-                    <textarea rows={3} value={data.supervisor_equipment_damage_description || ''} onChange={(e) => onUpdate({ supervisor_equipment_damage_description: e.target.value })} placeholder="Describe visible damage, disabled equipment, and property impact" className={TEXTAREA_CLASS} />
                   </div>
                 </div>
               </div>

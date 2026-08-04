@@ -271,6 +271,8 @@ export interface AccidentReportData {
   supervisor_operating_statement?: string;
   supervisor_incident_date?: string;
   supervisor_incident_time?: string;
+  supervisor_went_to_scene?: boolean;
+  supervisor_no_scene_reason?: string;
   supervisor_arrival_date?: string;
   supervisor_arrival_time?: string;
   supervisor_street_on?: string;
