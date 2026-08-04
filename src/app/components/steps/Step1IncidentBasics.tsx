@@ -519,22 +519,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
   const operatorAvailabilityToggle = (
     <div>
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div className="min-w-0">
-          <label className="dart-field-label" style={{ marginBottom: 0 }}>
-            Is the operator available to complete their own section? <span className="dart-req">*</span>
-          </label>
-        </div>
-        <div className="shrink-0">
-          <YesNoToggle
-            value={data.operator_availability_confirmed}
-            onChange={v => onUpdate({
-              operator_availability_confirmed: v,
-              operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
-            })}
-          />
-        </div>
-      </div>
+      <label className="dart-field-label">
+        Is the operator available to complete their own section? <span className="dart-req">*</span>
+      </label>
+      <YesNoToggle
+        value={data.operator_availability_confirmed}
+        onChange={v => onUpdate({
+          operator_availability_confirmed: v,
+          operator_unavailable_reason: v ? undefined : data.operator_unavailable_reason,
+        })}
+      />
       {errAvailability && data.operator_availability_confirmed === undefined && (
         <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select whether the operator can file their own section.</p>
       )}
