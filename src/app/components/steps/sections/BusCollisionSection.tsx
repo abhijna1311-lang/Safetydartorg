@@ -386,6 +386,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
                     <VehicleImpactDiagram
                       markers={data.impact_markers || []}
                       onChange={markers => onUpdate({ impact_markers: markers })}
+                      showError={showErrors && (data.impact_markers?.length || 0) === 0}
                     />
                   </div>
                 </motion.div>

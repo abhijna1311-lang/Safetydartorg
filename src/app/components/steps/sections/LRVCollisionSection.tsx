@@ -348,6 +348,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
                 variant={isStreetcar ? 'streetcar' : 'rail'}
                 markers={data.impact_markers || []}
                 onChange={markers => onUpdate({ impact_markers: markers })}
+                showError={showErrors && (data.impact_markers?.length || 0) === 0}
               />
             </motion.div>
           )}

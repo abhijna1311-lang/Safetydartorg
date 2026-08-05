@@ -16,6 +16,8 @@ interface Props {
   variant?: 'bus' | 'rail' | 'streetcar' | 'nrv';
   /** Override the word used in the instruction strip / aria label (default follows variant). */
   nounLabel?: string;
+  /** Show validation state (red border + label when no markers). */
+  showError?: boolean;
 }
 
 // ── diagram model ───────────────────────────────────────────────────────────────
@@ -127,7 +129,7 @@ const COLORS = [
 ];
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, variant = 'bus', nounLabel }: Props) {
+export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, variant = 'bus', nounLabel, showError = false }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const isStreetcar = variant === 'streetcar';
   const isNRV = variant === 'nrv';
@@ -155,7 +157,7 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
 
       {/* ── Label row ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-semibold text-slate-800 font-['Poppins']">
+        <label className={`block text-sm font-semibold font-['Poppins'] ${showError && markers.length === 0 ? 'text-red-600' : 'text-slate-800'}`}>
           Mark damage areas on {noun}
           <span className="text-red-500 ml-1">*</span>
         </label>
@@ -175,7 +177,7 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
       <div
         className="rounded-2xl border-2 bg-[#F0F6FB] shadow-sm overflow-hidden"
         style={{
-          borderColor: markers.length === 0 ? '#CBD5E1' : '#007DBA',
+          borderColor: showError && markers.length === 0 ? '#DC2626' : markers.length === 0 ? '#CBD5E1' : '#007DBA',
           transition: 'border-color 0.25s',
         }}
       >

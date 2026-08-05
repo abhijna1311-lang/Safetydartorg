@@ -240,7 +240,7 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
         <AnimatePresence>
           {data.bus_damage === true && (
             <motion.div {...fade} key="impact-diagram" className="pt-1">
-              <VehicleImpactDiagram variant="nrv" markers={data.impact_markers || []} onChange={markers => onUpdate({ impact_markers: markers })} />
+              <VehicleImpactDiagram variant="nrv" markers={data.impact_markers || []} onChange={markers => onUpdate({ impact_markers: markers })} showError={showErrors && (data.impact_markers?.length || 0) === 0} />
             </motion.div>
           )}
         </AnimatePresence>
