@@ -12,6 +12,7 @@ interface Props {
   onUpdate: (d: Partial<AccidentReportData>) => void;
   narrativeReadOnly?: boolean;
   showErrors?: boolean;
+  headerSection?: React.ReactNode;
 }
 
 const toOptions = (values: string[]) => [...values]
@@ -111,7 +112,7 @@ function NRVRecordCard({ data }: { data: AccidentReportData }) {
   );
 }
 
-export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false }: Props) {
+export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const vehicleOptions: ComboboxOption[] = [...NRV_FLEET]
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
     .map(v => ({ value: v.id, label: v.id, description: v.type }));
@@ -129,6 +130,7 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
+      {headerSection}
       <Section title="The NRV" help="Enter the NRV number — its vehicle type and pull-out details are pulled in automatically.">
         <AnimatePresence>
           {selectedVehicle && (

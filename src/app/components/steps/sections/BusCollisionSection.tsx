@@ -16,6 +16,7 @@ interface Props {
   compactMode?: boolean;
   narrativeReadOnly?: boolean;
   showErrors?: boolean;
+  headerSection?: React.ReactNode;
 }
 
 // ── option lists ──────────────────────────────────────────────────────────────
@@ -205,7 +206,7 @@ function VehicleRecordCard({ data }: { data: AccidentReportData }) {
   );
 }
 
-export function BusCollisionSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false, showErrors = false }: Props) {
+export function BusCollisionSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   // Bus → Block → Route cascade: user picks bus + block, route auto-populates from the block's trip.
   const vehicleOptions: ComboboxOption[] = FLEET.map(f => ({
     value: f.id, label: f.id, description: f.type,
@@ -242,6 +243,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
+      {headerSection}
 
       {/* 1 — The vehicle: bus number + Block ID drive the read-only detail card; route is derived. */}
       <Section title="The vehicle" help="Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically.">

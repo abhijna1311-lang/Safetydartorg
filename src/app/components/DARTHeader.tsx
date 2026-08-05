@@ -336,7 +336,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
 
       {/* Main Nav */}
       <div className="mx-auto px-4 sm:px-6 mt-4 sm:mt-6">
-        <div className="max-w-[1600px] mx-auto h-12 px-2 sm:px-6 bg-slate-50/40 border-b border-slate-200/60 rounded-t-lg overflow-x-auto no-scrollbar">
+        <div className="max-w-[1600px] mx-auto h-12 px-2 sm:px-6 border-b border-slate-200/60 overflow-x-auto no-scrollbar">
           <nav className="flex items-center justify-start sm:justify-center gap-3 sm:gap-8 h-full min-w-max sm:min-w-0">
             {navItems.map(item => {
               const isActive = activeNav === item.id;

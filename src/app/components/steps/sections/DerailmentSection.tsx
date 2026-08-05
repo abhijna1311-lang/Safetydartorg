@@ -11,6 +11,7 @@ interface Props {
   onUpdate: (d: Partial<AccidentReportData>) => void;
   narrativeReadOnly?: boolean;
   showErrors?: boolean;
+  headerSection?: React.ReactNode;
 }
 
 const toOptions = (values: string[]) => [...values]
@@ -99,7 +100,7 @@ function fmtTime(value?: string) {
   return `${hour24 % 12 || 12}:${minute} ${hour24 >= 12 ? 'PM' : 'AM'}`;
 }
 
-export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false }: Props) {
+export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isLRV = data.mode === 'Light Rail Vehicle';
   const fleet = isLRV ? LRV_FLEET : HI_RAIL_FLEET;
   const selectedVehicle = fleet.find(vehicle => vehicle.id === data.train_number);
@@ -133,6 +134,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
+      {headerSection}
       <Section title={isLRV ? 'The train' : 'The Hi-Rail vehicle'} help={`Select the ${isLRV ? 'train' : 'Hi-Rail vehicle'} number to pull its fleet and employee pull-out details.`}>
         {selectedVehicle && (
           <div className="dart-vehicle-strip">

@@ -71,24 +71,6 @@ const EMPTY_EMPLOYEE_FIELDS: Partial<AccidentReportData> = {
   is_student_employee: undefined,
 };
 
-const RDO_CONSECUTIVE = ['Sun/Mon', 'Mon/Tue', 'Tue/Wed', 'Wed/Thu', 'Thu/Fri', 'Fri/Sat', 'Sat/Sun'].map(v => ({ value: v, label: v }));
-const RDO_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const RDO_DAYS = RDO_DAY_NAMES.map(v => ({ value: v, label: v }));
-
-function areSplitDaysValid(day1?: string, day2?: string) {
-  if (!day1 || !day2) return false;
-  const firstIndex = RDO_DAY_NAMES.indexOf(day1);
-  const secondIndex = RDO_DAY_NAMES.indexOf(day2);
-  if (firstIndex < 0 || secondIndex < 0) return false;
-  const distance = Math.abs(firstIndex - secondIndex);
-  return distance !== 0 && distance !== 1 && distance !== RDO_DAY_NAMES.length - 1;
-}
-
-function splitDayOptions(otherDay?: string) {
-  if (!otherDay) return RDO_DAYS;
-  return RDO_DAYS.filter(({ value }) => areSplitDaysValid(value, otherDay));
-}
-
 const fade = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
@@ -139,16 +121,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const hasIncidentDate = !!data.incident_date;
   const hasIncidentTime = !!data.incident_time;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
-  const splitDaysAreValid = areSplitDaysValid(data.rdo_split_1, data.rdo_split_2);
-  // Schedule section is operator-only. Supervisors and PMs open the case without it —
-  // if scheduling context becomes relevant, it lives on their own section, not intake.
-  const showSchedule = !isSupervisor && !isProgramManager;
-  const hasSchedule = !showSchedule
-    || (data.is_student_employee !== undefined
-      && !!data.regular_day_off_type
-      && (data.regular_day_off_type === 'Consecutive'
-        ? !!data.rdo_consecutive
-        : splitDaysAreValid));
+  // Schedule was moved to Step 2 — Step 1 no longer gates on it.
   const hasFilingChoice = !canFileOnBehalf || data.is_on_behalf !== undefined;
   // When someone initiates on behalf, they must state whether the operator can file their own
   // section. "No" waives the operator section and requires a reason.
@@ -157,7 +130,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     || data.operator_availability_confirmed === true
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
-  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasSchedule && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
+  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
 
 
   // Restored drafts can contain a legacy Derailment + non-rail mode combination. Enforce the
@@ -337,10 +310,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (!hasIncidentTime) missing.push('incident time');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
-  if (data.is_student_employee === undefined) missing.push('student employee');
-  if (!data.regular_day_off_type) missing.push('regular day off');
-  if (data.regular_day_off_type === 'Consecutive' && !data.rdo_consecutive) missing.push('regular days off');
-  if (data.regular_day_off_type === 'Split' && !splitDaysAreValid) missing.push('valid split regular days off');
 
   const errFilingChoice = showErrors && canFileOnBehalf && !hasFilingChoice;
   const errEmployee = showErrors && data.is_on_behalf === true && !hasEmployee;
@@ -350,27 +319,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const errIncidentTime = showErrors && !hasIncidentTime;
   const errDriving = showErrors && needsDrivingQ && data.operating_dart_vehicle === undefined;
   const errMode = showErrors && !hasMode;
-  const errStudentEmployee = showErrors && data.is_student_employee === undefined;
-  const errRegularDayOff = showErrors && !data.regular_day_off_type;
-  const errSplitDays = showErrors && data.regular_day_off_type === 'Split' && !splitDaysAreValid;
-
-  const handleSplitDay1Change = (value: string) => {
-    onUpdate({
-      rdo_split_1: value,
-      rdo_split_2: data.rdo_split_2 && !areSplitDaysValid(value, data.rdo_split_2)
-        ? undefined
-        : data.rdo_split_2,
-    });
-  };
-
-  const handleSplitDay2Change = (value: string) => {
-    onUpdate({
-      rdo_split_1: data.rdo_split_1 && !areSplitDaysValid(data.rdo_split_1, value)
-        ? undefined
-        : data.rdo_split_1,
-      rdo_split_2: value,
-    });
-  };
 
   const handleNextClick = () => {
     if (canProceed) {
@@ -381,62 +329,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
-  // Extracted so the same controls can render as a 2-col Schedule section (operator /
-  // supervisor) or share one 3-col row with the employee field (program manager).
-  const studentEmployeeField = (
-    <div>
-      <p className="dart-field-label">Student employee? <span className="dart-req">*</span></p>
-      <div className={`dart-seg ${errStudentEmployee ? 'dart-field-error' : ''}`}>
-        <button type="button" onClick={() => onUpdate({ is_student_employee: true })} className={`dart-seg-btn ${data.is_student_employee === true ? 'dart-seg-btn--on' : ''}`}>
-          {data.is_student_employee === true && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Yes
-        </button>
-        <button type="button" onClick={() => onUpdate({ is_student_employee: false })} className={`dart-seg-btn ${data.is_student_employee === false ? 'dart-seg-btn--on' : ''}`}>
-          {data.is_student_employee === false && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}No
-        </button>
-      </div>
-    </div>
-  );
-
-  const regularDayOffField = (
-    <div>
-      <p className="dart-field-label">Regular day off <span className="dart-req">*</span></p>
-      <div className={`dart-seg ${errRegularDayOff ? 'dart-field-error' : ''}`}>
-        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Consecutive', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`dart-seg-btn ${data.regular_day_off_type === 'Consecutive' ? 'dart-seg-btn--on' : ''}`}>
-          {data.regular_day_off_type === 'Consecutive' && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Consecutive days
-        </button>
-        <button type="button" onClick={() => onUpdate({ regular_day_off_type: 'Split', rdo_consecutive: undefined, rdo_split_1: undefined, rdo_split_2: undefined })} className={`dart-seg-btn ${data.regular_day_off_type === 'Split' ? 'dart-seg-btn--on' : ''}`}>
-          {data.regular_day_off_type === 'Split' && <Check className="w-[15px] h-[15px]" strokeWidth={2.5} />}Split days
-        </button>
-      </div>
-    </div>
-  );
-
-  const rdoConditional = (
-    <AnimatePresence>
-      {data.regular_day_off_type === 'Consecutive' && (
-        <motion.div {...fade} key="rdo-consec" className="w-full sm:w-[240px]">
-          <label className="dart-field-label">Regular days off (RDO) – Consecutive <span className="dart-req">*</span></label>
-          <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" error={showErrors && !data.rdo_consecutive} />
-        </motion.div>
-      )}
-      {data.regular_day_off_type === 'Split' && (
-        <motion.div {...fade} key="rdo-split" className="flex flex-wrap items-start gap-x-6 gap-y-5">
-          <div className="w-full sm:w-[200px]">
-            <label className="dart-field-label">RDO Split – Day 1 <span className="dart-req">*</span></label>
-            <CustomSelect value={data.rdo_split_1 || ''} onChange={handleSplitDay1Change} options={splitDayOptions(data.rdo_split_2)} placeholder="Select day" error={errSplitDays} />
-          </div>
-          <div className="w-full sm:w-[200px]">
-            <label className="dart-field-label">RDO Split – Day 2 <span className="dart-req">*</span></label>
-            <CustomSelect value={data.rdo_split_2 || ''} onChange={handleSplitDay2Change} options={splitDayOptions(data.rdo_split_1)} placeholder="Select day" error={errSplitDays} />
-          </div>
-          <p className={`w-full text-xs font-['Poppins'] ${errSplitDays ? 'font-medium text-red-600' : 'text-slate-500'}`}>
-            Split days must be different and cannot be consecutive.
-          </p>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
 
   const employeeSearchField = (
     <>
@@ -561,7 +453,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   );
 
   return (
-    <StepContainer stepNumber={1} showStepBadge={showStepBadge} title="Incident Basics" description="Confirm the schedule, then select the event type and vehicle mode.">
+    <StepContainer stepNumber={1} showStepBadge={showStepBadge} title="Incident Basics" description="Select the event type and vehicle mode.">
       {showErrors && !canProceed && (
         <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" />
@@ -620,65 +512,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           </Section>
         )}
 
-        {/* Schedule — operators only. Supervisors and PMs skip this on intake. */}
-        {showSchedule && (
-          <Section
-            title="Schedule"
-            help="Confirm the operator's schedule details."
-            complete={false}
-          >
-            <div className="dart-schedule-row">
-              <motion.div layout transition={layoutSpring}>{studentEmployeeField}</motion.div>
-              <motion.div layout transition={layoutSpring}>{regularDayOffField}</motion.div>
-              <AnimatePresence mode="popLayout">
-                {data.regular_day_off_type === 'Consecutive' && (
-                  <motion.div
-                    layout
-                    key="sched-rdo-consec"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
-                  >
-                    <label className="dart-field-label">Regular days off (RDO) – Consecutive <span className="dart-req">*</span></label>
-                    <CustomSelect value={data.rdo_consecutive || ''} onChange={v => onUpdate({ rdo_consecutive: v })} options={RDO_CONSECUTIVE} placeholder="Select RDO pair" error={showErrors && !data.rdo_consecutive} />
-                  </motion.div>
-                )}
-                {data.regular_day_off_type === 'Split' && (
-                  <motion.div
-                    layout
-                    key="sched-rdo-1"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
-                  >
-                    <label className="dart-field-label">RDO Split – Day 1 <span className="dart-req">*</span></label>
-                    <CustomSelect value={data.rdo_split_1 || ''} onChange={handleSplitDay1Change} options={splitDayOptions(data.rdo_split_2)} placeholder="Select day" error={errSplitDays} />
-                  </motion.div>
-                )}
-                {data.regular_day_off_type === 'Split' && (
-                  <motion.div
-                    layout
-                    key="sched-rdo-2"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ layout: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' }, scale: { duration: 0.24, ease: 'easeInOut' } }}
-                  >
-                    <label className="dart-field-label">RDO Split – Day 2 <span className="dart-req">*</span></label>
-                    <CustomSelect value={data.rdo_split_2 || ''} onChange={handleSplitDay2Change} options={splitDayOptions(data.rdo_split_1)} placeholder="Select day" error={errSplitDays} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            {data.regular_day_off_type === 'Split' && (
-              <p className={`mt-2 text-xs font-['Poppins'] ${errSplitDays ? 'font-medium text-red-600' : 'text-slate-500'}`}>
-                Split days must be different and cannot be consecutive.
-              </p>
-            )}
-          </Section>
-        )}
+        {/* Schedule moved to Step 2 (Vehicle & Location) — operator-only, above the vehicle section. */}
 
         {/* Type of event + incident timing (+ conditional driving sub-question) */}
         <Section

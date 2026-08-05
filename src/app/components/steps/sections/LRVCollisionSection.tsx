@@ -12,6 +12,7 @@ interface Props {
   onUpdate: (d: Partial<AccidentReportData>) => void;
   narrativeReadOnly?: boolean;
   showErrors?: boolean;
+  headerSection?: React.ReactNode;
 }
 
 // ── option lists ──────────────────────────────────────────────────────────────
@@ -166,7 +167,7 @@ function locationShowsStation(cat: string) { return ['Rail Station', 'Grade Cros
 function locationShowsGrade(cat: string) { return ['Grade Crossing', 'Bridge'].includes(cat); }
 function locationShowsTunnel(cat: string) { return cat === 'Tunnel'; }
 
-export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false }: Props) {
+export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isStreetcar = data.mode === 'Streetcar';
   const activeFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
   const locationOptions = isStreetcar ? STREETCAR_LOCATION_CATEGORY : LRV_LOCATION_CATEGORY;
@@ -210,6 +211,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
+      {headerSection}
 
       {/* 1 — The train: enter the train number; its assigned details are pulled in automatically */}
       <Section title={isStreetcar ? 'The streetcar' : 'The train'} help={`Enter the ${isStreetcar ? 'streetcar' : 'train'} number — its assigned fleet, line and schedule are pulled in automatically.`}>

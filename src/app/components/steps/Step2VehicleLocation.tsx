@@ -9,6 +9,7 @@ import { DerailmentSection } from './sections/DerailmentSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
 import { WeatherSection } from './sections/WeatherSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
+import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
 import { TimePickerInput } from '../TimePickerInput';
 import type { AccidentReportData } from '../../types/accident-report';
@@ -74,6 +75,9 @@ export function Step2VehicleLocation({
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
+  // Schedule was moved here from Step 1. Only the operator answers it, and only outside
+  // the leader-started intake phase (which stays lean).
+  const showSchedule = activeSectionKey === 'operator' && !isInitiationStage;
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
 
@@ -143,6 +147,7 @@ export function Step2VehicleLocation({
   );
 
   // Minimum required to proceed
+  const hasSchedule = !showSchedule || hasScheduleAnswers(data);
   const canProceed = isInitiationStage
     ? !!(
         data.incident_date &&
@@ -154,6 +159,7 @@ export function Step2VehicleLocation({
             : data.train_number && (data.address_of_event || data.station_applicable || data.grade_crossing_applicable))
       )
     : !!(
+        hasSchedule &&
         narrativeRequirementMet &&
         data.incident_date &&
         data.incident_time &&
@@ -294,17 +300,27 @@ export function Step2VehicleLocation({
             </>
           ) : (
             <>
-              {isCollision ? (
-                <>
-                  {isBus  && <BusCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
-                  {isNRV  && <NRVCollisionSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
-                  {isLRV  && <LRVCollisionSection  data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />}
-                </>
-              ) : isDerailment ? (
-                <DerailmentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
-              ) : (
-                <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
-              )}
+              {(() => {
+                const schedule = showSchedule ? (
+                  <ScheduleSection data={data} onUpdate={onUpdate} showErrors={showErrors} />
+                ) : undefined;
+                if (isCollision) {
+                  if (isBus) return <BusCollisionSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                  if (isNRV) return <NRVCollisionSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                  if (isLRV) return <LRVCollisionSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                if (isDerailment) {
+                  return <DerailmentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                // Non-collision / non-derailment falls back to BasicIncidentSection, which uses its own
+                // stacked-card layout; Schedule renders above it as a distinct block.
+                return (
+                  <>
+                    {schedule}
+                    <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
+                  </>
+                );
+              })()}
               {/* Bus and rail collisions embed weather inside "Weather and conditions"; other flows keep it standalone */}
               {!isDerailment && !(isCollision && (isBus || isLRV || isNRV)) && <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />}
             </>
