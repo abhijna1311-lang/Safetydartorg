@@ -63,7 +63,7 @@ export function Step2CollisionInformation({ data, onUpdate, onNext, onBack, onSa
             </h3>
             <p className="text-sm text-slate-600 font-['Poppins']">
               This is a <strong>{data.event_type}</strong> event. Collision-specific information is not required.
-              Click Next to continue to vehicle and location details.
+              Click Next to continue to incident details.
             </p>
           </div>
         </div>

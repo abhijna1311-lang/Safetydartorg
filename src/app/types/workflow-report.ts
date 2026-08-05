@@ -198,7 +198,7 @@ export function getStepName(report: WorkflowReport): string {
     case 1:
       return report.workflowStage === 'initiation' ? 'Initial intake started' : 'Incident basics';
     case 2:
-      return 'Vehicle and location';
+      return 'Incident details';
     case 3:
       return 'People and impact';
     default:

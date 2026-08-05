@@ -1148,7 +1148,7 @@ type OperatorStepNumber = 1 | 2 | 3 | 4;
 
 const OPERATOR_STEP_META: Record<OperatorStepNumber, { title: string; description: string }> = {
   1: { title: 'Incident basics', description: 'Schedule, event type, and vehicle mode.' },
-  2: { title: 'Vehicle & location', description: 'Vehicle details, location, collision, and conditions.' },
+  2: { title: 'Incident details', description: 'Vehicle details, location, collision, and conditions.' },
   3: { title: 'People & impact', description: 'Injuries, passengers, pedestrians, other vehicles, police.' },
   4: { title: 'Attachments', description: 'Files the operator uploaded with this submission.' },
 };

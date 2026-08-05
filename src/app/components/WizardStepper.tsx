@@ -14,7 +14,7 @@ interface WizardStep {
 
 const DEFAULT_STEPS: WizardStep[] = [
   { number: 1, title: 'Incident Basics' },
-  { number: 2, title: 'Vehicle And Location' },
+  { number: 2, title: 'Incident Details' },
   { number: 3, title: 'People And Impact' },
   { number: 4, title: 'Review' },
 ];

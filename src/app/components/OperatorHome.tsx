@@ -267,7 +267,7 @@ const DRAFT_REPORTS_BY_ROLE: Record<UserRole, HomeDraftReport[]> = {
       mode: 'Bus',
       lastSaved: '11/15/2025',
       currentStep: 2,
-      stepName: 'Vehicle and location',
+      stepName: 'Incident details',
       savedData: {
         step1: { vehicleMode: 'Bus', eventType: 'Collision' },
         step2: { vehicleNumber: '2045', route: '15', location: '123 Main St & 5th Ave' },
@@ -417,7 +417,7 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
         currentStep: report.currentStep,
         stepName: getStepName(report),
         sectionName: getActionableSectionForRole(report, roleConfig.role)?.label,
-        nextRequiredField: report.currentStep <= 1 ? 'Incident Basics' : report.currentStep === 2 ? 'Vehicle And Location' : report.currentStep === 3 ? 'People And Impact' : 'Review',
+        nextRequiredField: report.currentStep <= 1 ? 'Incident Basics' : report.currentStep === 2 ? 'Incident Details' : report.currentStep === 3 ? 'People And Impact' : 'Review',
         savedData: report.formData,
       }));
   }, [reports, roleConfig.role]);

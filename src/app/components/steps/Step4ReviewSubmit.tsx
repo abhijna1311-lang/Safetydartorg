@@ -1558,11 +1558,11 @@ export function Step4ReviewSubmit({
         </div>
         )}
 
-        {/* Vehicle and Location Summary */}
+        {/* Incident Details Summary */}
         {showInlineReferenceSummaries && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Vehicle and location</h4>
+            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Incident details</h4>
             <button
               onClick={() => onJumpToStep(2)}
               className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
