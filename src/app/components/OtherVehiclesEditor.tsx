@@ -37,18 +37,18 @@ const DIRECTIONS = opt([
 
 const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
 
-function Field({ label, required, className = '', children }: { label: string; required?: boolean; className?: string; children: React.ReactNode }) {
+function Field({ label, required, className = '', error = false, children }: { label: string; required?: boolean; className?: string; error?: boolean; children: React.ReactNode }) {
   return (
     <div className={className}>
       <label className="dart-field-label">{label}{required && <span className="dart-req ml-1">*</span>}</label>
-      {children}
+      <div className={error ? 'dart-field-error' : ''}>{children}</div>
     </div>
   );
 }
 
-function NumberField({ label, value, onChange, className = '', required = false }: { label: string; value?: number; onChange: (v: number | undefined) => void; className?: string; required?: boolean }) {
+function NumberField({ label, value, onChange, className = '', required = false, error = false }: { label: string; value?: number; onChange: (v: number | undefined) => void; className?: string; required?: boolean; error?: boolean }) {
   return (
-    <Field label={label} required={required} className={className}>
+    <Field label={label} required={required} className={className} error={error}>
       <input
         type="number"
         min={0}
@@ -68,11 +68,11 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 }
 
 // A stacked question row: label on the left, control on the right (matches the Police section).
-function BoolRow({ label, required, sentenceCase = false, children }: { label: string; required?: boolean; sentenceCase?: boolean; children: React.ReactNode }) {
+function BoolRow({ label, required, sentenceCase = false, error = false, children }: { label: string; required?: boolean; sentenceCase?: boolean; error?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0, textTransform: sentenceCase ? 'none' : undefined }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
-      <div className="shrink-0">{children}</div>
+    <div className={`flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3 ${error ? 'bg-red-50/50' : ''}`}>
+      <p className={`dart-field-label sm:flex-1 ${error ? 'text-red-600' : ''}`} style={{ marginBottom: 0, textTransform: sentenceCase ? 'none' : undefined }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <div className={`shrink-0 ${error ? 'dart-field-error' : ''}`}>{children}</div>
     </div>
   );
 }
@@ -179,7 +179,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                   <div className="space-y-6 px-4 py-5">
                     {/* This determines which vehicle-type options apply, so ask it first. */}
                     <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-                      <BoolRow label="Was this a collision between DART vehicles?" required sentenceCase>
+                      <BoolRow label="Was this a collision between DART vehicles?" required sentenceCase error={showErrors && v.dart_dart === undefined}>
                         <YesNoToggle value={v.dart_dart} onChange={val => update(v.id, { dart_dart: val, vehicle_type: undefined })} />
                       </BoolRow>
                     </div>
@@ -197,20 +197,21 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                             : 'grid-cols-1'
                         }`}
                       >
-                        <NumberField label="Number of occupants in vehicle" required value={v.occupants} onChange={n => setOccupants(v.id, n)} />
+                        <NumberField label="Number of occupants in vehicle" required error={showErrors && v.occupants === undefined} value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
-                            <NumberField label="Occupant fatalities" required value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
-                            <NumberField label="Occupant injuries" required={injuryDetailsRequired} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
+                            <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
+                            <NumberField label="Occupant injuries" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && v.injuries === undefined} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
                             {hasInjuries && (
                               <NumberField
                                 label="Occupants transported to hospital"
                                 required={injuryDetailsRequired}
+                                error={showErrors && injuryDetailsRequired && v.transported === undefined}
                                 value={v.transported}
                                 onChange={n => update(v.id, { transported: n })}
                               />
                             )}
-                            <NumberField label="Occupants who fled the scene" required={injuryDetailsRequired} value={v.fled} onChange={n => update(v.id, { fled: n })} />
+                            <NumberField label="Occupants who fled the scene" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && v.fled === undefined} value={v.fled} onChange={n => update(v.id, { fled: n })} />
                           </>
                         )}
                       </div>
@@ -219,15 +220,14 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      {/* 12-col grid gives Vehicle Type more room for long labels like the Wrecker option. */}
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-12">
-                        <Field label="Vehicle type" required className="md:col-span-5">
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-3">
+                        <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
-                        <Field label="Vehicle action" required className="md:col-span-3">
+                        <Field label="Vehicle action" required error={showErrors && !v.action}>
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
                         </Field>
-                        <Field label="Direction relative to DART vehicle" required className="md:col-span-4">
+                        <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
                         </Field>
                       </div>
@@ -237,13 +237,15 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     <div>
                       <GroupLabel>Damage</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                        <BoolRow label="Was there damage to this vehicle?" required>
+                        <BoolRow label="Was there damage to this vehicle?" required error={showErrors && v.damage === undefined}>
                           <YesNoToggle value={v.damage} onChange={val => update(v.id, { damage: val, damage_area: val ? v.damage_area : undefined, impact_markers: val ? v.impact_markers : undefined })} />
                         </BoolRow>
-                        {v.damage && (
-                          <div className="px-4 py-3">
+                        {v.damage && (() => {
+                          const damageAreaError = showErrors && (v.damage_area?.length ?? 0) === 0;
+                          return (
+                          <div className={`px-4 py-3 ${damageAreaError ? 'bg-red-50/50' : ''}`}>
                             <div className="mb-2 flex items-baseline justify-between gap-3">
-                              <p className="dart-field-label" style={{ marginBottom: 0, textTransform: 'none' }}>
+                              <p className={`dart-field-label ${damageAreaError ? 'text-red-600' : ''}`} style={{ marginBottom: 0, textTransform: 'none' }}>
                                 Damage area<span className="dart-req ml-1">*</span>
                                 <span className="ml-2 text-[11px] font-normal text-slate-400">Tap all that apply</span>
                               </p>
@@ -258,9 +260,13 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                               )}
                             </div>
                             <DamageAreaChips value={v.damage_area || []} onChange={val => update(v.id, { damage_area: val })} />
+                            {damageAreaError && (
+                              <p className="mt-2 text-[11px] font-medium text-red-600 font-['Poppins']">Select at least one damage area.</p>
+                            )}
                           </div>
-                        )}
-                        <BoolRow label="Point of impact" required>
+                          );
+                        })()}
+                        <BoolRow label="Point of impact" required error={showErrors && !v.point_of_impact}>
                           <div className="w-full sm:w-60">
                             <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
                           </div>

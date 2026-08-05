@@ -9,7 +9,7 @@ export function DamageAreaChips({ value, onChange }: { value: string[]; onChange
     else onChange([...value, item]);
   };
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-3">
       {DAMAGE_AREA_GROUPS.map((group) => (
         <div key={group.label} className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 min-w-[42px] text-[10px] font-semibold uppercase tracking-wide text-slate-400 font-['Poppins']">
