@@ -157,11 +157,12 @@ export function Step3PeopleImpact({
     const passengerComplete = person.role !== 'Passenger' || !!person.passenger_action
       && (!['Boarding Bus', 'Alighting Bus'].includes(person.passenger_action) || !!person.which_door);
     const pedestrianComplete = person.role !== 'Pedestrian' || !!person.pedestrian_type && !!person.pedestrian_action;
+    const genderComplete = !!person.gender;
     const injuryComplete = isHiRail || (person.injured !== undefined
-      && (!person.injured || (person.fatal !== undefined && !!person.injured_body_part && person.transported_to_hospital !== undefined)));
+      && (!person.injured || (!!person.injured_body_part && person.transported_to_hospital !== undefined)));
     const followUpComplete = isHiRail || (person.fled_scene !== undefined
       && (person.role !== 'Passenger' || !person.injured || person.courtesy_card !== undefined));
-    return passengerComplete && pedestrianComplete && injuryComplete && followUpComplete;
+    return passengerComplete && pedestrianComplete && genderComplete && injuryComplete && followUpComplete;
   };
   const vehicleComplete = (vehicle: NonNullable<AccidentReportData['other_vehicles']>[number]) => (
     vehicle.occupants !== undefined

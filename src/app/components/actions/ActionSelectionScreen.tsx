@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Info } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { GlassButton } from '../GlassButton';
 import { SearchableCombobox, type ComboboxOption } from '../SearchableCombobox';
@@ -122,23 +121,6 @@ export function ActionSelectionScreen({
 
   return (
     <div className="space-y-6">
-      {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-2xl border border-sky-200/70 bg-sky-50/60 px-5 py-4">
-        <Info className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
-        <div>
-          <p className="text-sm font-semibold text-[#00205B] font-['Poppins']">{bannerTitle}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-600 font-['Poppins']">{bannerDescription}</p>
-        </div>
-      </div>
-
-      {/* Section title */}
-      <div>
-        <h3 className="text-lg font-semibold text-[#00205B] font-['Poppins']">{title}</h3>
-        {description && (
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">{description}</p>
-        )}
-      </div>
-
       {/* Grid of action cards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {actions.map((action) => {

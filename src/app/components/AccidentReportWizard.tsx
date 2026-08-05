@@ -9,6 +9,7 @@ import EmployeeRecordPanel from './steps/sections/EmployeeRecordPanel';
 import { SuccessScreen } from './SuccessScreen';
 import { DARTHeader } from './DARTHeader';
 import { AssistantManagerReview } from './AssistantManagerReview';
+import { StationSupervisorAckScreen } from './StationSupervisorAckScreen';
 import { DARTFooter } from './DARTFooter';
 import { CorrectionResolutionScreen } from './CorrectionResolutionScreen';
 import { RoleContextBar } from './RoleContextBar';
@@ -49,6 +50,8 @@ interface AccidentReportWizardProps {
   initialReport?: WorkflowReport | null;
   onSaveReport?: (report: WorkflowReport) => void;
   existingReports?: WorkflowReport[];
+  /** Open an existing case in the wizard/stepper view. Used by the duplicate-detection dialog. */
+  onOpenReport?: (reportId: string) => void;
 }
 
 const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { number: number; title: string }[]> = {
@@ -154,7 +157,7 @@ function getInitialStepForCurrentRole(report: WorkflowReport | null | undefined,
   return report?.currentStep || fallbackStep || 1;
 }
 
-export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, initialData, initialReport, onSaveReport, existingReports = [] }: AccidentReportWizardProps) {
+export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, initialData, initialReport, onSaveReport, existingReports = [], onOpenReport }: AccidentReportWizardProps) {
   const { roleConfig } = useUserRole();
   const [currentStep, setCurrentStep] = useState(() => getInitialStepForCurrentRole(initialReport, roleConfig.role, initialStep));
   const [formData, setFormData] = useState<AccidentReportData>(initialReport?.formData || initialData || {});
@@ -194,12 +197,15 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const [rejectedAt, setRejectedAt] = useState<string | null>(initialReport?.rejectedAt || null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(initialReport?.rejectionReason || null);
   const [rejectedBy, setRejectedBy] = useState<UserRole | null>(initialReport?.rejectedBy || null);
+  const [stationSupervisorAck, setStationSupervisorAck] = useState<WorkflowReport['stationSupervisorAck']>(initialReport?.stationSupervisorAck ?? null);
   const [isFullReportOpen, setIsFullReportOpen] = useState(false);
   const [duplicateReportToReview, setDuplicateReportToReview] = useState<WorkflowReport | null>(null);
   const duplicateReviewButtonRef = useRef<HTMLButtonElement>(null);
   const [referenceDrawerOpen, setReferenceDrawerOpen] = useState(false);
   const [referenceDrawerTab, setReferenceDrawerTab] = useState<ReferenceReportTab>('operator');
   const [programManagerInActionsMode, setProgramManagerInActionsMode] = useState(false);
+  const [operatorInActionsMode, setOperatorInActionsMode] = useState(false);
+  const [supervisorInActionsMode, setSupervisorInActionsMode] = useState(false);
   const [submitResult, setSubmitResult] = useState<null | {
     submittedSectionKey: WorkflowSectionKey;
     sections: WorkflowSections;
@@ -217,7 +223,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     && isAssignedSectionFlow
     && !isCaseRejected;
   const isRoleAllowedToAdvance = !isCaseRejected && !isComplete && isSectionActionable(activeSection);
-  const showSectionStepper = !isInitiatingPM && !programManagerInActionsMode && (!isAssignedSectionFlow || (
+  const showSectionStepper = !isInitiatingPM && !programManagerInActionsMode && !operatorInActionsMode && !supervisorInActionsMode && (!isAssignedSectionFlow || (
     Boolean(assignedSectionSteps && assignedSectionSteps.length > 1)
     && !isCaseRejected
   ));
@@ -307,6 +313,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     nextRejectedAt,
     nextRejectionReason,
     nextRejectedBy,
+    nextStationSupervisorAck,
   }: {
     nextSections: WorkflowSections;
     nextStep: number;
@@ -318,12 +325,19 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     nextRejectedAt?: string | null;
     nextRejectionReason?: string | null;
     nextRejectedBy?: UserRole | null;
+    nextStationSupervisorAck?: WorkflowReport['stationSupervisorAck'];
   }) => {
     const nextStage = getLegacyStageFromSections(nextSections);
     const dataToPersist = nextFormData ?? formData;
     const rejectedAtToPersist = nextRejectedAt !== undefined ? nextRejectedAt : rejectedAt;
     const rejectionReasonToPersist = nextRejectionReason !== undefined ? nextRejectionReason : rejectionReason;
     const rejectedByToPersist = nextRejectedBy !== undefined ? nextRejectedBy : rejectedBy;
+    // Once the operator submits, seed a pending SS acknowledgment task if none exists yet.
+    const operatorNowSubmitted = ['submitted', 'resubmitted', 'accepted'].includes(nextSections.operator.status);
+    const existingAck = nextStationSupervisorAck !== undefined ? nextStationSupervisorAck : stationSupervisorAck;
+    const ackToPersist: WorkflowReport['stationSupervisorAck'] = existingAck
+      ? existingAck
+      : (operatorNowSubmitted ? { status: 'pending' } : null);
     const isRejected = Boolean(rejectedAtToPersist);
     onSaveReport?.({
       id: reportId,
@@ -331,6 +345,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       workflowStage: isRejected ? 'closed' : nextStage,
       overallStatus: isRejected ? 'rejected' : getOverallStatusFromSections(nextSections, nextStage === 'closed'),
       sections: nextSections,
+      stationSupervisorAck: ackToPersist,
       currentStep: nextStep,
       formData: dataToPersist,
       createdAt,
@@ -975,6 +990,44 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     );
   }
 
+  // Station Supervisor: read-only acknowledgment view. Runs in parallel with
+  // Field Supervisor / SPM review and does not gate the workflow.
+  if (roleConfig.role === 'Station Supervisor') {
+    const ackAlreadyOnFile = stationSupervisorAck?.status === 'acknowledged';
+    const handleStationSupervisorAcknowledge = (note: string) => {
+      const timestamp = new Date().toISOString();
+      const nextAck: WorkflowReport['stationSupervisorAck'] = {
+        status: 'acknowledged',
+        acknowledgedAt: timestamp,
+        acknowledgedBy: roleConfig.name,
+        acknowledgedByBadge: roleConfig.badge,
+        note: note || undefined,
+      };
+      setStationSupervisorAck(nextAck);
+      persistReport({
+        nextSections: sections,
+        nextStep: currentStep,
+        nextLastSubmittedBy: lastSubmittedBy,
+        nextClosedAt: initialReport?.closedAt ?? null,
+        nextHandoffNote: handoffNote,
+        nextHandoffHistory: handoffHistory,
+        nextStationSupervisorAck: nextAck,
+      });
+      onBackToHome();
+    };
+
+    return (
+      <StationSupervisorAckScreen
+        data={formData}
+        report={initialReport ?? liveReport}
+        alreadyAcknowledged={ackAlreadyOnFile}
+        onAcknowledge={handleStationSupervisorAcknowledge}
+        onBackToHome={onBackToHome}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen dart-canvas flex flex-col">
       <DARTHeader activeNav="new-report" onNavigate={onNavigate} />
@@ -984,10 +1037,19 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
           (and Operator) filed, then pick one of three CSV-defined actions. */}
       {roleConfig.role === 'Assistant Manager' ? (
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 flex-1 w-full">
-          <div className="max-w-[900px] mx-auto">
+          <div className="max-w-[1600px] mx-auto">
+            <div className="mb-8">
+              <h1 className="text-[28px] sm:text-[32px] text-[#00205B] font-semibold mb-2">
+                Safety Event Report
+              </h1>
+              <p className="text-sm text-slate-600">
+                Review what the Field Supervisor submitted, then decide how this report moves forward.
+              </p>
+            </div>
             <AssistantManagerReview
               data={formData}
               caseId={reportId}
+              supervisorSubmittedAt={sections.supervisor.submittedAt}
               onBackToHome={onBackToHome}
               onOpenOperatorReport={() => { setReferenceDrawerTab('operator'); setReferenceDrawerOpen(true); }}
               onOpenSupervisorReport={() => { setReferenceDrawerTab('supervisor'); setReferenceDrawerOpen(true); }}
@@ -1019,7 +1081,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
           {/* Page Title - aligned with nav menu */}
           <div className="mb-8">
             <h1 className="text-[28px] sm:text-[32px] text-[#00205B] font-semibold mb-2">
-              Accident case workspace
+              Safety Event Report
             </h1>
             <p className="text-sm text-slate-600">
               Complete your owned section. Case workflow details are available when you need them.
@@ -1127,10 +1189,10 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   }}
                   stepNumber={1}
                   totalSteps={assignedSectionSteps?.length || 1}
-                  title={programManagerInActionsMode ? 'Choose next action' : (activeAssignedStepTitle || stageMeta.label)}
-                  description={activeSectionKey === 'supervisor'
+                  title={programManagerInActionsMode || operatorInActionsMode || supervisorInActionsMode ? 'Choose next action' : (activeAssignedStepTitle || stageMeta.label)}
+                  description={activeSectionKey === 'supervisor' && !supervisorInActionsMode
                     ? 'Complete the Field Supervisor investigation fields for this case. The operator report is available as read-only reference.'
-                    : programManagerInActionsMode
+                    : programManagerInActionsMode || operatorInActionsMode || supervisorInActionsMode
                     ? 'Select what should happen next. Your choice will update the workflow status and assignment.'
                     : currentStepperStep === 1
                     ? 'Confirm the case context and record your investigation notes. Field supervisor and police statements go here.'
@@ -1165,6 +1227,8 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   } : undefined}
                   onProgramManagerActionsModeChange={activeSectionKey === 'programManager' ? setProgramManagerInActionsMode : undefined}
+                  onOperatorActionsModeChange={activeSectionKey === 'operator' ? setOperatorInActionsMode : undefined}
+                  onSupervisorActionsModeChange={activeSectionKey === 'supervisor' ? setSupervisorInActionsMode : undefined}
                   pmReviewEnabled={pmCanTakeReviewAction && supervisorSectionSubmitted}
                   pmSupervisorSection={sections.supervisor}
                   pmOnOpenOperatorReport={() => { setReferenceDrawerTab('operator'); setReferenceDrawerOpen(true); }}
@@ -1259,6 +1323,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   onBack={handleBack}
                   onSubmit={handleSubmit}
                   onSaveDraft={handleSaveDraft}
+                  onOperatorActionsModeChange={activeSectionKey === 'operator' ? setOperatorInActionsMode : undefined}
                   submitLabel={stageMeta.submitLabel}
                   stageName={stageMeta.label}
                   nextRoleLabel={stageMeta.nextRoleLabel}
@@ -1342,7 +1407,13 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                     <button
                       ref={duplicateReviewButtonRef}
                       type="button"
-                      onClick={() => setDuplicateReportToReview(possibleDuplicate.report)}
+                      onClick={() => {
+                        if (onOpenReport) {
+                          onOpenReport(possibleDuplicate.report.id);
+                        } else {
+                          setDuplicateReportToReview(possibleDuplicate.report);
+                        }
+                      }}
                       className="dart-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#00205B] transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00205B]/30 font-['Poppins']"
                     >
                       Review Existing Record (Unique ID: {possibleDuplicate.report.id})

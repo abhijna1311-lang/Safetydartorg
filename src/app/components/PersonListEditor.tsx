@@ -7,6 +7,7 @@ import type { Person } from '../types/accident-report';
 
 const opt = (arr: string[]) => arr.map(v => ({ value: v, label: v }));
 const ROLES = opt(['Passenger', 'Pedestrian']);
+const GENDERS = opt(['Female', 'Male']);
 const BODY_PARTS = opt(['Head', 'Upper body', 'Lower body']);
 const PASSENGER_ACTIONS = opt(['Boarding Bus', 'Alighting Bus', 'On Board']);
 const DOORS = opt(['Front doors', 'Rear doors']);
@@ -113,9 +114,10 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
         const recordComplete = (
           (!isPassenger || (!!p.passenger_action && (!showDoor || !!p.which_door)))
           && (!isPedestrian || (!!p.pedestrian_type && !!p.pedestrian_action))
+          && !!p.gender
           && (!injuryDetailsRequired || (
             p.injured !== undefined
-            && (!p.injured || (p.fatal !== undefined && !!p.injured_body_part && p.transported_to_hospital !== undefined))
+            && (!p.injured || (!!p.injured_body_part && p.transported_to_hospital !== undefined))
             && p.fled_scene !== undefined
             && (!isPassenger || !p.injured || p.courtesy_card !== undefined)
           ))
@@ -184,41 +186,45 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                     {/* Details */}
                     <div>
                       <GroupLabel>Details</GroupLabel>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
-                        <Field label="Role" required className="lg:col-span-3">
-                          <CustomSelect value={role} onChange={v => changeRole(p.id, v)} options={ROLES} placeholder="Select role" />
-                        </Field>
+                      {(() => {
+                        // Keep every field in the row the same width by picking the col-span from the field count.
+                        const halfSpan = isPassenger && !showDoor ? 'lg:col-span-4' : 'lg:col-span-3';
+                        const passengerActionSpan = showDoor ? 'lg:col-span-3' : 'lg:col-span-4';
+                        return (
+                        <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
+                          <Field label="Role" required className={halfSpan}>
+                            <CustomSelect value={role} onChange={v => changeRole(p.id, v)} options={ROLES} placeholder="Select role" />
+                          </Field>
+                          <Field label="Gender" required className={halfSpan}>
+                            <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
+                          </Field>
 
-                        {isPassenger && (
-                          <>
-                            <Field label="At the time of the event, the passenger was" required className={`sm:col-span-2 ${showDoor ? 'lg:col-span-4' : 'lg:col-span-5'}`}>
-                              <CustomSelect value={p.passenger_action || ''} onChange={v => update(p.id, { passenger_action: v, which_door: undefined })} options={PASSENGER_ACTIONS} placeholder="Select" />
-                            </Field>
-                            {showDoor && (
-                              <Field label="Which door?" required className="lg:col-span-2">
-                                <CustomSelect value={p.which_door || ''} onChange={v => update(p.id, { which_door: v })} options={DOORS} placeholder="Select" error={showErrors && !p.which_door} />
+                          {isPassenger && (
+                            <>
+                              <Field label="At the time of the event, the passenger was" required className={`sm:col-span-2 ${passengerActionSpan}`}>
+                                <CustomSelect value={p.passenger_action || ''} onChange={v => update(p.id, { passenger_action: v, which_door: undefined })} options={PASSENGER_ACTIONS} placeholder="Select" />
                               </Field>
-                            )}
-                            <Field label="Name (if known)" className={showDoor ? 'lg:col-span-3' : 'lg:col-span-4'}>
-                              <input type="text" value={p.name || ''} onChange={e => update(p.id, { name: e.target.value })} placeholder="Enter full name" className="dart-input-base" />
-                            </Field>
-                          </>
-                        )}
+                              {showDoor && (
+                                <Field label="Which door?" required className="lg:col-span-3">
+                                  <CustomSelect value={p.which_door || ''} onChange={v => update(p.id, { which_door: v })} options={DOORS} placeholder="Select" error={showErrors && !p.which_door} />
+                                </Field>
+                              )}
+                            </>
+                          )}
 
-                        {isPedestrian && (
-                          <>
-                            <Field label="Pedestrian type" required className="sm:col-span-2 lg:col-span-4">
-                              <CustomSelect value={p.pedestrian_type || ''} onChange={v => update(p.id, { pedestrian_type: v, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select" />
-                            </Field>
-                            <Field label="Pedestrian action" required className="lg:col-span-3">
-                              <CustomSelect value={p.pedestrian_action || ''} onChange={v => update(p.id, { pedestrian_action: v })} options={pedActions} placeholder="Select" />
-                            </Field>
-                            <Field label="Name (if known)" className="lg:col-span-2">
-                              <input type="text" value={p.name || ''} onChange={e => update(p.id, { name: e.target.value })} placeholder="Enter full name" className="dart-input-base" />
-                            </Field>
-                          </>
-                        )}
-                      </div>
+                          {isPedestrian && (
+                            <>
+                              <Field label="Pedestrian type" required className="sm:col-span-2 lg:col-span-3">
+                                <CustomSelect value={p.pedestrian_type || ''} onChange={v => update(p.id, { pedestrian_type: v, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select" />
+                              </Field>
+                              <Field label="Pedestrian action" required className="lg:col-span-3">
+                                <CustomSelect value={p.pedestrian_action || ''} onChange={v => update(p.id, { pedestrian_action: v })} options={pedActions} placeholder="Select" />
+                              </Field>
+                            </>
+                          )}
+                        </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Injury */}

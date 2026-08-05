@@ -1141,43 +1141,105 @@ function buildPrintableReportHtml(entries: OperatorFieldEntry[], status: string,
 </html>`;
 }
 
+// The operator wizard is 4 steps. The transcript groups above are the finer-grained
+// sub-sections the operator saw inside each step — we roll them back up so reviewers
+// see the report through the same mental model the operator filled it in.
+type OperatorStepNumber = 1 | 2 | 3 | 4;
+
+const OPERATOR_STEP_META: Record<OperatorStepNumber, { title: string; description: string }> = {
+  1: { title: 'Incident basics', description: 'Schedule, event type, and vehicle mode.' },
+  2: { title: 'Vehicle & location', description: 'Vehicle details, location, collision, and conditions.' },
+  3: { title: 'People & impact', description: 'Injuries, passengers, pedestrians, other vehicles, police.' },
+  4: { title: 'Attachments', description: 'Files the operator uploaded with this submission.' },
+};
+
+const SUB_SECTION_TO_STEP: Record<string, OperatorStepNumber> = {
+  'Incident Basics': 1,
+  'Event description & timing': 1,
+  'Vehicle details': 2,
+  Location: 2,
+  'Bus status & route': 2,
+  'Bus collision details': 2,
+  'Bus runaway & evacuation': 2,
+  'Train vehicle details': 2,
+  'Train location': 2,
+  'Train status & line': 2,
+  'Train collision details': 2,
+  'Train runaway & evacuation': 2,
+  'Weather & road conditions': 2,
+  'Operator / other employee injury': 3,
+  'Passenger injury section': 3,
+  'Pedestrian injury section': 3,
+  'Other vehicle #2': 3,
+  'Other vehicle #3': 3,
+  'Police section': 3,
+  Attachments: 4,
+};
+
+interface OperatorStepGroup {
+  step: OperatorStepNumber;
+  title: string;
+  description: string;
+  subSections: ReportSectionCard[];
+  answerCount: number;
+}
+
+function buildStepGroups(reportSections: ReportSectionCard[]): OperatorStepGroup[] {
+  return ([1, 2, 3, 4] as OperatorStepNumber[]).map((step) => {
+    const subSections = reportSections.filter((s) => SUB_SECTION_TO_STEP[s.title] === step);
+    const answerCount = subSections.reduce(
+      (sum, s) => sum + (s.entries?.length ?? 0) + (s.attachments?.length ?? 0),
+      0,
+    );
+    return {
+      step,
+      title: OPERATOR_STEP_META[step].title,
+      description: OPERATOR_STEP_META[step].description,
+      subSections,
+      answerCount,
+    };
+  });
+}
+
 export function OperatorReferenceRail({ data, operatorStatus, className = '', showHeader = true }: Props) {
   const operatorFieldEntries = useMemo(() => buildOperatorFieldEntries(data), [data]);
   const reportAttachments = useMemo(() => normalizeAttachments(data.attachments), [data.attachments]);
   const reportSections = useMemo(() => buildReportSections(operatorFieldEntries, reportAttachments), [operatorFieldEntries, reportAttachments]);
+  const stepGroups = useMemo(() => buildStepGroups(reportSections), [reportSections]);
   const operatorStatusText = formatOperatorStatus(operatorStatus);
   const statusTone = getStatusTone(operatorStatus);
-  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const [slideDirection, setSlideDirection] = useState(1);
-  const safeSectionIndex = Math.min(activeSectionIndex, Math.max(reportSections.length - 1, 0));
-  const activeSection = reportSections[safeSectionIndex];
-  const canGoBack = safeSectionIndex > 0;
-  const canGoForward = safeSectionIndex < reportSections.length - 1;
+  const [activeStep, setActiveStep] = useState<OperatorStepNumber>(1);
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+  const activeIndex = stepGroups.findIndex((g) => g.step === activeStep);
+  const safeIndex = activeIndex >= 0 ? activeIndex : 0;
+  const activeGroup = stepGroups[safeIndex];
+  const canGoBack = safeIndex > 0;
+  const canGoForward = safeIndex < stepGroups.length - 1;
 
-  const goToSection = (nextIndex: number) => {
-    const boundedIndex = Math.min(Math.max(nextIndex, 0), reportSections.length - 1);
-    if (boundedIndex === safeSectionIndex) {
+  const goToStepAtIndex = (nextIndex: number) => {
+    const bounded = Math.min(Math.max(nextIndex, 0), stepGroups.length - 1);
+    if (bounded === safeIndex) {
       return;
     }
-
-    setSlideDirection(boundedIndex > safeSectionIndex ? 1 : -1);
-    setActiveSectionIndex(boundedIndex);
+    setSlideDirection(bounded > safeIndex ? 1 : -1);
+    setActiveStep(stepGroups[bounded].step);
   };
 
-  const goToPreviousSection = () => goToSection(safeSectionIndex - 1);
-  const goToNextSection = () => goToSection(safeSectionIndex + 1);
+  const goToPreviousStep = () => goToStepAtIndex(safeIndex - 1);
+  const goToNextStep = () => goToStepAtIndex(safeIndex + 1);
 
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number }; velocity: { x: number } }) => {
-    const swipeDistance = info.offset.x;
-    const swipeVelocity = info.velocity.x;
-
-    if ((swipeDistance < -70 || swipeVelocity < -450) && canGoForward) {
-      goToNextSection();
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: { offset: { x: number }; velocity: { x: number } },
+  ) => {
+    const distance = info.offset.x;
+    const velocity = info.velocity.x;
+    if ((distance < -70 || velocity < -450) && canGoForward) {
+      goToNextStep();
       return;
     }
-
-    if ((swipeDistance > 70 || swipeVelocity > 450) && canGoBack) {
-      goToPreviousSection();
+    if ((distance > 70 || velocity > 450) && canGoBack) {
+      goToPreviousStep();
     }
   };
 
@@ -1268,29 +1330,29 @@ export function OperatorReferenceRail({ data, operatorStatus, className = '', sh
 
         <div className="rounded-lg border border-slate-200 bg-white p-3">
           <div className="flex items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">
-                Operator report section
+                Step {activeGroup.step} of {stepGroups.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500 font-['Poppins']">
-                {safeSectionIndex + 1} of {reportSections.length}
+              <p className="mt-1 truncate text-sm font-semibold text-[#00205B] font-['Poppins']">
+                {activeGroup.title}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-shrink-0 items-center gap-2">
               <button
                 type="button"
-                onClick={goToPreviousSection}
+                onClick={goToPreviousStep}
                 disabled={!canGoBack}
-                aria-label="Previous report section"
+                aria-label="Previous step"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                onClick={goToNextSection}
+                onClick={goToNextStep}
                 disabled={!canGoForward}
-                aria-label="Next report section"
+                aria-label="Next step"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -1301,7 +1363,7 @@ export function OperatorReferenceRail({ data, operatorStatus, className = '', sh
           <div className="mt-3 overflow-hidden">
             <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
               <motion.div
-                key={activeSection?.id || 'operator-report-section'}
+                key={activeGroup.step}
                 custom={slideDirection}
                 initial={{ opacity: 0, x: slideDirection > 0 ? 32 : -32 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1311,68 +1373,101 @@ export function OperatorReferenceRail({ data, operatorStatus, className = '', sh
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.16}
                 onDragEnd={handleDragEnd}
-                className="min-h-[440px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-4"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-4"
               >
-                <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
-                  <div className="min-w-0">
-                    <h4 className="text-base font-semibold text-[#00205B] font-['Poppins']">{activeSection?.title}</h4>
-                    <p className="mt-1 text-xs text-slate-500 font-['Poppins']">
-                      {activeSection?.attachments ? `${reportAttachments.length} file${reportAttachments.length === 1 ? '' : 's'}` : `${activeSection?.entries?.length || 0} answer${activeSection?.entries?.length === 1 ? '' : 's'}`}
-                    </p>
-                  </div>
+                <div className="border-b border-slate-200 pb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">
+                    Step {activeGroup.step}
+                  </p>
+                  <h4 className="mt-0.5 text-base font-semibold text-[#00205B] font-['Poppins']">
+                    {activeGroup.title}
+                  </h4>
+                  <p className="mt-1 text-xs text-slate-500 font-['Poppins']">
+                    {activeGroup.description}
+                  </p>
                 </div>
 
-                {activeSection?.attachments ? (
-                  <div className="mt-3 space-y-2">
-                    {reportAttachments.length > 0 ? (
-                      reportAttachments.map((attachment) => (
-                        <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-slate-900 font-['Poppins']">{attachment.name}</p>
-                            {attachment.sizeLabel && (
-                              <p className="text-xs text-slate-500 font-['Poppins']">{attachment.sizeLabel}</p>
-                            )}
-                          </div>
-                          {attachment.file && (
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadAttachment(attachment)}
-                              className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              Download
-                            </button>
+                <div className="mt-3 max-h-[440px] space-y-4 overflow-y-auto pr-1">
+                  {activeGroup.subSections.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 font-['Poppins']">
+                      Nothing was recorded in this step.
+                    </p>
+                  ) : (
+                    activeGroup.subSections.map((subSection) => {
+                      const isAttachmentSlot = subSection.attachments !== undefined;
+                      const entries = subSection.entries || [];
+                      const count = isAttachmentSlot ? reportAttachments.length : entries.length;
+                      return (
+                        <div key={subSection.id}>
+                          {!isAttachmentSlot && (
+                            <div className="mb-2 flex items-baseline justify-between gap-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">
+                                {subSection.title}
+                              </p>
+                              <p className="text-[10px] font-medium text-slate-500 font-['Poppins']">
+                                {count} {count === 1 ? 'answer' : 'answers'}
+                              </p>
+                            </div>
+                          )}
+
+                          {isAttachmentSlot ? (
+                            <div className="space-y-2">
+                              {reportAttachments.length > 0 ? (
+                                reportAttachments.map((attachment) => (
+                                  <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-medium text-slate-900 font-['Poppins']">{attachment.name}</p>
+                                      {attachment.sizeLabel && (
+                                        <p className="text-xs text-slate-500 font-['Poppins']">{attachment.sizeLabel}</p>
+                                      )}
+                                    </div>
+                                    {attachment.file && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDownloadAttachment(attachment)}
+                                        className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+                                      >
+                                        <Download className="h-3.5 w-3.5" />
+                                        Download
+                                      </button>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 font-['Poppins']">
+                                  No attachments were submitted by the operator.
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {entries.map((entry) => (
+                                <div key={entry.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                                  <p className="text-xs font-semibold text-slate-700 font-['Poppins']">{entry.label}</p>
+                                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900 font-['Poppins']">{entry.value}</p>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
-                      ))
-                    ) : (
-                      <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 font-['Poppins']">
-                        No attachments were submitted by the operator.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-3 max-h-[380px] space-y-2 overflow-y-auto pr-1">
-                    {(activeSection?.entries || []).map((entry) => (
-                      <div key={entry.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-                        <p className="text-xs font-semibold text-slate-700 font-['Poppins']">{entry.label}</p>
-                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900 font-['Poppins']">{entry.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      );
+                    })
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-            {reportSections.map((section, index) => (
+          <div className="mt-3 flex items-center justify-center gap-2">
+            {stepGroups.map((group, index) => (
               <button
-                key={section.id}
+                key={group.step}
                 type="button"
-                onClick={() => goToSection(index)}
-                aria-label={`Open ${section.title}`}
-                className={`h-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-[#FFCD00] ${index === safeSectionIndex ? 'w-6 bg-[#0078AE]' : 'w-2 bg-slate-300 hover:bg-slate-400'}`}
+                onClick={() => goToStepAtIndex(index)}
+                aria-label={`Go to Step ${group.step}: ${group.title}`}
+                className={`h-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-[#FFCD00] ${
+                  index === safeIndex ? 'w-8 bg-[#00205B]' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                }`}
               />
             ))}
           </div>

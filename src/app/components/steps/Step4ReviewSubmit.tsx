@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Bus, Car, CheckCircle2, ChevronDown, Download, Edit, FileText, PauseCircle, ShieldCheck, Train, TramFront, Truck, Upload, X } from 'lucide-react';
+import { AlertTriangle, Bus, Car, CheckCircle2, ChevronDown, Download, Edit, FileText, PauseCircle, ShieldCheck, Train, TramFront, Truck, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
@@ -71,6 +71,14 @@ interface Step4Props {
    * still looking like the Review step.
    */
   onProgramManagerActionsModeChange?: (inActionsMode: boolean) => void;
+  /**
+   * Same signal as onProgramManagerActionsModeChange, but for the Operator
+   * final-review flow. The wizard uses it to hide the stepper and swap the
+   * title/description into "Choose next action" mode.
+   */
+  onOperatorActionsModeChange?: (inActionsMode: boolean) => void;
+  /** Same signal, for the Field Supervisor final-review flow. */
+  onSupervisorActionsModeChange?: (inActionsMode: boolean) => void;
   // Program Manager reviewer action props
   pmReviewEnabled?: boolean;
   pmSupervisorSection?: WorkflowSectionState;
@@ -471,6 +479,8 @@ export function Step4ReviewSubmit({
   programManagerSectionStepCount = 4,
   onProgramManagerSectionStepChange,
   onProgramManagerActionsModeChange,
+  onOperatorActionsModeChange,
+  onSupervisorActionsModeChange,
   pmReviewEnabled = false,
   pmSupervisorSection,
   pmOnOpenOperatorReport,
@@ -499,6 +509,9 @@ export function Step4ReviewSubmit({
   const [fsConfirmedAction, setFsConfirmedAction] = useState<{ actionId: string; title: string; description: string } | null>(null);
   const [operatorInActionsMode, setOperatorInActionsMode] = useState(false);
   const [operatorConfirmedAction, setOperatorConfirmedAction] = useState<{ actionId: string; title: string; description: string } | null>(null);
+  // One-shot warning shown before any role hands off Review → Actions. Records which role
+  // was trying to advance so the confirm handler knows where to send them.
+  const [pendingActionsRole, setPendingActionsRole] = useState<'operator' | 'supervisor' | 'programManager' | null>(null);
   const [localSupervisorReviewStep, setLocalSupervisorReviewStep] = useState(1);
   const [localPmReviewStep, setLocalPmReviewStep] = useState(1);
   const attachments = data.attachments || [];
@@ -1213,6 +1226,13 @@ export function Step4ReviewSubmit({
 
   const submitDisabled = isSectionAlreadySubmitted || (isSupervisorReview || isProgramManagerReview ? !reviewCanSubmit : !canSubmit);
   const stepDescription = description || (isSupervisorReview ? 'Confirm your entries and submit for program manager review.' : 'Check your section details, then attach any photos or documents.');
+  // Once the operator confirms accuracy and enters the actions surface, the step
+  // header should read as "Choose next action" instead of still saying Review.
+  const effectiveTitle = isOperatorFinalReview && operatorInActionsMode ? 'Choose next action' : title;
+  const effectiveDescription = isOperatorFinalReview && operatorInActionsMode
+    ? 'Select what should happen next. Your choice will update the workflow status and assignment.'
+    : stepDescription;
+  const effectiveShowStepBadge = isOperatorFinalReview && operatorInActionsMode ? false : showStepBadge;
 
   useEffect(() => {
     if (!isSupervisorReview && supervisorReviewStep !== 1) {
@@ -1223,6 +1243,14 @@ export function Step4ReviewSubmit({
   useEffect(() => {
     onProgramManagerActionsModeChange?.(pmInActionsMode);
   }, [pmInActionsMode, onProgramManagerActionsModeChange]);
+
+  useEffect(() => {
+    onOperatorActionsModeChange?.(operatorInActionsMode);
+  }, [operatorInActionsMode, onOperatorActionsModeChange]);
+
+  useEffect(() => {
+    onSupervisorActionsModeChange?.(fsInActionsMode);
+  }, [fsInActionsMode, onSupervisorActionsModeChange]);
 
   // Shared attachments block, rendered inline within each role's form flow (not as a
   // detached trailing card). Text adapts to the active role.
@@ -1459,9 +1487,9 @@ export function Step4ReviewSubmit({
     <StepContainer
       stepNumber={stepNumber}
       totalSteps={totalSteps}
-      title={title}
-      description={stepDescription}
-      showStepBadge={showStepBadge}
+      title={effectiveTitle}
+      description={effectiveDescription}
+      showStepBadge={effectiveShowStepBadge}
     >
       <div className="space-y-7">
         {!isRoleAllowedToAdvance && (
@@ -1770,11 +1798,6 @@ export function Step4ReviewSubmit({
               title="Choose next action"
               description="Select what should happen next. Your choice will update the workflow status and assignment."
               actions={buildOperatorActions({ initiatedByOperator: initiatedBy === 'Operator' })}
-              onBack={() => {
-                setOperatorInActionsMode(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              backLabel="Back to review"
               onConfirm={(actionId) => {
                 // TODO: swap for workflow engine call when the API contract lands.
                 if (actionId === 'send-to-supervisor') {
@@ -3385,10 +3408,7 @@ export function Step4ReviewSubmit({
                   <GlassButton
                     variant="primary"
                     disabled={pmMissingFields.length > 0 || !pmReviewConfirmed}
-                    onClick={() => {
-                      setPmInActionsMode(true);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
+                    onClick={() => setPendingActionsRole('programManager')}
                   >
                     Continue to next action
                   </GlassButton>
@@ -3608,15 +3628,11 @@ export function Step4ReviewSubmit({
             variant="primary"
             onClick={() => {
               if (isSupervisorReview && supervisorReviewStep === 3) {
-                // FS Review → Actions. The Continue button now hands off to the workflow
-                // action-selection screen instead of submitting straight away.
-                setFsInActionsMode(true);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setPendingActionsRole('supervisor');
                 return;
               }
               if (isOperatorFinalReview) {
-                setOperatorInActionsMode(true);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setPendingActionsRole('operator');
                 return;
               }
               onSubmit();
@@ -3638,6 +3654,62 @@ export function Step4ReviewSubmit({
             onBackToHome={onBackToHome}
             onViewReport={() => console.log('View case')}
           />
+        </div>
+      )}
+
+      {/* Review → Actions confirmation. Once the user continues they can no longer
+          edit their section, so warn them explicitly before making the switch. */}
+      {pendingActionsRole && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-[3px]"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="continue-to-actions-title"
+          aria-describedby="continue-to-actions-description"
+        >
+          <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_28px_80px_-24px_rgba(0,32,91,0.35)]">
+            <div className="px-6 pt-6 pb-2">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#00205B]/8 text-[#00205B]">
+                <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <h2 id="continue-to-actions-title" className="mt-4 text-xl font-semibold text-[#00205B] font-['Poppins']">
+                Finalize this section?
+              </h2>
+              <p className="mt-1.5 text-sm font-medium text-slate-800 font-['Poppins']">
+                You will not be able to return and edit it after continuing.
+              </p>
+            </div>
+
+            <div className="px-6 pt-3 pb-6">
+              <p id="continue-to-actions-description" className="text-sm leading-6 text-slate-600 font-['Poppins']">
+                Continuing will finalize your entries and create the report for workflow routing. Review your information now before moving to the next action.
+              </p>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPendingActionsRole(null)}
+                  className="dart-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-[#00205B] transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00205B]/30 font-['Poppins']"
+                >
+                  Continue editing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const role = pendingActionsRole;
+                    setPendingActionsRole(null);
+                    if (role === 'operator') setOperatorInActionsMode(true);
+                    else if (role === 'supervisor') setFsInActionsMode(true);
+                    else if (role === 'programManager') setPmInActionsMode(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="dart-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#00205B] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#003478] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00205B]/40 font-['Poppins']"
+                >
+                  Finalize and continue
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </StepContainer>

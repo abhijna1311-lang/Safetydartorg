@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-export type UserRole = 'Operator' | 'Supervisor' | 'Assistant Manager' | 'Program Manager';
+export type UserRole = 'Operator' | 'Supervisor' | 'Station Supervisor' | 'Assistant Manager' | 'Program Manager';
 
 export interface RoleConfig {
   role: UserRole;
@@ -30,6 +30,15 @@ export const ROLE_CONFIGS: RoleConfig[] = [
     name: 'Alexia Putellas',
     badge: '90002',
     canFileOnBehalf: true,
+  },
+  {
+    role: 'Station Supervisor',
+    label: 'Station Supervisor',
+    sublabel: 'Acknowledges operator submissions — receipt only, no workflow impact',
+    initials: 'AE',
+    name: 'Aitana Bonmatí',
+    badge: '90005',
+    canFileOnBehalf: false,
   },
   {
     role: 'Assistant Manager',

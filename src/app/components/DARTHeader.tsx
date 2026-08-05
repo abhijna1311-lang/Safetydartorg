@@ -1,4 +1,4 @@
-import { Bell, Check, ChevronDown, Users, Shield, Briefcase, ClipboardCheck, Menu, X } from 'lucide-react';
+import { Bell, Check, ChevronDown, Users, Shield, Briefcase, ClipboardCheck, MapPin, Menu, X } from 'lucide-react';
 import { NotificationPanel, Notification } from './NotificationPanel';
 import dartLogo from 'figma:asset/596faef70915e56e9eb4660104f6daec380e23d0.png';
 import { useState, useRef, useEffect } from 'react';
@@ -13,17 +13,19 @@ interface DARTHeaderProps {
 }
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
-  'Operator':          Users,
-  'Supervisor':        Shield,
-  'Assistant Manager': ClipboardCheck,
-  'Program Manager':   Briefcase,
+  'Operator':           Users,
+  'Supervisor':         Shield,
+  'Station Supervisor': MapPin,
+  'Assistant Manager':  ClipboardCheck,
+  'Program Manager':    Briefcase,
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  'Operator':          '#007DBA',
-  'Supervisor':        '#5C35A8',
-  'Assistant Manager': '#0A6E9E',
-  'Program Manager':   '#0F7B6C',
+  'Operator':           '#007DBA',
+  'Supervisor':         '#5C35A8',
+  'Station Supervisor': '#0E7C86',
+  'Assistant Manager':  '#0A6E9E',
+  'Program Manager':    '#0F7B6C',
 };
 
 export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle, isMobileMenuOpen }: DARTHeaderProps) {

@@ -385,11 +385,13 @@ function AppBody() {
 
       {currentView === 'new-report' && (
         <AccidentReportWizard
+          key={activeReportId ?? 'new'}
           onNavigate={handleNavigate}
           onBackToHome={handleBackToHome}
           initialReport={activeReport}
           onSaveReport={handleSaveReport}
           existingReports={reports}
+          onOpenReport={handleOpenReport}
         />
       )}
 

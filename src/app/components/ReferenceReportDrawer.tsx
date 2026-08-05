@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { OperatorReferenceRail } from './steps/sections/OperatorReferenceRail';
 import { CaseTimeline } from './CaseTimeline';
 import type { AccidentReportData } from '../types/accident-report';
@@ -38,11 +38,146 @@ function Field({ label, value, wide }: { label: string; value: string | undefine
   );
 }
 
+type SupervisorStepNumber = 1 | 2 | 3;
+
+interface SupervisorStep {
+  step: SupervisorStepNumber;
+  title: string;
+  description: string;
+  render: (data: AccidentReportData) => React.ReactNode;
+  hasContent: (data: AccidentReportData) => boolean;
+}
+
+// The FS wizard is 3 steps (Incident Basics → Injuries And Police → Review); we mirror
+// that here so reviewers see the report in the same shape the FS filled it out in.
+const SUPERVISOR_STEPS: SupervisorStep[] = [
+  {
+    step: 1,
+    title: 'Incident basics',
+    description: 'Identity, arrival, vehicle, and where the event happened.',
+    hasContent: () => true,
+    render: (data) => {
+      const supervisorName = [data.supervisor_first_name, data.supervisor_last_name].filter(Boolean).join(' ') || data.supervisor_name || '—';
+      const supervisorArrival = data.supervisor_arrival_date && data.supervisor_arrival_time
+        ? `${data.supervisor_arrival_date} at ${data.supervisor_arrival_time}`
+        : data.supervisor_arrival_date || '—';
+      return (
+        <div className="space-y-4">
+          <div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Field Supervisor identity and arrival</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Field Supervisor" value={supervisorName !== '—' ? `${supervisorName}${data.supervisor_badge_number ? ` · ${data.supervisor_badge_number}` : ''}` : '—'} />
+              <Field label="Division" value={data.supervisor_division} />
+              <Field label="Arrival on scene" value={supervisorArrival} />
+              <Field label="Incident recorded" value={(data.supervisor_incident_date || data.incident_date) && (data.supervisor_incident_time || data.incident_time) ? `${data.supervisor_incident_date || data.incident_date} at ${data.supervisor_incident_time || data.incident_time}` : (data.supervisor_incident_date || data.incident_date)} />
+              <Field label="DART vehicle type" value={data.supervisor_dart_vehicle_type || data.mode} />
+              <Field label="Revenue service" value={yesNo(data.supervisor_revenue_service)} />
+              <Field label="Operating route" value={data.supervisor_operating_route_number} />
+              <Field label="Block" value={data.supervisor_block_number} />
+              <Field label="Rail line" value={data.supervisor_rail_line} />
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Location as recorded</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Street on" value={data.supervisor_street_on} />
+              <Field label="Cross street" value={data.supervisor_cross_street} />
+              <Field label="City / ZIP" value={[data.supervisor_city, data.supervisor_zip].filter(Boolean).join(', ')} />
+              <Field label="Location category" value={data.supervisor_location_category} />
+              <Field label="Station" value={data.supervisor_station_applicable} />
+              <Field label="Grade crossing" value={data.supervisor_grade_crossing_applicable} />
+              <Field label="Tunnel location" value={data.supervisor_tunnel_location} />
+              <Field label="Address of event" value={data.supervisor_address_of_event} wide />
+            </div>
+          </div>
+        </div>
+      );
+    },
+  },
+  {
+    step: 2,
+    title: 'Injuries and police',
+    description: 'Damage, tow, derailment, injuries, and police response.',
+    hasContent: () => true,
+    render: (data) => (
+      <div className="space-y-4">
+        <div>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Damage, tow, and derailment</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="DART vehicle damaged" value={yesNo(data.supervisor_dart_vehicle_damaged)} />
+            <Field label="DART vehicles damaged count" value={nonEmpty(data.supervisor_damage_count)} />
+            <Field label="Damage requires tow" value={yesNo(data.supervisor_damage_requires_tow)} />
+            <Field label="DART vehicles towed" value={nonEmpty(data.supervisor_tow_count)} />
+            <Field label="Other vehicles involved" value={yesNo(data.supervisor_other_vehicles_involved)} />
+            <Field label="Other vehicles count" value={nonEmpty(data.supervisor_other_vehicle_count)} />
+            <Field label="Other vehicles damaged" value={nonEmpty(data.supervisor_other_vehicle_damage_count)} />
+            <Field label="Other vehicles towed" value={nonEmpty(data.supervisor_other_vehicle_tow_count)} />
+            <Field label="Collision between DART vehicles" value={yesNo(data.supervisor_collision_between_dart_vehicles)} />
+            <Field label="Derailment confirmed" value={yesNo(data.supervisor_derailment_confirmed)} />
+            <Field label="Scene diagram completed" value={yesNo(data.supervisor_scene_diagram_completed)} />
+            <Field label="Scene photos taken" value={yesNo(data.supervisor_scene_photos_taken)} />
+          </div>
+          {data.supervisor_derailment_details && (
+            <div className="mt-3">
+              <p className="dart-eyebrow">Derailment details</p>
+              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_derailment_details}</p>
+            </div>
+          )}
+          {data.supervisor_equipment_damage_description && (
+            <div className="mt-3">
+              <p className="dart-eyebrow">Equipment / property damage</p>
+              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_equipment_damage_description}</p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Injuries recorded by supervisor</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Employee fatalities" value={data.supervisor_dart_employee_fatalities === true ? nonEmpty(data.supervisor_dart_employee_fatality_count) : yesNo(data.supervisor_dart_employee_fatalities)} />
+            <Field label="Employees injured" value={data.supervisor_dart_employee_injuries === true ? nonEmpty(data.supervisor_dart_employee_injury_count) : yesNo(data.supervisor_dart_employee_injuries)} />
+            <Field label="Employees transported" value={nonEmpty(data.supervisor_dart_employee_hospital_transport_count)} />
+            <Field label="Passenger fatalities" value={data.supervisor_passenger_fatalities === true ? nonEmpty(data.supervisor_passenger_fatality_count) : yesNo(data.supervisor_passenger_fatalities)} />
+            <Field label="Passengers injured" value={data.supervisor_passenger_injuries === true ? nonEmpty(data.supervisor_passenger_injury_count) : yesNo(data.supervisor_passenger_injuries)} />
+            <Field label="Pedestrian fatalities" value={data.supervisor_pedestrian_fatalities === true ? nonEmpty(data.supervisor_pedestrian_fatality_count) : yesNo(data.supervisor_pedestrian_fatalities)} />
+            <Field label="Pedestrians injured" value={data.supervisor_pedestrian_injuries === true ? nonEmpty(data.supervisor_pedestrian_injury_count) : yesNo(data.supervisor_pedestrian_injuries)} />
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Police</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Police called" value={yesNo(data.supervisor_police_called)} />
+            <Field label="Officer name" value={data.supervisor_police_officer_name} />
+            <Field label="Notified by" value={data.supervisor_police_notified_by} />
+            <Field label="Report city" value={data.supervisor_report_city} />
+            <Field label="Report number" value={data.supervisor_police_report_number} />
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    step: 3,
+    title: 'Description',
+    description: 'The narrative the Field Supervisor wrote for this event.',
+    hasContent: (data) => Boolean(data.supervisor_event_description && data.supervisor_event_description.trim()),
+    render: (data) =>
+      data.supervisor_event_description ? (
+        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">
+          {data.supervisor_event_description}
+        </p>
+      ) : (
+        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500 font-['Poppins']">
+          The Field Supervisor did not write a description.
+        </p>
+      ),
+  },
+];
+
 function SupervisorContent({ data, supervisorSection }: { data: AccidentReportData; supervisorSection?: WorkflowSectionState }) {
   const supervisorName = [data.supervisor_first_name, data.supervisor_last_name].filter(Boolean).join(' ') || data.supervisor_name || '—';
-  const supervisorArrival = data.supervisor_arrival_date && data.supervisor_arrival_time
-    ? `${data.supervisor_arrival_date} at ${data.supervisor_arrival_time}`
-    : data.supervisor_arrival_date || '—';
 
   const submittedLabel = supervisorSection?.status === 'resubmitted'
     ? 'Resubmitted'
@@ -55,6 +190,41 @@ function SupervisorContent({ data, supervisorSection }: { data: AccidentReportDa
       })
     : '—';
 
+  const [activeStep, setActiveStep] = useState<SupervisorStepNumber>(1);
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+  const activeIndex = SUPERVISOR_STEPS.findIndex((s) => s.step === activeStep);
+  const safeIndex = activeIndex >= 0 ? activeIndex : 0;
+  const activeStepDef = SUPERVISOR_STEPS[safeIndex];
+  const canGoBack = safeIndex > 0;
+  const canGoForward = safeIndex < SUPERVISOR_STEPS.length - 1;
+
+  const goToStepAtIndex = (nextIndex: number) => {
+    const bounded = Math.min(Math.max(nextIndex, 0), SUPERVISOR_STEPS.length - 1);
+    if (bounded === safeIndex) {
+      return;
+    }
+    setSlideDirection(bounded > safeIndex ? 1 : -1);
+    setActiveStep(SUPERVISOR_STEPS[bounded].step);
+  };
+
+  const goToPreviousStep = () => goToStepAtIndex(safeIndex - 1);
+  const goToNextStep = () => goToStepAtIndex(safeIndex + 1);
+
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: { offset: { x: number }; velocity: { x: number } },
+  ) => {
+    const distance = info.offset.x;
+    const velocity = info.velocity.x;
+    if ((distance < -70 || velocity < -450) && canGoForward) {
+      goToNextStep();
+      return;
+    }
+    if ((distance > 70 || velocity > 450) && canGoBack) {
+      goToPreviousStep();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -63,95 +233,86 @@ function SupervisorContent({ data, supervisorSection }: { data: AccidentReportDa
         <p className="mt-0.5 text-xs text-slate-500 font-['Poppins']">{submittedTime}</p>
       </div>
 
-      <div className="dart-card dart-card--reference p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Field Supervisor identity and arrival</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Field Supervisor" value={supervisorName !== '—' ? `${supervisorName}${data.supervisor_badge_number ? ` · ${data.supervisor_badge_number}` : ''}` : '—'} />
-          <Field label="Division" value={data.supervisor_division} />
-          <Field label="Arrival on scene" value={supervisorArrival} />
-          <Field label="Incident recorded" value={(data.supervisor_incident_date || data.incident_date) && (data.supervisor_incident_time || data.incident_time) ? `${data.supervisor_incident_date || data.incident_date} at ${data.supervisor_incident_time || data.incident_time}` : (data.supervisor_incident_date || data.incident_date)} />
-          <Field label="DART vehicle type" value={data.supervisor_dart_vehicle_type || data.mode} />
-          <Field label="Revenue service" value={yesNo(data.supervisor_revenue_service)} />
-          <Field label="Operating route" value={data.supervisor_operating_route_number} />
-          <Field label="Block" value={data.supervisor_block_number} />
-          <Field label="Rail line" value={data.supervisor_rail_line} />
-        </div>
-      </div>
-
-      <div className="dart-card dart-card--reference p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Location as recorded</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Street on" value={data.supervisor_street_on} />
-          <Field label="Cross street" value={data.supervisor_cross_street} />
-          <Field label="City / ZIP" value={[data.supervisor_city, data.supervisor_zip].filter(Boolean).join(', ')} />
-          <Field label="Location category" value={data.supervisor_location_category} />
-          <Field label="Station" value={data.supervisor_station_applicable} />
-          <Field label="Grade crossing" value={data.supervisor_grade_crossing_applicable} />
-          <Field label="Tunnel location" value={data.supervisor_tunnel_location} />
-          <Field label="Address of event" value={data.supervisor_address_of_event} wide />
-        </div>
-      </div>
-
-      <div className="dart-card dart-card--reference p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Damage, tow, and derailment</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="DART vehicle damaged" value={yesNo(data.supervisor_dart_vehicle_damaged)} />
-          <Field label="DART vehicles damaged count" value={nonEmpty(data.supervisor_damage_count)} />
-          <Field label="Damage requires tow" value={yesNo(data.supervisor_damage_requires_tow)} />
-          <Field label="DART vehicles towed" value={nonEmpty(data.supervisor_tow_count)} />
-          <Field label="Other vehicles involved" value={yesNo(data.supervisor_other_vehicles_involved)} />
-          <Field label="Other vehicles count" value={nonEmpty(data.supervisor_other_vehicle_count)} />
-          <Field label="Other vehicles damaged" value={nonEmpty(data.supervisor_other_vehicle_damage_count)} />
-          <Field label="Other vehicles towed" value={nonEmpty(data.supervisor_other_vehicle_tow_count)} />
-          <Field label="Collision between DART vehicles" value={yesNo(data.supervisor_collision_between_dart_vehicles)} />
-          <Field label="Derailment confirmed" value={yesNo(data.supervisor_derailment_confirmed)} />
-          <Field label="Scene diagram completed" value={yesNo(data.supervisor_scene_diagram_completed)} />
-          <Field label="Scene photos taken" value={yesNo(data.supervisor_scene_photos_taken)} />
-        </div>
-        {data.supervisor_derailment_details && (
-          <div className="mt-3">
-            <p className="dart-eyebrow">Derailment details</p>
-            <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_derailment_details}</p>
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">
+              Step {activeStepDef.step} of {SUPERVISOR_STEPS.length}
+            </p>
+            <p className="mt-1 truncate text-sm font-semibold text-[#00205B] font-['Poppins']">
+              {activeStepDef.title}
+            </p>
           </div>
-        )}
-        {data.supervisor_equipment_damage_description && (
-          <div className="mt-3">
-            <p className="dart-eyebrow">Equipment / property damage</p>
-            <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_equipment_damage_description}</p>
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={goToPreviousStep}
+              disabled={!canGoBack}
+              aria-label="Previous step"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={goToNextStep}
+              disabled={!canGoForward}
+              aria-label="Next step"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="dart-card dart-card--reference p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Injuries recorded by supervisor</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Employee fatalities" value={data.supervisor_dart_employee_fatalities === true ? nonEmpty(data.supervisor_dart_employee_fatality_count) : yesNo(data.supervisor_dart_employee_fatalities)} />
-          <Field label="Employees injured" value={data.supervisor_dart_employee_injuries === true ? nonEmpty(data.supervisor_dart_employee_injury_count) : yesNo(data.supervisor_dart_employee_injuries)} />
-          <Field label="Employees transported" value={nonEmpty(data.supervisor_dart_employee_hospital_transport_count)} />
-          <Field label="Passenger fatalities" value={data.supervisor_passenger_fatalities === true ? nonEmpty(data.supervisor_passenger_fatality_count) : yesNo(data.supervisor_passenger_fatalities)} />
-          <Field label="Passengers injured" value={data.supervisor_passenger_injuries === true ? nonEmpty(data.supervisor_passenger_injury_count) : yesNo(data.supervisor_passenger_injuries)} />
-          <Field label="Pedestrian fatalities" value={data.supervisor_pedestrian_fatalities === true ? nonEmpty(data.supervisor_pedestrian_fatality_count) : yesNo(data.supervisor_pedestrian_fatalities)} />
-          <Field label="Pedestrians injured" value={data.supervisor_pedestrian_injuries === true ? nonEmpty(data.supervisor_pedestrian_injury_count) : yesNo(data.supervisor_pedestrian_injuries)} />
+        <div className="mt-3 overflow-hidden">
+          <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
+            <motion.div
+              key={activeStepDef.step}
+              custom={slideDirection}
+              initial={{ opacity: 0, x: slideDirection > 0 ? 32 : -32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: slideDirection > 0 ? -32 : 32 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.16}
+              onDragEnd={handleDragEnd}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-4"
+            >
+              <div className="border-b border-slate-200 pb-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">
+                  Step {activeStepDef.step}
+                </p>
+                <h4 className="mt-0.5 text-base font-semibold text-[#00205B] font-['Poppins']">
+                  {activeStepDef.title}
+                </h4>
+                <p className="mt-1 text-xs text-slate-500 font-['Poppins']">
+                  {activeStepDef.description}
+                </p>
+              </div>
+
+              <div className="mt-3 max-h-[440px] overflow-y-auto pr-1">
+                {activeStepDef.render(data)}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-3 flex items-center justify-center gap-2">
+          {SUPERVISOR_STEPS.map((step, index) => (
+            <button
+              key={step.step}
+              type="button"
+              onClick={() => goToStepAtIndex(index)}
+              aria-label={`Go to Step ${step.step}: ${step.title}`}
+              className={`h-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-[#FFCD00] ${
+                index === safeIndex ? 'w-8 bg-[#00205B]' : 'w-2 bg-slate-300 hover:bg-slate-400'
+              }`}
+            />
+          ))}
         </div>
       </div>
-
-      <div className="dart-card dart-card--reference p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Police</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Police called" value={yesNo(data.supervisor_police_called)} />
-          <Field label="Officer name" value={data.supervisor_police_officer_name} />
-          <Field label="Notified by" value={data.supervisor_police_notified_by} />
-          <Field label="Report city" value={data.supervisor_report_city} />
-          <Field label="Report number" value={data.supervisor_police_report_number} />
-        </div>
-      </div>
-
-      {data.supervisor_event_description && (
-        <div className="dart-card dart-card--reference p-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Field Supervisor description</p>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_event_description}</p>
-        </div>
-      )}
     </div>
   );
 }

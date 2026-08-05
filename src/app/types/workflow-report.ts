@@ -43,12 +43,23 @@ export interface WorkflowSectionState {
 
 export type WorkflowSections = Record<WorkflowSectionKey, WorkflowSectionState>;
 
+// Station Supervisor gets a read-only receipt task once the operator submits.
+// It runs in parallel with FS/PM work and does NOT block the workflow chain.
+export interface StationSupervisorAcknowledgment {
+  status: 'pending' | 'acknowledged';
+  acknowledgedAt?: string | null;
+  acknowledgedBy?: string | null;
+  acknowledgedByBadge?: string | null;
+  note?: string | null;
+}
+
 export interface WorkflowReport {
   id: string;
   initiatedBy: UserRole;
   workflowStage: WorkflowStage;
   overallStatus?: WorkflowOverallStatus;
   sections?: WorkflowSections;
+  stationSupervisorAck?: StationSupervisorAcknowledgment | null;
   currentStep: number;
   formData: AccidentReportData;
   createdAt: string;
@@ -436,6 +447,12 @@ export function getActionableSectionForRole(report: WorkflowReport, role: UserRo
     if (!isRoleTurnForReport(report, role)) return null;
     return getWorkflowSections(report).supervisor;
   }
+  // Station Supervisor: read-only acknowledgment task once the operator submits.
+  // Show the operator section as the anchor for their queue card.
+  if (role === 'Station Supervisor') {
+    if (!isRoleTurnForReport(report, role)) return null;
+    return getWorkflowSections(report).operator;
+  }
   const section = getWorkflowSections(report)[getSectionKeyForRole(role)];
   return isSectionActionable(section) ? section : null;
 }
@@ -453,6 +470,13 @@ export function isRoleTurnForReport(report: WorkflowReport, role: UserRole): boo
     const pmNotDoneYet = !['accepted'].includes(sections.programManager.status);
     return fsSubmitted && pmNotDoneYet;
   }
+  // Station Supervisor: task appears the moment the operator submits (or resubmits)
+  // their section and clears once the SS acknowledges. Runs in parallel with FS/PM.
+  if (role === 'Station Supervisor') {
+    const operatorSubmitted = ['submitted', 'resubmitted', 'accepted'].includes(sections.operator.status);
+    const notYetAcknowledged = report.stationSupervisorAck?.status !== 'acknowledged';
+    return operatorSubmitted && notYetAcknowledged;
+  }
   const roleKey = getSectionKeyForRole(role);
   if (!isSectionActionable(sections[roleKey])) return false;
   return WORKFLOW_SECTION_ORDER.find((key) => isSectionActionable(sections[key])) === roleKey;
@@ -463,6 +487,11 @@ export function wasRoleInvolvedInReport(report: WorkflowReport, role: UserRole):
     const sections = getWorkflowSections(report);
     // AM was involved once the Field Supervisor moved the case along.
     return ['submitted', 'resubmitted', 'accepted'].includes(sections.supervisor.status);
+  }
+  if (role === 'Station Supervisor') {
+    const sections = getWorkflowSections(report);
+    // SS was involved once the operator submitted; stays involved after acknowledgment.
+    return ['submitted', 'resubmitted', 'accepted'].includes(sections.operator.status);
   }
   const section = getWorkflowSections(report)[getSectionKeyForRole(role)];
   return report.initiatedBy === role || report.lastSubmittedBy === role || section.status !== 'not-required';

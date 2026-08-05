@@ -32,6 +32,18 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
     };
   }
 
+  // Station Supervisor: read-only acknowledgment task. They confirm receipt
+  // once the operator submits — no workflow gating, no ability to edit.
+  if (role === 'Station Supervisor') {
+    return {
+      title: 'Acknowledge operator submission',
+      contextLabel: 'What you need to do',
+      contextValue: 'The operator completed their section. Review the report and confirm receipt. This does not change the workflow.',
+      ownerLabel: 'Submitted by',
+      priorityLabel: 'Acknowledgment needed',
+    };
+  }
+
   if (wasReturned || section.status === 'returned') {
     return {
       title: `${section.label} returned for correction`,
@@ -94,6 +106,9 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
 function getSectionCtaLabel(section: WorkflowSectionState, role: UserRole) {
   if (role === 'Assistant Manager') {
     return 'Open review';
+  }
+  if (role === 'Station Supervisor') {
+    return 'Acknowledge report';
   }
   if (section.status === 'returned') {
     return 'Resolve correction';
@@ -228,6 +243,21 @@ const HOME_COPY: Record<UserRole, {
     activityTitle: 'Recent review activity',
     activityDescription: 'Cases you recently reviewed or routed.',
   },
+  'Station Supervisor': {
+    intro: 'Confirm receipt of operator submissions. Your acknowledgment is recorded on the case — no workflow action needed.',
+    heroTitle: 'Acknowledgments only',
+    heroDescription: 'This role is receipt-only. Reports appear here after the operator submits. Field Supervisor and Safety Program Manager review continues in parallel.',
+    heroButtonLabel: 'Start New Case',
+    queueMetricLabel: 'Awaiting your acknowledgment',
+    queueMetricHelper: 'Operator submissions',
+    completedMetricLabel: 'Acknowledged this month',
+    completedMetricHelper: 'Last 30 days',
+    queueSectionTitle: 'Pending acknowledgments',
+    queueSectionDescription: 'Reports where the operator has submitted and you have not yet acknowledged.',
+    draftsDescription: 'In progress',
+    activityTitle: 'Recent acknowledgments',
+    activityDescription: 'Reports you recently acknowledged.',
+  },
 };
 
 const DRAFT_REPORTS_BY_ROLE: Record<UserRole, HomeDraftReport[]> = {
@@ -280,6 +310,7 @@ const DRAFT_REPORTS_BY_ROLE: Record<UserRole, HomeDraftReport[]> = {
     },
   ],
   'Assistant Manager': [],
+  'Station Supervisor': [],
 };
 
 const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
@@ -332,6 +363,7 @@ const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
     },
   ],
   'Assistant Manager': [],
+  'Station Supervisor': [],
 };
 
 const RECENT_ACTIVITY_BY_ROLE: Record<UserRole, HomeActivityReport[]> = {
@@ -348,6 +380,7 @@ const RECENT_ACTIVITY_BY_ROLE: Record<UserRole, HomeActivityReport[]> = {
     { eventId: 'AR-2025-0002', date: '11/02/2025', mode: 'Bus', status: 'Pending clarification', injury: 'No' },
   ],
   'Assistant Manager': [],
+  'Station Supervisor': [],
 };
 
 function getModeColor(mode: string) {

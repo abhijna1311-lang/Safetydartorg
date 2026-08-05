@@ -2,6 +2,7 @@ export interface Person {
   id: string;
   role: 'Passenger' | 'Pedestrian';
   name?: string;
+  gender?: 'Female' | 'Male';
   injured?: boolean;
   fatal?: boolean;
   injured_body_part?: string;

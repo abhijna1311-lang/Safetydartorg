@@ -203,18 +203,18 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                 <span className="material-symbols-rounded text-[19px]">directions_car</span>
               </span>
               <button type="button" onClick={() => setOpenId(open ? null : v.id)} className="min-w-0 flex-1 text-left focus:outline-none">
-                <p className="truncate text-sm font-semibold text-slate-800 font-['Poppins']">Vehicle {idx + 1}</p>
+                <p className="truncate text-sm font-semibold text-slate-800 font-['Poppins']">Vehicle {idx + 2}</p>
                 <p className="truncate text-xs text-slate-500 font-['Poppins']">{subtitle}</p>
               </button>
               {hasInjuries && (
                 <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 font-['Poppins']">{v.injuries} injured</span>
               )}
-              <button type="button" onClick={() => setOpenId(open ? null : v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.2)]" aria-label={open ? `Collapse vehicle ${idx + 1}` : `Edit vehicle ${idx + 1}`}>
+              <button type="button" onClick={() => setOpenId(open ? null : v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.2)]" aria-label={open ? `Collapse vehicle ${idx + 2}` : `Edit vehicle ${idx + 2}`}>
                 {open
                   ? <span className="material-symbols-rounded text-[18px] text-emerald-600" aria-hidden="true">check</span>
                   : <span className="material-symbols-rounded text-[16px]" aria-hidden="true">edit</span>}
               </button>
-              <button type="button" onClick={() => remove(v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-300" aria-label={`Remove vehicle ${idx + 1}`}>
+              <button type="button" onClick={() => remove(v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-300" aria-label={`Remove vehicle ${idx + 2}`}>
                 <span className="material-symbols-rounded text-[16px]" aria-hidden="true">delete</span>
               </button>
             </div>
@@ -251,7 +251,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                             : 'grid-cols-1'
                         }`}
                       >
-                        <NumberField label="Number of occupants" required value={v.occupants} onChange={n => setOccupants(v.id, n)} />
+                        <NumberField label="Number of occupants in vehicle" required value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
                             <NumberField label="Occupant fatalities" required value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
