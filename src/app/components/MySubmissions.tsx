@@ -215,7 +215,7 @@ export function MySubmissions({ onNavigate, onBackToHome, reports }: MySubmissio
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-[32px] text-[#00205B] font-semibold font-['Poppins'] mb-2">
-            Case history
+            Safety Events history
           </h1>
           <p className="text-sm text-slate-600 font-['Poppins']">
             View and track accident cases you are part of.

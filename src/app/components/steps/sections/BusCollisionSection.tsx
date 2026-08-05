@@ -299,7 +299,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
       {/* 2 — What happened: the narrative + mechanics of the collision */}
       <Section title="What happened" help="One continuous account of the collision — the description, mechanics, impact, and any runaway or evacuation.">
         {!compactMode && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Field label="Event type with" required>
               <CustomSelect value={data.collision_type || ''} onChange={v => onUpdate({ collision_type: v })} options={EVENT_TYPE_WITH} placeholder="Select collision type" />
             </Field>
@@ -308,6 +308,9 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
             </Field>
             <Field label="Bus speed at time of event (mph)" required>
               <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
+            </Field>
+            <Field label="Point of impact" required>
+              <CustomSelect value={data.point_of_impact || ''} onChange={v => onUpdate({ point_of_impact: v })} options={BUS_IMPACT} placeholder="Select impact point" />
             </Field>
           </div>
         )}
@@ -361,35 +364,30 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
                 )}
               </AnimatePresence>
 
-              <BoolRow label="Was there visible bus damage at the scene?" required>
-                <YesNoToggle value={data.bus_damage} onChange={v => onUpdate({ bus_damage: v, bus_damage_confirmed: v ? data.bus_damage_confirmed : undefined })} />
+              <BoolRow label="Was there damage to this vehicle?" required>
+                <YesNoToggle
+                  value={data.bus_damage}
+                  onChange={v => onUpdate({ bus_damage: v, impact_markers: v ? data.impact_markers : [] })}
+                />
               </BoolRow>
-
-              <AnimatePresence initial={false}>
-                {data.bus_damage === true && (
-                  <motion.div
-                    key="damage-followup"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
-                    className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100"
-                  >
-                    <BoolRow label="Was the damage confirmed after inspection?" required>
-                      <YesNoToggle value={data.bus_damage_confirmed} onChange={v => onUpdate({ bus_damage_confirmed: v })} />
-                    </BoolRow>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {data.bus_damage === true && (
-                <motion.div {...fade} key="impact-diagram" className="pt-1">
-                  <VehicleImpactDiagram
-                    markers={data.impact_markers || []}
-                    onChange={markers => onUpdate({ impact_markers: markers })}
-                  />
+                <motion.div
+                  key="bus-impact-diagram"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3">
+                    <VehicleImpactDiagram
+                      markers={data.impact_markers || []}
+                      onChange={markers => onUpdate({ impact_markers: markers })}
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

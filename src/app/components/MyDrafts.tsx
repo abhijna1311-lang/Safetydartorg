@@ -152,7 +152,7 @@ export function MyDrafts({ onNavigate, onResumeReport, onDeleteDraft, drafts, on
                 No draft cases
               </h3>
               <p className="text-sm text-slate-600 font-['Poppins'] mb-6">
-                Start a new accident case to get started
+                Start a new Safety Event to get started
               </p>
               <button
                 onClick={() => onNavigate?.('new-report')}

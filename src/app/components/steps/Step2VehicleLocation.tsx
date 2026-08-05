@@ -99,7 +99,7 @@ export function Step2VehicleLocation({
   const busCollisionComplete = !!(
     data.vehicle_number && data.trip_id && data.block_number
     && data.bus_status_before && data.bus_status_after
-    && data.collision_type && data.bus_action && answered(data.bus_speed)
+    && data.collision_type && data.bus_action && data.point_of_impact && answered(data.bus_speed)
     && data.street_on && data.cross_street && data.city && data.zip
     && answered(data.event_at_bus_stop)
     && (data.event_at_bus_stop !== true || data.bus_stop_name)
@@ -108,13 +108,13 @@ export function Step2VehicleLocation({
     && answered(data.runaway_vehicle)
     && (data.runaway_vehicle !== true || (data.operator_in_vehicle_runaway && answered(data.parking_brake_engaged)))
     && answered(data.bus_damage)
-    && (data.bus_damage !== true || (answered(data.bus_damage_confirmed) && (data.impact_markers?.length || 0) > 0))
+    && (data.bus_damage !== true || (data.impact_markers?.length || 0) > 0)
     && requiredWeatherComplete
   );
   const railCollisionComplete = !!(
     data.train_number && data.car_number
     && data.train_status_before && data.train_status_after
-    && data.lrv_collision_type && data.train_action && answered(data.train_speed)
+    && data.lrv_collision_type && data.train_action && data.lrv_point_of_impact && answered(data.train_speed)
     && data.location_category && data.address_of_event && data.city && data.zip
     && (data.location_category !== 'Rail Station' || data.station_applicable)
     && (!['Grade Crossing', 'Bridge'].includes(data.location_category || '') || (data.station_applicable && data.grade_crossing_applicable))
@@ -126,7 +126,7 @@ export function Step2VehicleLocation({
     && requiredWeatherComplete
   );
   const nrvCollisionComplete = !!(
-    data.vehicle_number && data.collision_type && data.bus_action && answered(data.bus_speed)
+    data.vehicle_number && data.collision_type && data.bus_action && data.point_of_impact && answered(data.bus_speed)
     && data.street_on && data.city && data.zip && answered(data.runaway_vehicle)
     && (data.runaway_vehicle !== true || data.operator_in_vehicle_runaway)
     && answered(data.bus_damage)

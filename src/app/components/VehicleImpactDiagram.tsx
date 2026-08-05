@@ -13,7 +13,7 @@ interface Props {
   onChange: (markers: ImpactMarker[]) => void;
   maxMarkers?: number;
   /** Vehicle-specific silhouette and impact zones. */
-  variant?: 'bus' | 'rail' | 'streetcar' | 'nrv' | 'motorcycle';
+  variant?: 'bus' | 'rail' | 'streetcar' | 'nrv';
   /** Override the word used in the instruction strip / aria label (default follows variant). */
   nounLabel?: string;
 }
@@ -105,21 +105,7 @@ const NRV_DOTS: Dot[] = [
   { id: 'Front/Rear Wheel',      cx: 340, cy: 356, lx: 340, ly: 380, anchor: 'middle' },
 ];
 
-// ── motorcycle / moped model ─────────────────────────────────────────────────
-// Long narrow body with front and rear wheels, handlebar near the front, and
-// mirrors flanking the rider. Front on the right, rear on the left; left flank
-// along the top, right flank along the bottom (same orientation as other variants).
-const MOTO_REGIONS: Region[] = [
-  { id: 'Rear Impact',       x: 150, y: 205, w: 110, h: 80,  rx: 30, lx: 205, ly: 245 },
-  { id: 'Front Impact',      x: 740, y: 205, w: 110, h: 80,  rx: 30, lx: 795, ly: 245 },
-  { id: 'Left Side Impact',  x: 270, y: 170, w: 460, h: 42,  rx: 12, lx: 500, ly: 191 },
-  { id: 'Right Side Impact', x: 270, y: 278, w: 460, h: 42,  rx: 12, lx: 500, ly: 299 },
-];
-
-const MOTO_DOTS: Dot[] = [
-  { id: 'Left Handlebar Mirror',  cx: 700, cy: 152, lx: 700, ly: 130, anchor: 'middle' },
-  { id: 'Right Handlebar Mirror', cx: 700, cy: 338, lx: 700, ly: 360, anchor: 'middle' },
-];
+// ── motorcycle model removed (no operator mode, other-vehicle side uses damage-area chips) ─
 
 const REGION_CENTER = (r: Region) => ({ cx: r.x + r.w / 2, cy: r.y + r.h / 2 });
 
@@ -144,12 +130,11 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
   const [hovered, setHovered] = useState<string | null>(null);
   const isStreetcar = variant === 'streetcar';
   const isNRV = variant === 'nrv';
-  const isMoto = variant === 'motorcycle';
   const isRail = variant === 'rail' || variant === 'streetcar';
-  const regions = isMoto ? MOTO_REGIONS : isNRV ? NRV_REGIONS : isStreetcar ? STREETCAR_REGIONS : isRail ? RAIL_REGIONS : REGIONS;
-  const dots = isMoto ? MOTO_DOTS : isNRV ? NRV_DOTS : isStreetcar ? STREETCAR_DOTS : isRail ? RAIL_DOTS : DOTS;
-  const noun = nounLabel ?? (isMoto ? 'motorcycle' : isNRV ? 'NRV' : isStreetcar ? 'streetcar' : isRail ? 'train' : 'bus');
-  const vehicleLabel = nounLabel ? nounLabel.charAt(0).toUpperCase() + nounLabel.slice(1) : (isMoto ? 'Motorcycle' : isNRV ? 'NRV' : isStreetcar ? 'Streetcar' : isRail ? 'Train' : 'Bus');
+  const regions = isNRV ? NRV_REGIONS : isStreetcar ? STREETCAR_REGIONS : isRail ? RAIL_REGIONS : REGIONS;
+  const dots = isNRV ? NRV_DOTS : isStreetcar ? STREETCAR_DOTS : isRail ? RAIL_DOTS : DOTS;
+  const noun = nounLabel ?? (isNRV ? 'NRV' : isStreetcar ? 'streetcar' : isRail ? 'train' : 'bus');
+  const vehicleLabel = nounLabel ? nounLabel.charAt(0).toUpperCase() + nounLabel.slice(1) : (isNRV ? 'NRV' : isStreetcar ? 'Streetcar' : isRail ? 'Train' : 'Bus');
   const atMax = markers.length >= maxMarkers;
 
   const indexOf = (id: string) => markers.findIndex(m => m.label === id);
@@ -169,8 +154,8 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
 
       {/* ── Label row ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <label className="block text-sm text-slate-700 font-['Poppins']">
-          Mark impact location on vehicle
+        <label className="block text-sm font-semibold text-slate-800 font-['Poppins']">
+          Mark damage areas on {noun}
           <span className="text-red-500 ml-1">*</span>
         </label>
         {markers.length > 0 && (
@@ -217,30 +202,11 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
             aria-label={`${vehicleLabel} impact diagram — tap a part to mark it`}
           >
             {/* orientation hints */}
-            <text x={isMoto ? 880 : isNRV ? 754 : isStreetcar ? 798 : isRail ? 828 : 912} y={isRail || isNRV || isMoto ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>FRONT</text>
-            <text x={isMoto ? 120 : isNRV ? 246 : isStreetcar ? 202 : isRail ? 152 : 95} y={isRail || isNRV || isMoto ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>REAR</text>
+            <text x={isNRV ? 754 : isStreetcar ? 798 : isRail ? 828 : 912} y={isRail || isNRV ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>FRONT</text>
+            <text x={isNRV ? 246 : isStreetcar ? 202 : isRail ? 152 : 95} y={isRail || isNRV ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>REAR</text>
 
             {/* ── Vehicle body illustration (non-interactive) ───────────── */}
-            {isMoto ? (
-              <g pointerEvents="none">
-                {/* rear wheel */}
-                <circle cx={210} cy={245} r={42} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={3} />
-                <circle cx={210} cy={245} r={18} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={2} />
-                {/* front wheel */}
-                <circle cx={800} cy={245} r={42} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={3} />
-                <circle cx={800} cy={245} r={18} fill="#F3F7FB" stroke="#DAE3EE" strokeWidth={2} />
-                {/* frame / body */}
-                <rect x={248} y={222} width={504} height={46} rx={20} fill="#E9EFF6" stroke="#C3D0DE" strokeWidth={2.5} />
-                {/* fuel tank */}
-                <ellipse cx={520} cy={245} rx={92} ry={30} fill="#D3E2F1" stroke="#C3D0DE" strokeWidth={2} />
-                {/* seat */}
-                <path d="M 340 228 Q 320 245 340 262 L 420 262 L 420 228 Z" fill="#C6D7EA" stroke="#C3D0DE" strokeWidth={1.5} />
-                {/* handlebar */}
-                <line x1={700} y1={175} x2={700} y2={315} stroke="#7A8AA0" strokeWidth={7} strokeLinecap="round" />
-                {/* headlight cowl at the front */}
-                <path d="M 760 228 L 792 216 L 792 274 L 760 262 Z" fill="#C6D7EA" stroke="#C3D0DE" strokeWidth={1.5} />
-              </g>
-            ) : isNRV ? (
+            {isNRV ? (
               <g pointerEvents="none">
                 {/* wheels tucked under a compact road vehicle */}
                 {[302, 638].map(wx => (

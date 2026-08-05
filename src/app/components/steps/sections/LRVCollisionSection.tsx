@@ -62,11 +62,15 @@ const EVENT_TYPE_WITH = toOptions([
   'Collision – with Animal',
 ]);
 
-const TRAIN_ACTION = toOptions([
-  'Berthed/Stopped', 'Departing Station Stop', 'Going Backwards',
+const TRAIN_ACTION = toOptions([  'Berthed/Stopped', 'Departing Station Stop', 'Going Backwards',
   'Going Straight (On the move)', 'Moving through Grade Crossing',
   'Negotiating a Curve', 'On Approach to Station', 'Parked',
   'Proceeding through a Switch', 'Servicing a Station',
+]);
+
+const LRV_IMPACT = toOptions([
+  'Front Impact', 'Left Side Impact', 'Left Sideswipe', 'Rear Impact',
+  'Right Side Impact', 'Right Side Sideswipe', 'Roof/Top of Vehicle', 'Underbody',
 ]);
 
 const fade = {
@@ -250,7 +254,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
 
       {/* 2 — What happened: the narrative and mechanics of the collision */}
       <Section title="What happened" help="One continuous account of the collision — the description, mechanics, impact, and any damage, runaway or evacuation.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <Field label="Event type with" required>
             <CustomSelect value={data.lrv_collision_type || ''} onChange={v => onUpdate({ lrv_collision_type: v })} options={EVENT_TYPE_WITH} placeholder="Select collision type" />
           </Field>
@@ -259,6 +263,9 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           </Field>
           <Field label="Train speed at time of event (mph)" required>
             <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={e => onUpdate({ train_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
+          </Field>
+          <Field label="Point of impact" required>
+            <CustomSelect value={data.lrv_point_of_impact || ''} onChange={v => onUpdate({ lrv_point_of_impact: v })} options={LRV_IMPACT} placeholder="Select impact point" />
           </Field>
         </div>
 

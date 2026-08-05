@@ -33,9 +33,9 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
 
   const navItems = [
     { id: 'home',        label: 'Home' },
-    { id: 'new-report',  label: 'New Accident Case' },
+    { id: 'new-report',  label: 'New Safety Event' },
     { id: 'drafts',      label: 'Draft Cases' },
-    { id: 'submissions', label: 'Case History' },
+    { id: 'submissions', label: 'Safety Events History' },
   ];
 
   // ── Notification state ──────────────────────────────────────────────

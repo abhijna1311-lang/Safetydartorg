@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from './CustomSelect';
 import { YesNoToggle } from './form/YesNoToggle';
+import { DamageAreaChips } from './steps/sections/DamageAreaChips';
 import type { OtherVehicle } from '../types/accident-report';
 
 const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
@@ -33,61 +34,6 @@ const DIRECTIONS = opt([
   'Not moving on the right side of DART vehicle',
   'Not moving ahead of DART Vehicle',
 ]);
-const DAMAGE_AREAS = opt(['Front', 'Rear', 'Left Side', 'Right Side', 'Top', 'Underbody', 'Front Wheel', 'Rear Wheel']);
-
-// Grouped for the inline chip picker: body panels first, then wheels — matches how people describe damage aloud.
-const DAMAGE_AREA_GROUPS: { label: string; items: string[] }[] = [
-  { label: 'Body', items: ['Front', 'Rear', 'Left Side', 'Right Side', 'Top', 'Underbody'] },
-  { label: 'Wheels', items: ['Front Wheel', 'Rear Wheel'] },
-];
-
-function DamageAreaChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
-  const toggle = (item: string) => {
-    if (value.includes(item)) onChange(value.filter(x => x !== item));
-    else onChange([...value, item]);
-  };
-  return (
-    <div className="space-y-1.5">
-      {DAMAGE_AREA_GROUPS.map(group => (
-        <div key={group.label} className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 min-w-[42px] text-[10px] font-semibold uppercase tracking-wide text-slate-400 font-['Poppins']">
-            {group.label}
-          </span>
-          {group.items.map(item => {
-            const selected = value.includes(item);
-            return (
-              <button
-                key={item}
-                type="button"
-                onClick={() => toggle(item)}
-                aria-pressed={selected}
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium font-['Poppins'] transition-all ${
-                  selected
-                    ? 'border-[#112458] bg-[#112458] text-white shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-[#b7cadd] hover:bg-slate-50'
-                }`}
-              >
-                {selected && <span className="material-symbols-rounded text-[14px]" aria-hidden="true">check</span>}
-                {item}
-              </button>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Map the picked "Vehicle type" to the closest impact-diagram silhouette.
-function diagramVariantFor(type?: string): 'bus' | 'rail' | 'streetcar' | 'nrv' | 'motorcycle' {
-  if (!type) return 'nrv';
-  const t = type.toLowerCase();
-  if (t.includes('motorcycle') || t.includes('moped')) return 'motorcycle';
-  if (t.includes('streetcar') || t.includes('trolley')) return 'streetcar';
-  if (t.includes('light rail') || t.includes('commercial rail') || t.includes('amtrak') || t.includes('non-revenue rail')) return 'rail';
-  if (t === 'bus' || t.includes('school bus') || t.includes('charter') || t.includes('tour bus')) return 'bus';
-  return 'nrv';
-}
 
 const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
 

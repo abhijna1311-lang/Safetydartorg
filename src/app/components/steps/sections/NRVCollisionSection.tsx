@@ -36,6 +36,12 @@ const NRV_ACTIONS = toOptions([
   'Moving in Traffic Circle', 'Moving on Left Bend', 'Moving on Right Bend',
 ]);
 
+const NRV_IMPACT = toOptions([
+  'Bike Rack', "Driver's Side Mirror", 'Front Impact', 'Front/Rear Wheel',
+  'Left Side Impact', 'Left Sideswipe', 'Passenger Side Mirror',
+  'Rear Impact', 'Right Side Impact', 'Right Sideswipe', 'Top', 'Underbody',
+]);
+
 // Prototype NRV roster. Production values will come from the fleet system.
 const NRV_FLEET = [
   { id: 'NRV-104', type: 'Ford Transit Support Van', pulloutDate: '2026-07-24', pulloutTime: '05:20' },
@@ -155,7 +161,7 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
       </Section>
 
       <Section title="What happened" help="Describe the collision, the NRV's movement, and any damage or runaway event.">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Event type with" required>
             <CustomSelect value={data.collision_type || ''} onChange={v => onUpdate({ collision_type: v })} options={EVENT_TYPE_WITH} placeholder="Select collision type" />
           </Field>
@@ -164,6 +170,9 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           </Field>
           <Field label="NRV speed at time of event (mph)" required>
             <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />
+          </Field>
+          <Field label="Point of impact" required>
+            <CustomSelect value={data.point_of_impact || ''} onChange={v => onUpdate({ point_of_impact: v })} options={NRV_IMPACT} placeholder="Select impact point" />
           </Field>
         </div>
 

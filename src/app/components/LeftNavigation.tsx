@@ -11,9 +11,9 @@ interface LeftNavigationProps {
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'new-report', label: 'New Accident Case', icon: FileText },
+  { id: 'new-report', label: 'New Safety Event', icon: FileText },
   { id: 'drafts', label: 'Draft Cases', icon: Clock, badge: 3 },
-  { id: 'submissions', label: 'Case History', icon: CheckCircle },
+  { id: 'submissions', label: 'Safety Events History', icon: CheckCircle },
 ] as const;
 
 export function LeftNavigation({ activeNav, onNavigate, isMobile = false, isOpen = false, onClose }: LeftNavigationProps) {

@@ -185,7 +185,7 @@ const HOME_COPY: Record<UserRole, {
 }> = {
   Operator: {
     intro: 'Finish case sections that were assigned to you, or start a case yourself when reporting directly from the field.',
-    heroTitle: 'Start a new accident case',
+    heroTitle: 'Start a new Safety Event',
     heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your action',
@@ -200,7 +200,7 @@ const HOME_COPY: Record<UserRole, {
   },
   Supervisor: {
     intro: 'Start cases when operators cannot, then complete Field Supervisor collision sections assigned to you.',
-    heroTitle: 'Start a new accident case',
+    heroTitle: 'Start a new Safety Event',
     heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your section',
@@ -215,7 +215,7 @@ const HOME_COPY: Record<UserRole, {
   },
   'Program Manager': {
     intro: 'Complete classification sections, request targeted corrections, and close cases when all role sections are in.',
-    heroTitle: 'Start a new accident case',
+    heroTitle: 'Start a new Safety Event',
     heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your section',
@@ -230,7 +230,7 @@ const HOME_COPY: Record<UserRole, {
   },
   'Assistant Manager': {
     intro: 'Review Field Supervisor reports and route them to the Safety Program Manager for classification.',
-    heroTitle: 'Start a new accident case',
+    heroTitle: 'Start a new Safety Event',
     heroDescription: 'Cases sent by a Field Supervisor land here for your review. Approve to move the report along, return for rework, or reassign.',
     heroButtonLabel: 'Start New Case',
     queueMetricLabel: 'Awaiting your review',
