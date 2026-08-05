@@ -3,6 +3,7 @@ export interface Person {
   role: 'Passenger' | 'Pedestrian';
   name?: string;
   gender?: 'Female' | 'Male';
+  is_dart_employee?: boolean;
   injured?: boolean;
   fatal?: boolean;
   injured_body_part?: string;

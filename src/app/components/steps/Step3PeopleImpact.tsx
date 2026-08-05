@@ -176,8 +176,7 @@ export function Step3PeopleImpact({
     && (!vehicle.damage || (Array.isArray(vehicle.damage_area) && vehicle.damage_area.length > 0))
   );
   const operatorAnswered = isHiRail || (data.operator_injured !== undefined
-    && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined))
-    && data.other_employees_injured_count !== undefined);
+    && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined)));
   const passengersAnswered = data.passengers_on_board !== undefined;
   const peopleAnswered = data.people_involved !== undefined
     && (data.people_involved !== true || (people.length > 0 && people.every(personComplete)));
@@ -323,8 +322,8 @@ export function Step3PeopleImpact({
                 </div>
               </div>
 
-              {/* 1 — Operator and employees */}
-              <Section title="Operator and employees" help="Your injury status is required. Other DART employees on board are recorded as a count.">
+              {/* 1 — Operator involved */}
+              <Section title="Operator involved" help="Your injury status is required.">
                 <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && !operatorAnswered ? 'border-red-300' : 'border-slate-200/70'}`}>
                   <BoolRow label="Were you injured in this event?" required={!isHiRail}>
                     <YesNoToggle value={data.operator_injured} onChange={v => onUpdate({ operator_injured: v, operator_injured_body_part: v ? data.operator_injured_body_part : undefined, operator_transported: v ? data.operator_transported : undefined })} />
@@ -350,17 +349,6 @@ export function Step3PeopleImpact({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <BoolRow label="Other employees injured (excluding you)" required={!isHiRail}>
-                    <input
-                      type="number"
-                      min={0}
-                      inputMode="numeric"
-                      value={data.other_employees_injured_count ?? ''}
-                      onChange={e => onUpdate({ other_employees_injured_count: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                      placeholder="Enter count"
-                      className="dart-input-base w-full text-center sm:w-24"
-                    />
-                  </BoolRow>
                 </div>
               </Section>
 

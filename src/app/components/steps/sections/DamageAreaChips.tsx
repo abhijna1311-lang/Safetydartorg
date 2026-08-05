@@ -1,6 +1,6 @@
 export const DAMAGE_AREA_GROUPS: { label: string; items: string[] }[] = [
   { label: 'Body', items: ['Front', 'Rear', 'Left Side', 'Right Side', 'Top', 'Underbody'] },
-  { label: 'Wheels', items: ['Front Wheel', 'Rear Wheel'] },
+  { label: 'Wheels', items: ['Front Wheel Left', 'Front Wheel Right', 'Rear Wheel Left', 'Rear Wheel Right'] },
 ];
 
 export function DamageAreaChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {

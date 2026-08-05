@@ -31,21 +31,19 @@ interface Region { id: string; x: number; y: number; w: number; h: number; rx: n
 interface Dot { id: string; cx: number; cy: number; lx: number; ly: number; anchor: 'start' | 'middle' | 'end' }
 
 const REGIONS: Region[] = [
-  { id: 'Rear Impact',       x: 96,  y: 165, w: 118, h: 160, rx: 20, lx: 155, ly: 250 },
-  { id: 'Front Impact',      x: 726, y: 165, w: 130, h: 160, rx: 48, lx: 788, ly: 250 },
-  { id: 'Left Side Impact',  x: 232, y: 150, w: 232, h: 52,  rx: 14, lx: 348, ly: 181 },
-  { id: 'Left Sideswipe',    x: 476, y: 150, w: 232, h: 52,  rx: 14, lx: 592, ly: 181 },
-  { id: 'Right Side Impact', x: 232, y: 288, w: 232, h: 52,  rx: 14, lx: 348, ly: 319 },
-  { id: 'Right Sideswipe',   x: 476, y: 288, w: 232, h: 52,  rx: 14, lx: 592, ly: 319 },
+  { id: 'Rear',       x: 96,  y: 165, w: 118, h: 160, rx: 20, lx: 155, ly: 250 },
+  { id: 'Front',      x: 726, y: 165, w: 130, h: 160, rx: 48, lx: 788, ly: 250 },
+  { id: 'Left Side',  x: 232, y: 150, w: 476, h: 52,  rx: 14, lx: 470, ly: 181 },
+  { id: 'Right Side', x: 232, y: 288, w: 476, h: 52,  rx: 14, lx: 470, ly: 319 },
 ];
 
 const DOTS: Dot[] = [
-  { id: 'Top',                   cx: 396, cy: 224, lx: 396, ly: 199, anchor: 'middle' },
-  { id: 'Underbody',             cx: 560, cy: 266, lx: 560, ly: 291, anchor: 'middle' },
-  { id: 'Bike Rack',             cx: 892, cy: 245, lx: 912, ly: 249, anchor: 'start'  },
-  { id: "Driver's Side Mirror",  cx: 690, cy: 120, lx: 690, ly: 103, anchor: 'middle' },
-  { id: 'Passenger Side Mirror', cx: 690, cy: 370, lx: 690, ly: 393, anchor: 'middle' },
-  { id: 'Front/Rear Wheel',      cx: 300, cy: 360, lx: 300, ly: 385, anchor: 'middle' },
+  { id: 'Top',               cx: 396, cy: 224, lx: 396, ly: 199, anchor: 'middle' },
+  { id: 'Underbody',         cx: 560, cy: 266, lx: 560, ly: 291, anchor: 'middle' },
+  { id: 'Rear Wheel Left',   cx: 282, cy: 110, lx: 282, ly: 92,  anchor: 'middle' },
+  { id: 'Rear Wheel Right',  cx: 282, cy: 360, lx: 282, ly: 385, anchor: 'middle' },
+  { id: 'Front Wheel Left',  cx: 718, cy: 110, lx: 718, ly: 92,  anchor: 'middle' },
+  { id: 'Front Wheel Right', cx: 718, cy: 360, lx: 718, ly: 385, anchor: 'middle' },
 ];
 
 // ── rail (LRV) model ──────────────────────────────────────────────────────────
@@ -54,17 +52,19 @@ const DOTS: Dot[] = [
 // exact rail "Point of impact" values: front/rear ends + side impact/sideswipe flanks
 // are tappable REGIONS; Roof/Top and Underbody are labelled DOTS.
 const RAIL_REGIONS: Region[] = [
-  { id: 'Rear Impact',          x: 96,  y: 165, w: 112, h: 160, rx: 20, lx: 152, ly: 245 },
-  { id: 'Front Impact',         x: 772, y: 165, w: 112, h: 160, rx: 20, lx: 828, ly: 245 },
-  { id: 'Left Side Impact',     x: 224, y: 150, w: 250, h: 52,  rx: 14, lx: 349, ly: 176 },
-  { id: 'Left Sideswipe',       x: 484, y: 150, w: 250, h: 52,  rx: 14, lx: 609, ly: 176 },
-  { id: 'Right Side Impact',    x: 224, y: 288, w: 250, h: 52,  rx: 14, lx: 349, ly: 314 },
-  { id: 'Right Side Sideswipe', x: 484, y: 288, w: 250, h: 52,  rx: 14, lx: 609, ly: 314 },
+  { id: 'Rear',       x: 96,  y: 165, w: 112, h: 160, rx: 20, lx: 152, ly: 245 },
+  { id: 'Front',      x: 772, y: 165, w: 112, h: 160, rx: 20, lx: 828, ly: 245 },
+  { id: 'Left Side',  x: 224, y: 150, w: 510, h: 52,  rx: 14, lx: 479, ly: 176 },
+  { id: 'Right Side', x: 224, y: 288, w: 510, h: 52,  rx: 14, lx: 479, ly: 314 },
 ];
 
 const RAIL_DOTS: Dot[] = [
-  { id: 'Roof/Top of Vehicle', cx: 430, cy: 245, lx: 430, ly: 222, anchor: 'middle' },
-  { id: 'Underbody',           cx: 560, cy: 245, lx: 560, ly: 268, anchor: 'middle' },
+  { id: 'Top',               cx: 430, cy: 245, lx: 430, ly: 222, anchor: 'middle' },
+  { id: 'Underbody',         cx: 560, cy: 245, lx: 560, ly: 268, anchor: 'middle' },
+  { id: 'Rear Wheel Left',   cx: 180, cy: 110, lx: 180, ly: 92,  anchor: 'middle' },
+  { id: 'Rear Wheel Right',  cx: 180, cy: 380, lx: 180, ly: 405, anchor: 'middle' },
+  { id: 'Front Wheel Left',  cx: 820, cy: 110, lx: 820, ly: 92,  anchor: 'middle' },
+  { id: 'Front Wheel Right', cx: 820, cy: 380, lx: 820, ly: 405, anchor: 'middle' },
 ];
 
 // ── streetcar model ──────────────────────────────────────────────────────────
@@ -72,37 +72,38 @@ const RAIL_DOTS: Dot[] = [
 // side doors/windows, and no LRV articulation seams. The same eight requirement
 // values remain selectable, but their regions follow the compact streetcar body.
 const STREETCAR_REGIONS: Region[] = [
-  { id: 'Rear Impact',          x: 146, y: 168, w: 112, h: 154, rx: 42, lx: 202, ly: 245 },
-  { id: 'Front Impact',         x: 742, y: 168, w: 112, h: 154, rx: 42, lx: 798, ly: 245 },
-  { id: 'Left Side Impact',     x: 272, y: 154, w: 218, h: 52,  rx: 14, lx: 381, ly: 180 },
-  { id: 'Left Sideswipe',       x: 510, y: 154, w: 218, h: 52,  rx: 14, lx: 619, ly: 180 },
-  { id: 'Right Side Impact',    x: 272, y: 284, w: 218, h: 52,  rx: 14, lx: 381, ly: 310 },
-  { id: 'Right Side Sideswipe', x: 510, y: 284, w: 218, h: 52,  rx: 14, lx: 619, ly: 310 },
+  { id: 'Rear',       x: 146, y: 168, w: 112, h: 154, rx: 42, lx: 202, ly: 245 },
+  { id: 'Front',      x: 742, y: 168, w: 112, h: 154, rx: 42, lx: 798, ly: 245 },
+  { id: 'Left Side',  x: 272, y: 154, w: 456, h: 52,  rx: 14, lx: 500, ly: 180 },
+  { id: 'Right Side', x: 272, y: 284, w: 456, h: 52,  rx: 14, lx: 500, ly: 310 },
 ];
 
 const STREETCAR_DOTS: Dot[] = [
-  { id: 'Roof/Top of Vehicle', cx: 445, cy: 245, lx: 445, ly: 222, anchor: 'middle' },
-  { id: 'Underbody',           cx: 570, cy: 245, lx: 570, ly: 268, anchor: 'middle' },
+  { id: 'Top',               cx: 445, cy: 245, lx: 445, ly: 222, anchor: 'middle' },
+  { id: 'Underbody',         cx: 570, cy: 245, lx: 570, ly: 268, anchor: 'middle' },
+  { id: 'Rear Wheel Left',   cx: 220, cy: 110, lx: 220, ly: 92,  anchor: 'middle' },
+  { id: 'Rear Wheel Right',  cx: 220, cy: 380, lx: 220, ly: 405, anchor: 'middle' },
+  { id: 'Front Wheel Left',  cx: 780, cy: 110, lx: 780, ly: 92,  anchor: 'middle' },
+  { id: 'Front Wheel Right', cx: 780, cy: 380, lx: 780, ly: 405, anchor: 'middle' },
 ];
 
 // ── non-revenue vehicle model ─────────────────────────────────────────────────
 // Compact road vehicle (car/SUV) with the exact NRV impact vocabulary. Unlike
 // the bus, there is no bike-rack zone.
 const NRV_REGIONS: Region[] = [
-  { id: 'Rear Impact',       x: 190, y: 172, w: 112, h: 146, rx: 42, lx: 246, ly: 245 },
-  { id: 'Front Impact',      x: 698, y: 172, w: 112, h: 146, rx: 52, lx: 754, ly: 245 },
-  { id: 'Left Side Impact',  x: 316, y: 158, w: 178, h: 52,  rx: 14, lx: 405, ly: 184 },
-  { id: 'Left Sideswipe',    x: 506, y: 158, w: 178, h: 52,  rx: 14, lx: 595, ly: 184 },
-  { id: 'Right Side Impact', x: 316, y: 280, w: 178, h: 52,  rx: 14, lx: 405, ly: 306 },
-  { id: 'Right Sideswipe',   x: 506, y: 280, w: 178, h: 52,  rx: 14, lx: 595, ly: 306 },
+  { id: 'Rear',       x: 190, y: 172, w: 112, h: 146, rx: 42, lx: 246, ly: 245 },
+  { id: 'Front',      x: 698, y: 172, w: 112, h: 146, rx: 52, lx: 754, ly: 245 },
+  { id: 'Left Side',  x: 316, y: 158, w: 368, h: 52,  rx: 14, lx: 500, ly: 184 },
+  { id: 'Right Side', x: 316, y: 280, w: 368, h: 52,  rx: 14, lx: 500, ly: 306 },
 ];
 
 const NRV_DOTS: Dot[] = [
-  { id: 'Top',                   cx: 440, cy: 245, lx: 440, ly: 222, anchor: 'middle' },
-  { id: 'Underbody',             cx: 555, cy: 245, lx: 555, ly: 268, anchor: 'middle' },
-  { id: 'Drivers Side Mirror',   cx: 650, cy: 132, lx: 650, ly: 112, anchor: 'middle' },
-  { id: 'Passenger Side Mirror', cx: 650, cy: 358, lx: 650, ly: 380, anchor: 'middle' },
-  { id: 'Front/Rear Wheel',      cx: 340, cy: 356, lx: 340, ly: 380, anchor: 'middle' },
+  { id: 'Top',               cx: 440, cy: 245, lx: 440, ly: 222, anchor: 'middle' },
+  { id: 'Underbody',         cx: 555, cy: 245, lx: 555, ly: 268, anchor: 'middle' },
+  { id: 'Rear Wheel Left',   cx: 331, cy: 110, lx: 331, ly: 92,  anchor: 'middle' },
+  { id: 'Rear Wheel Right',  cx: 331, cy: 380, lx: 331, ly: 405, anchor: 'middle' },
+  { id: 'Front Wheel Left',  cx: 667, cy: 110, lx: 667, ly: 92,  anchor: 'middle' },
+  { id: 'Front Wheel Right', cx: 667, cy: 380, lx: 667, ly: 405, anchor: 'middle' },
 ];
 
 // ── motorcycle model removed (no operator mode, other-vehicle side uses damage-area chips) ─

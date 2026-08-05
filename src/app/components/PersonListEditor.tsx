@@ -8,6 +8,7 @@ import type { Person } from '../types/accident-report';
 const opt = (arr: string[]) => arr.map(v => ({ value: v, label: v }));
 const ROLES = opt(['Passenger', 'Pedestrian']);
 const GENDERS = opt(['Female', 'Male']);
+const YES_NO = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
 const BODY_PARTS = opt(['Head', 'Upper body', 'Lower body']);
 const PASSENGER_ACTIONS = opt(['Boarding Bus', 'Alighting Bus', 'On Board']);
 const DOORS = opt(['Front doors', 'Rear doors']);
@@ -115,6 +116,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
           (!isPassenger || (!!p.passenger_action && (!showDoor || !!p.which_door)))
           && (!isPedestrian || (!!p.pedestrian_type && !!p.pedestrian_action))
           && !!p.gender
+          && p.is_dart_employee !== undefined
           && (!injuryDetailsRequired || (
             p.injured !== undefined
             && (!p.injured || (!!p.injured_body_part && p.transported_to_hospital !== undefined))
@@ -187,25 +189,39 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                     <div>
                       <GroupLabel>Details</GroupLabel>
                       {(() => {
-                        // Keep every field in the row the same width by picking the col-span from the field count.
-                        const halfSpan = isPassenger && !showDoor ? 'lg:col-span-4' : 'lg:col-span-3';
-                        const passengerActionSpan = showDoor ? 'lg:col-span-3' : 'lg:col-span-4';
+                        // Uneven spans on a 12-col grid so the long "At the time of the event" label gets more room; short fields (Role, DART, Which door) shrink to keep everything on one line.
+                        const roleSpan = 'lg:col-span-2';
+                        const dartSpan = 'lg:col-span-2';
+                        const genderSpan = isPassenger && !showDoor ? 'lg:col-span-3' : 'lg:col-span-2';
+                        const actionSpan = isPassenger && !showDoor ? 'lg:col-span-5' : 'lg:col-span-4';
+                        const doorSpan = 'lg:col-span-2';
+                        const pedTypeSpan = 'lg:col-span-3';
+                        const pedActionSpan = 'lg:col-span-3';
                         return (
                         <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
-                          <Field label="Role" required className={halfSpan}>
+                          <Field label="Role" required className={roleSpan}>
                             <CustomSelect value={role} onChange={v => changeRole(p.id, v)} options={ROLES} placeholder="Select role" />
                           </Field>
-                          <Field label="Gender" required className={halfSpan}>
+                          <Field label="DART employee?" required className={dartSpan}>
+                            <CustomSelect
+                              value={p.is_dart_employee === undefined ? '' : (p.is_dart_employee ? 'yes' : 'no')}
+                              onChange={v => update(p.id, { is_dart_employee: v === 'yes' })}
+                              options={YES_NO}
+                              placeholder="Select"
+                              error={showErrors && p.is_dart_employee === undefined}
+                            />
+                          </Field>
+                          <Field label="Gender" required className={genderSpan}>
                             <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
                           </Field>
 
                           {isPassenger && (
                             <>
-                              <Field label="At the time of the event, the passenger was" required className={`sm:col-span-2 ${passengerActionSpan}`}>
+                              <Field label="At the time of the event, the passenger was" required className={actionSpan}>
                                 <CustomSelect value={p.passenger_action || ''} onChange={v => update(p.id, { passenger_action: v, which_door: undefined })} options={PASSENGER_ACTIONS} placeholder="Select" />
                               </Field>
                               {showDoor && (
-                                <Field label="Which door?" required className="lg:col-span-3">
+                                <Field label="Which door?" required className={doorSpan}>
                                   <CustomSelect value={p.which_door || ''} onChange={v => update(p.id, { which_door: v })} options={DOORS} placeholder="Select" error={showErrors && !p.which_door} />
                                 </Field>
                               )}
@@ -214,10 +230,10 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
 
                           {isPedestrian && (
                             <>
-                              <Field label="Pedestrian type" required className="sm:col-span-2 lg:col-span-3">
+                              <Field label="Pedestrian type" required className={pedTypeSpan}>
                                 <CustomSelect value={p.pedestrian_type || ''} onChange={v => update(p.id, { pedestrian_type: v, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select" />
                               </Field>
-                              <Field label="Pedestrian action" required className="lg:col-span-3">
+                              <Field label="Pedestrian action" required className={pedActionSpan}>
                                 <CustomSelect value={p.pedestrian_action || ''} onChange={v => update(p.id, { pedestrian_action: v })} options={pedActions} placeholder="Select" />
                               </Field>
                             </>
