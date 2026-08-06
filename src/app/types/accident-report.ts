@@ -185,6 +185,11 @@ export interface AccidentReportData {
   train_status_before?: string;
   train_status_after?: string;
   car_number?: string;
+  // Signal Violation
+  signal_date?: string;
+  signal_number?: string;
+  signal_displaying_properly?: 'yes' | 'no' | 'not_observed';
+  signal_territory?: 'Mainline Territory' | 'Yard Territory';
   lrv_consist_count?: number;
   lrv_consist_1?: string;
   lrv_consist_2?: string;

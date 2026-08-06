@@ -368,7 +368,7 @@ export function Step3PeopleImpact({
                       />
                     </BoolRow>
                   )}
-                  <BoolRow label="Was anyone involved in this event?" required>
+                  <BoolRow label="Was anyone injured in this event?" required>
                     <YesNoToggle value={data.people_involved} onChange={v => onUpdate({ people_involved: v, people: v ? (data.people ?? []) : [] })} />
                   </BoolRow>
                 </div>

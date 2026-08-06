@@ -32,6 +32,12 @@ const LRV_TRAFFIC_CONTROLS = toOptions([
   'Signal', 'Stop Sign', 'Traffic Light', 'TSS', 'Yellow Flashing Lights',
 ]);
 
+// Streetcars run on-street with no ATP/TSS/ABS and no wayside stop signs — hide those choices.
+const STREETCAR_TRAFFIC_CONTROLS = toOptions([
+  'Green Band', 'Line of Sight', 'N/A', 'None', 'Red Flashing Lights',
+  'Signal', 'Traffic Light', 'Yellow Flashing Lights',
+]);
+
 const BUS_ROADWAY = toOptions([
   'Bridge', 'Bus Track', 'Four Lane Road', 'Fuel Bay',
   'Highway/Expressways/Freeways/Toll Road', 'Intersection', 'One-way Street',
@@ -56,8 +62,9 @@ function Field({ label, required, error, children }: { label: string; required?:
 }
 
 export function WeatherSection({ data, onUpdate, mode, bare = false, required = false, showErrors = false }: Props) {
-  const isLRV = mode === 'Light Rail Vehicle' || mode === 'Streetcar' || mode === 'Hi-Rail';
-  const trafficControls = isLRV ? LRV_TRAFFIC_CONTROLS : BUS_TRAFFIC_CONTROLS;
+  const isStreetcar = mode === 'Streetcar';
+  const isLRV = mode === 'Light Rail Vehicle' || isStreetcar || mode === 'Hi-Rail';
+  const trafficControls = isStreetcar ? STREETCAR_TRAFFIC_CONTROLS : isLRV ? LRV_TRAFFIC_CONTROLS : BUS_TRAFFIC_CONTROLS;
   const roadwayConfig = isLRV ? LRV_ROADWAY : BUS_ROADWAY;
 
   const isComplete = !!(data.weather && data.lighting_conditions && data.road_conditions);

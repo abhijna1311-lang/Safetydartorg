@@ -6,8 +6,8 @@ import { BusCollisionSection } from './sections/BusCollisionSection';
 import { LRVCollisionSection } from './sections/LRVCollisionSection';
 import { NRVCollisionSection } from './sections/NRVCollisionSection';
 import { DerailmentSection } from './sections/DerailmentSection';
+import { SignalViolationSection } from './sections/SignalViolationSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
-import { WeatherSection } from './sections/WeatherSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
@@ -84,6 +84,7 @@ export function Step2VehicleLocation({
   // Check if this is a collision event
   const isCollision = data.event_type === 'Collision';
   const isDerailment = data.event_type === 'Derailment';
+  const isSignalViolation = data.event_type === 'Signal Violation';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -145,6 +146,15 @@ export function Step2VehicleLocation({
     && (data.runaway_train !== true || data.operator_in_train_runaway)
     && answered(data.lrv_evacuation) && requiredWeatherComplete
   );
+  const signalViolationComplete = !!(
+    data.train_number
+    && (data.mode !== 'Light Rail Vehicle' || data.car_number)
+    && data.signal_date && data.signal_number
+    && data.signal_displaying_properly && data.signal_territory
+    && data.train_status_before && data.train_status_after
+    && data.address_of_event
+    && requiredWeatherComplete
+  );
 
   // Minimum required to proceed
   const hasSchedule = !showSchedule || hasScheduleAnswers(data);
@@ -165,13 +175,15 @@ export function Step2VehicleLocation({
         data.incident_time &&
         (isDerailment
           ? derailmentComplete
-          : isCollision && isBus
-            ? busCollisionComplete
-            : isCollision && isNRV
-              ? nrvCollisionComplete
-              : isCollision && isLRV
-                ? railCollisionComplete
-                : isBus || isNRV ? data.street_on : data.train_number)
+          : isSignalViolation
+            ? signalViolationComplete
+            : isCollision && isBus
+              ? busCollisionComplete
+              : isCollision && isNRV
+                ? nrvCollisionComplete
+                : isCollision && isLRV
+                  ? railCollisionComplete
+                  : isBus || isNRV ? data.street_on : data.train_number)
       );
 
   const handleNextClick = () => {
@@ -312,17 +324,15 @@ export function Step2VehicleLocation({
                 if (isDerailment) {
                   return <DerailmentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
                 }
-                // Non-collision / non-derailment falls back to BasicIncidentSection, which uses its own
-                // stacked-card layout; Schedule renders above it as a distinct block.
-                return (
-                  <>
-                    {schedule}
-                    <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} />
-                  </>
-                );
+                if (isSignalViolation && (isLRV || isStreetcar)) {
+                  return <SignalViolationSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                // Non-collision / non-derailment (Assault, Near Miss, Fire, Operator/Passenger Events,
+                // Trail a Switch) render under the same unified card as Bus/Rail/NRV via
+                // BasicIncidentSection, with Schedule injected as the header section and Weather
+                // embedded inside as its own subsection.
+                return <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
               })()}
-              {/* Bus and rail collisions embed weather inside "Weather and conditions"; other flows keep it standalone */}
-              {!isDerailment && !(isCollision && (isBus || isLRV || isNRV)) && <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} />}
             </>
           )}
       </div>

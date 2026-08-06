@@ -43,7 +43,7 @@ const NRV_IMPACT = toOptions([
 ]);
 
 // Prototype NRV roster. Production values will come from the fleet system.
-const NRV_FLEET = [
+export const NRV_FLEET = [
   { id: 'NRV-104', type: 'Ford Transit Support Van', pulloutDate: '2026-07-24', pulloutTime: '05:20' },
   { id: 'NRV-218', type: 'Chevrolet Silverado Service Truck', pulloutDate: '2026-07-24', pulloutTime: '05:45' },
   { id: 'NRV-327', type: 'Ford Explorer Supervisor Vehicle', pulloutDate: '2026-07-24', pulloutTime: '06:10' },
@@ -97,7 +97,7 @@ function fmtTime(val?: string) {
   return `${h12}:${mm.padStart(2, '0')} ${period}`;
 }
 
-function NRVRecordCard({ data }: { data: AccidentReportData }) {
+export function NRVRecordCard({ data }: { data: AccidentReportData }) {
   const cols = [
     { label: 'Vehicle type', value: data.fleet_type, glyph: 'directions_car' },
     { label: 'Pull-out date', value: fmtDate(data.employee_pullout_date), glyph: 'calendar_month' },

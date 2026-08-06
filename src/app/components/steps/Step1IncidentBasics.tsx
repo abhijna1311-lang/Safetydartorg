@@ -49,6 +49,8 @@ const MODES = [
 ] as const;
 
 const DERAILMENT_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
+// Signal Violation reports are only meaningful for on-rail passenger modes.
+const SIGNAL_VIOLATION_MODES = ['Light Rail Vehicle', 'Streetcar'];
 
 const EMPTY_EMPLOYEE_FIELDS: Partial<AccidentReportData> = {
   on_behalf_employee: '',
@@ -115,8 +117,10 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
   const hasEventType = !!data.event_type;
   const isDerailmentEvent = data.event_type?.trim().toLowerCase() === 'derailment';
+  const isSignalViolationEvent = data.event_type?.trim().toLowerCase() === 'signal violation';
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
-  const modeIsAllowed = !isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || '');
+  const modeIsAllowed = (!isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || ''))
+    && (!isSignalViolationEvent || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
   const hasMode = !!data.mode && modeIsAllowed;
   const hasIncidentDate = !!data.incident_date;
   const hasIncidentTime = !!data.incident_time;
@@ -147,7 +151,18 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         lrv_fleet_type: undefined,
       });
     }
-  }, [data.mode, isDerailmentEvent, onUpdate]);
+    if (isSignalViolationEvent && data.mode && !SIGNAL_VIOLATION_MODES.includes(data.mode)) {
+      onUpdate({
+        mode: undefined,
+        vehicle_number: undefined,
+        fleet_type: undefined,
+        trip_id: undefined,
+        block_number: undefined,
+        train_number: undefined,
+        lrv_fleet_type: undefined,
+      });
+    }
+  }, [data.mode, isDerailmentEvent, isSignalViolationEvent, onUpdate]);
 
   // ── Auto-fill employee info from logged-in user ────────────────
   // Runs on mount and whenever the role changes (badge changes)
@@ -272,7 +287,10 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   };
 
   const handleEventTypeChange = (val: string) => {
-    const modeRemainsAllowed = val !== 'Derailment' || DERAILMENT_MODES.includes(data.mode || '');
+    const isDerail = val === 'Derailment';
+    const isSignal = val === 'Signal Violation';
+    const modeRemainsAllowed = (!isDerail || DERAILMENT_MODES.includes(data.mode || ''))
+      && (!isSignal || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
     onUpdate({
       event_type: val,
       ...(!modeRemainsAllowed ? {
@@ -291,6 +309,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
   const handleModeChange = (val: string) => {
     if (isDerailmentEvent && !DERAILMENT_MODES.includes(val)) return;
+    if (isSignalViolationEvent && !SIGNAL_VIOLATION_MODES.includes(val)) return;
     if (val !== data.mode) {
       onUpdate({
         mode: val,
@@ -565,14 +584,20 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           <AnimatePresence>
             {needsDrivingQ && (
               <motion.div {...fade} key="driving-q" className="mt-5 pt-5 border-t border-slate-100">
-                <p className="text-sm font-medium text-[#00205B] font-['Poppins'] mb-1">
-                  Were you operating a DART vehicle? <span className="dart-req">*</span>
-                </p>
-                <p className="text-xs text-slate-500 font-['Poppins'] mb-3">
-                  Were you driving, operating, or in possession of a DART vehicle at the time of the event?
-                </p>
-                <YesNoToggle value={data.operating_dart_vehicle} onChange={v => onUpdate({ operating_dart_vehicle: v })} />
-                {errDriving && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Answer this question to continue.</p>}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                  <div className="sm:flex-1">
+                    <p className="text-sm font-medium text-[#00205B] font-['Poppins']">
+                      Were you operating a DART vehicle? <span className="dart-req">*</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 font-['Poppins']">
+                      Were you driving, operating, or in possession of a DART vehicle at the time of the event?
+                    </p>
+                    {errDriving && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Answer this question to continue.</p>}
+                  </div>
+                  <div className="shrink-0">
+                    <YesNoToggle value={data.operating_dart_vehicle} onChange={v => onUpdate({ operating_dart_vehicle: v })} />
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -583,6 +608,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           title={<>Vehicle mode <span className="dart-req">*</span></>}
           help={isDerailmentEvent
             ? 'Derailment reports are available only for Light Rail Vehicle, Streetcar, and Hi-Rail.'
+            : isSignalViolationEvent
+            ? 'Signal Violation reports are available only for Light Rail Vehicle and Streetcar.'
             : 'Which DART vehicle mode is involved?'}
           complete={hasMode}
         >
@@ -590,16 +617,28 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             {MODES.map(m => {
               const selected = data.mode === m.value;
               const unavailableForDerailment = isDerailmentEvent && !DERAILMENT_MODES.includes(m.value);
-              const disabled = lockEventAndMode || unavailableForDerailment;
+              const unavailableForSignal = isSignalViolationEvent && !SIGNAL_VIOLATION_MODES.includes(m.value);
+              const unavailable = unavailableForDerailment || unavailableForSignal;
+              const disabled = lockEventAndMode || unavailable;
+              const guidanceId = unavailableForDerailment
+                ? 'derailment-mode-guidance'
+                : unavailableForSignal
+                ? 'signal-violation-mode-guidance'
+                : undefined;
+              const unavailableTitle = unavailableForDerailment
+                ? 'Not available for Derailment'
+                : unavailableForSignal
+                ? 'Not available for Signal Violation'
+                : undefined;
               return (
                 <button
                   key={m.value}
                   type="button"
                   disabled={disabled}
                   onClick={() => handleModeChange(m.value)}
-                  aria-describedby={unavailableForDerailment ? 'derailment-mode-guidance' : undefined}
-                  title={unavailableForDerailment ? 'Not available for Derailment' : undefined}
-                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${unavailableForDerailment ? 'grayscale bg-slate-100/80 border-slate-200' : ''} ${errMode && !selected && !unavailableForDerailment ? 'dart-mode-card--error' : ''}`}
+                  aria-describedby={guidanceId}
+                  title={unavailableTitle}
+                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${unavailable ? 'grayscale bg-slate-100/80 border-slate-200' : ''} ${errMode && !selected && !unavailable ? 'dart-mode-card--error' : ''}`}
                 >
                   {selected && (
                     <span className="dart-mode-badge">
@@ -610,7 +649,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     <span className="material-symbols-rounded">{m.glyph}</span>
                   </span>
                   <span className="dart-mode-title">{m.label}</span>
-                  <span className="dart-mode-sub">{unavailableForDerailment ? 'Not available for Derailment' : m.sublabel}</span>
+                  <span className="dart-mode-sub">{unavailableTitle ?? m.sublabel}</span>
                 </button>
               );
             })}
@@ -618,6 +657,11 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           {isDerailmentEvent && (
             <p id="derailment-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
               Bus and Non-Revenue Vehicle cannot be selected for this event type.
+            </p>
+          )}
+          {isSignalViolationEvent && (
+            <p id="signal-violation-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+              Bus, Non-Revenue Vehicle, and Hi-Rail cannot be selected for this event type.
             </p>
           )}
           {errMode && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Select the vehicle mode involved.</p>}

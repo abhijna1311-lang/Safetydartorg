@@ -50,7 +50,7 @@ const LRV_FLEET = [
   { id: 'T-3120', fleetType: 'KIN – Kinki Sharyo USA 2010', pulloutDate: '2026-07-24', pulloutTime: '06:02', cars: ['2201', '2202', '2203'] },
   { id: 'T-3345', fleetType: 'KIN – Kinki Sharyo USA 1999', pulloutDate: '2026-07-24', pulloutTime: '05:40', cars: ['2118', '2119'] },
 ];
-const HI_RAIL_FLEET = [
+export const HI_RAIL_FLEET = [
   { id: 'HR-118', fleetType: 'Ford F-550 Hi-Rail Maintenance Truck', pulloutDate: '2026-07-24', pulloutTime: '05:15', cars: [] as string[] },
   { id: 'HR-224', fleetType: 'Freightliner Hi-Rail Service Truck', pulloutDate: '2026-07-24', pulloutTime: '05:35', cars: [] as string[] },
   { id: 'HR-307', fleetType: 'Ram 5500 Hi-Rail Inspection Truck', pulloutDate: '2026-07-24', pulloutTime: '06:05', cars: [] as string[] },

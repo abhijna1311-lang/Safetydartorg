@@ -41,7 +41,7 @@ const TUNNEL_LOCATIONS = toOptions(Array.from({ length: 21 }, (_, i) => `Cross P
 
 // Train roster — picking a train number pulls its assigned fleet, line, schedule and consist.
 // (Prototype data — in production these come from the rail scheduling system.)
-const TRAIN_FLEET = [
+export const TRAIN_FLEET = [
   { id: 'T-2045', fleetType: 'KIN – Kinki Sharyo USA 1996', railLine: 'Blue',   endOfLine: 'UNT Dallas',       pulloutDate: '2026-07-24', pulloutTime: '05:10', cars: ['2101', '2102'] },
   { id: 'T-2088', fleetType: 'KIN – Kinki Sharyo USA 2005', railLine: 'Red',    endOfLine: 'Westmoreland',     pulloutDate: '2026-07-24', pulloutTime: '04:55', cars: ['2140'] },
   { id: 'T-3120', fleetType: 'KIN – Kinki Sharyo USA 2010', railLine: 'Green',  endOfLine: 'Buckner',          pulloutDate: '2026-07-24', pulloutTime: '06:02', cars: ['2201', '2202', '2203'] },
@@ -50,7 +50,7 @@ const TRAIN_FLEET = [
 ];
 
 // Streetcars are single vehicles on the Streetcar line — no LRV consist is shown.
-const STREETCAR_FLEET = [
+export const STREETCAR_FLEET = [
   { id: 'SC-301', fleetType: 'Brookville Liberty Modern Streetcar', railLine: 'Streetcar', endOfLine: 'Bishop Arts',      pulloutDate: '2026-07-24', pulloutTime: '05:30', cars: ['301'] },
   { id: 'SC-302', fleetType: 'Brookville Liberty Modern Streetcar', railLine: 'Streetcar', endOfLine: 'EBJ Union Station', pulloutDate: '2026-07-24', pulloutTime: '05:45', cars: ['302'] },
   { id: 'SC-303', fleetType: 'Brookville Liberty Modern Streetcar', railLine: 'Streetcar', endOfLine: 'Bishop Arts',      pulloutDate: '2026-07-24', pulloutTime: '06:00', cars: ['303'] },
@@ -125,7 +125,7 @@ function fmtTime(val?: string) {
 
 // Train record pulled from the train roster — reads the live data fields each render, so
 // changing the train number re-populates the matching fleet, line and schedule values.
-function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber }: { data: AccidentReportData; showRailLine: boolean; showConsist: boolean; showCarNumber: boolean }) {
+export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber }: { data: AccidentReportData; showRailLine: boolean; showConsist: boolean; showCarNumber: boolean }) {
   const consistCars = [data.lrv_consist_1, data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4].filter(Boolean) as string[];
   const cols = [
     { label: 'Fleet type', value: data.lrv_fleet_type, glyph: 'tram' },
@@ -228,7 +228,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
         </AnimatePresence>
 
         <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={`grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${isStreetcar ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
-          <Field label="Train number" required error={showErrors && !data.train_number}>
+          <Field label={isStreetcar ? 'Streetcar number' : 'Train number'} required error={showErrors && !data.train_number}>
             <SearchableCombobox
               options={trainOptions}
               value={data.train_number || ''}
@@ -243,10 +243,10 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
               <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={data.train_number ? 'Select car' : 'Select train first'} disabled={!data.train_number} />
             </Field>
           )}
-          <Field label="Train status before event" required>
+          <Field label={isStreetcar ? 'Streetcar status before event' : 'Train status before event'} required>
             <CustomSelect value={data.train_status_before || ''} onChange={v => onUpdate({ train_status_before: v })} options={TRAIN_STATUS} placeholder="Select status" />
           </Field>
-          <Field label="Train status after event" required>
+          <Field label={isStreetcar ? 'Streetcar status after event' : 'Train status after event'} required>
             <CustomSelect value={data.train_status_after || ''} onChange={v => onUpdate({ train_status_after: v })} options={TRAIN_STATUS} placeholder="Select status" />
           </Field>
         </div>

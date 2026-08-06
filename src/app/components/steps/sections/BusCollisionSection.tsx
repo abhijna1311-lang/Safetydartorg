@@ -183,7 +183,7 @@ function fmtTime(val?: string) {
 
 // Vehicle record pulled from the vehicle lookup — reads the live data fields each render, so
 // changing any identifier (bus number, Trip ID, Block ID) re-populates the matching values.
-function VehicleRecordCard({ data }: { data: AccidentReportData }) {
+export function VehicleRecordCard({ data }: { data: AccidentReportData }) {
   const cols = [
     { label: 'Fleet type', value: data.fleet_type, glyph: 'directions_bus' },
     { label: 'Trip ID', value: data.trip_id, glyph: 'route' },

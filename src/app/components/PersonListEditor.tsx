@@ -59,7 +59,8 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
 
   const addPerson = () => {
     const id = `person-${Date.now()}`;
-    onChange([...people, { id, role: 'Passenger', name: '' }]);
+    // The outer question already established injury, so new people default to injured.
+    onChange([...people, { id, role: 'Passenger', name: '', injured: true }]);
     setOpenId(id);
   };
 
@@ -71,10 +72,6 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
   // Changing the role clears the fields that only apply to another role.
   const changeRole = (id: string, r: string) =>
     update(id, { role: r as Person['role'], passenger_action: undefined, which_door: undefined, courtesy_card: undefined, pedestrian_type: undefined, pedestrian_action: undefined });
-
-  // Not injured clears everything that only applies to an injured person.
-  const setInjured = (id: string, v: boolean) =>
-    update(id, v ? { injured: true } : { injured: false, fatal: undefined, injured_body_part: undefined, courtesy_card: undefined, transported_to_hospital: false });
 
   const AddButton = (
     <button
@@ -107,7 +104,6 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
       {people.map((p, idx) => {
         const open = openId === p.id;
         const role = p.role;
-        const injured = !!p.injured;
         const isPassenger = role === 'Passenger';
         const isPedestrian = role === 'Pedestrian';
         const showFled = isPassenger || isPedestrian;
@@ -118,10 +114,9 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
           && !!p.gender
           && p.is_dart_employee !== undefined
           && (!injuryDetailsRequired || (
-            p.injured !== undefined
-            && (!p.injured || (!!p.injured_body_part && p.transported_to_hospital !== undefined))
+            !!p.injured_body_part && p.transported_to_hospital !== undefined
             && p.fled_scene !== undefined
-            && (!isPassenger || !p.injured || p.courtesy_card !== undefined)
+            && (!isPassenger || p.courtesy_card !== undefined)
           ))
         );
         const pedActions = p.pedestrian_type === 'Using Micro Mobility' ? PED_ACTIONS_MICRO : PED_ACTIONS_FOOT;
@@ -247,35 +242,19 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                     <div>
                       <GroupLabel>Injury</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                        <BoolRow label="Was this person injured?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.injured === undefined}>
-                          <YesNoToggle value={p.injured} onChange={v => setInjured(p.id, v)} />
+                        <BoolRow label="Injured body part" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && !p.injured_body_part}>
+                          <div className="w-full sm:w-60">
+                            <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !p.injured_body_part} />
+                          </div>
                         </BoolRow>
-                        <AnimatePresence initial={false}>
-                          {injured && (
-                            <motion.div
-                              key="injury-sub"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
-                              className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50"
-                            >
-                              <BoolRow label="Injured body part" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && !p.injured_body_part}>
-                                <div className="w-full sm:w-60">
-                                  <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !p.injured_body_part} />
-                                </div>
-                              </BoolRow>
-                              <BoolRow label="Transported to hospital?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.transported_to_hospital === undefined}>
-                                <YesNoToggle value={p.transported_to_hospital} onChange={v => update(p.id, { transported_to_hospital: v })} />
-                              </BoolRow>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        <BoolRow label="Transported to hospital?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.transported_to_hospital === undefined}>
+                          <YesNoToggle value={p.transported_to_hospital} onChange={v => update(p.id, { transported_to_hospital: v })} />
+                        </BoolRow>
                       </div>
                     </div>
 
                     {/* Follow-up */}
-                    {(showFled || (isPassenger && injured)) && (
+                    {(showFled || isPassenger) && (
                       <div>
                         <GroupLabel>Follow-up</GroupLabel>
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -284,7 +263,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                               <YesNoToggle value={p.fled_scene} onChange={v => update(p.id, { fled_scene: v })} />
                             </BoolRow>
                           )}
-                          {isPassenger && injured && (
+                          {isPassenger && (
                             <BoolRow label="Courtesy card obtained?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.courtesy_card === undefined}>
                               <YesNoToggle value={p.courtesy_card} onChange={v => update(p.id, { courtesy_card: v })} />
                             </BoolRow>
