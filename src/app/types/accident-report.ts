@@ -61,8 +61,11 @@ export interface ThirdVehicleData {
 }
 
 export interface SupervisorDemographicRecord {
+  id?: string;
   age_group?: 'Child (12 and under)' | 'Teen (13 to 18)' | 'Adult (19 to 60)' | 'Senior Citizen (61 and up)';
   gender?: 'Female' | 'Male';
+  is_dart_employee?: boolean;
+  injured_body_part?: 'Head' | 'Upper body' | 'Lower body';
   transported_to_hospital?: boolean;
 }
 
@@ -70,6 +73,22 @@ export type PMInjurySeverity = 'Injured – Non-Serious' | 'Injured - Serious';
 export type PMInjuryBodyPart = 'Head' | 'Upper body' | 'Lower body';
 
 export interface PMInjuryRecord {
+  severity?: PMInjurySeverity;
+  body_part?: PMInjuryBodyPart;
+  age_group?: SupervisorDemographicRecord['age_group'];
+  gender?: SupervisorDemographicRecord['gender'];
+  transported_to_hospital?: boolean;
+}
+
+// One entry per person for the SPM "People involved" card. Mirrors the Op/FS
+// PersonListEditor UX (add-person + role dropdown) with SPM's outcome-first
+// question set: fatality vs injury, severity, body part, age group, gender,
+// transported.
+export interface PMPersonRecord {
+  id: string;
+  role?: 'Passenger' | 'Pedestrian' | 'Operator';
+  outcome?: 'Fatality' | 'Injured';
+  is_dart_employee?: boolean;
   severity?: PMInjurySeverity;
   body_part?: PMInjuryBodyPart;
   age_group?: SupervisorDemographicRecord['age_group'];
@@ -322,15 +341,32 @@ export interface AccidentReportData {
   supervisor_damage_requires_tow?: boolean;
   supervisor_damage_count?: number;
   supervisor_tow_count?: number;
+  // Field Supervisor's parallel DART-vehicle impact fields — mirror Operator's point-of-impact / damage-area / diagram.
+  supervisor_point_of_impact?: string;
+  supervisor_damage_area?: string[];
+  supervisor_impact_markers?: { x: number; y: number; label?: string }[];
   supervisor_other_vehicle_damage_count?: number;
   supervisor_other_vehicle_tow_count?: number;
   supervisor_other_vehicles_involved?: boolean;
   supervisor_other_vehicle_count?: number;
   supervisor_dart_employee_fatalities?: boolean;
   supervisor_dart_employee_fatality_count?: number;
+  supervisor_dart_employee_fatality_details?: SupervisorDemographicRecord[];
   supervisor_dart_employee_injuries?: boolean;
   supervisor_dart_employee_injury_count?: number;
+  supervisor_dart_employee_injury_details?: SupervisorDemographicRecord[];
   supervisor_dart_employee_hospital_transport_count?: number;
+  // Field Supervisor mirrors the Operator's People/Impact flow with parallel data
+  // — the FS is source-of-truth even when the operator already submitted.
+  supervisor_operator_injured?: boolean;
+  supervisor_operator_injured_body_part?: string;
+  supervisor_operator_transported?: boolean;
+  supervisor_passengers_on_board?: number;
+  supervisor_people_involved?: boolean;
+  supervisor_people?: Person[];
+  supervisor_police_at_scene?: boolean;
+  supervisor_police_type?: string;
+  supervisor_dart_supervisor_investigating?: boolean;
   supervisor_passenger_fatalities?: boolean;
   supervisor_passenger_fatality_count?: number;
   supervisor_passenger_fatality_details?: SupervisorDemographicRecord[];
@@ -345,6 +381,8 @@ export interface AccidentReportData {
   supervisor_pedestrian_injury_details?: SupervisorDemographicRecord[];
   supervisor_collision_between_dart_vehicles?: boolean;
   supervisor_other_vehicle_records?: SupervisorOtherVehicleRecord[];
+  // Field Supervisor's parallel per-vehicle records — mirrors Operator's `other_vehicles` shape.
+  supervisor_other_vehicles?: OtherVehicle[];
   supervisor_other_vehicle_fatality_count?: number;
   supervisor_other_vehicle_injury_count?: number;
   supervisor_equipment_damage_description?: string;
@@ -391,6 +429,7 @@ export interface AccidentReportData {
 
   // Program manager injury records (structured, one per person)
   program_manager_employee_fatality_count?: number;
+  program_manager_employee_fatality_records?: SupervisorDemographicRecord[];
   program_manager_employee_injury_count?: number;
   program_manager_employee_injury_records?: PMInjuryRecord[];
   program_manager_passenger_fatality_count?: number;
@@ -401,6 +440,17 @@ export interface AccidentReportData {
   program_manager_pedestrian_fatality_records?: SupervisorDemographicRecord[];
   program_manager_pedestrian_injury_count?: number;
   program_manager_pedestrian_injury_records?: PMInjuryRecord[];
+  // Unified per-person list for the SPM "People involved" card (passengers + pedestrians).
+  program_manager_people?: PMPersonRecord[];
+  // Yes/No gate that reveals the SPM per-person list.
+  program_manager_people_involved?: boolean;
+  // Yes/No gate that reveals the SPM damage-area diagram.
+  program_manager_dart_vehicle_damaged?: boolean;
+  // Independent SPM record of DART vehicle impact points — mirrors the Op/FS diagram, kept separate
+  // so each role's observations survive the review cycle for downstream reporting (NTSD, TxDOT).
+  program_manager_impact_markers?: { x: number; y: number; label?: string }[];
+  // Per-operator list for the SPM "DART operator injury" card.
+  program_manager_operator_people?: PMPersonRecord[];
   program_manager_other_vehicle_fatality_count?: number;
   program_manager_other_vehicle_fatality_records?: SupervisorDemographicRecord[];
   program_manager_other_vehicle_injury_count?: number;

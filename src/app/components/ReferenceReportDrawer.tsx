@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { OperatorReferenceRail } from './steps/sections/OperatorReferenceRail';
 import { CaseTimeline } from './CaseTimeline';
+import { VehicleImpactDiagram } from './VehicleImpactDiagram';
 import type { AccidentReportData } from '../types/accident-report';
 import type { WorkflowReport, WorkflowSectionState, WorkflowSectionStatus } from '../types/workflow-report';
 
@@ -27,6 +28,14 @@ function yesNo(value: boolean | undefined) {
 function nonEmpty(value: string | number | undefined | null) {
   if (value === undefined || value === null || value === '') return '—';
   return String(value);
+}
+
+// Derive the diagram silhouette from whichever vehicle field the reporter recorded.
+function getImpactVariant(vehicleType: string | undefined): 'bus' | 'rail' | 'streetcar' | 'nrv' {
+  if (vehicleType === 'Light Rail Vehicle') return 'rail';
+  if (vehicleType === 'Streetcar') return 'streetcar';
+  if (vehicleType === 'Hi-Rail' || vehicleType === 'Non-Revenue Vehicle' || vehicleType === 'NRV') return 'nrv';
+  return 'bus';
 }
 
 function Field({ label, value, wide }: { label: string; value: string | undefined | null; wide?: boolean }) {
@@ -128,6 +137,20 @@ const SUPERVISOR_STEPS: SupervisorStep[] = [
             <div className="mt-3">
               <p className="dart-eyebrow">Equipment / property damage</p>
               <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-800 font-['Poppins']">{data.supervisor_equipment_damage_description}</p>
+            </div>
+          )}
+          {(data.supervisor_impact_markers?.length ?? 0) > 0 && (
+            <div className="mt-3">
+              <p className="dart-eyebrow">Damage areas marked</p>
+              <div className="mt-2">
+                <VehicleImpactDiagram
+                  variant={getImpactVariant(data.supervisor_dart_vehicle_type || data.mode)}
+                  markers={data.supervisor_impact_markers || []}
+                  onChange={() => {}}
+                  readOnly
+                  title=""
+                />
+              </div>
             </div>
           )}
         </div>

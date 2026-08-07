@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, Printer, ShieldCheck } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import type { AccidentReportData, PedestrianRecord } from '../../../types/accident-report';
 import type { WorkflowSectionStatus } from '../../../types/workflow-report';
 
@@ -9,6 +10,14 @@ interface Props {
   operatorStatus?: WorkflowSectionStatus;
   className?: string;
   showHeader?: boolean;
+}
+
+// Same silhouette-picker used by the reference drawer for the FS diagram.
+function getImpactVariant(vehicleType: string | undefined): 'bus' | 'rail' | 'streetcar' | 'nrv' {
+  if (vehicleType === 'Light Rail Vehicle') return 'rail';
+  if (vehicleType === 'Streetcar') return 'streetcar';
+  if (vehicleType === 'Hi-Rail' || vehicleType === 'Non-Revenue Vehicle' || vehicleType === 'NRV') return 'nrv';
+  return 'bus';
 }
 
 interface OperatorFieldEntry {
@@ -1441,12 +1450,30 @@ export function OperatorReferenceRail({ data, operatorStatus, className = '', sh
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              {entries.map((entry) => (
-                                <div key={entry.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-                                  <p className="text-xs font-semibold text-slate-700 font-['Poppins']">{entry.label}</p>
-                                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900 font-['Poppins']">{entry.value}</p>
-                                </div>
-                              ))}
+                              {entries.map((entry) => {
+                                if (entry.id === 'impact_markers' && Array.isArray(data.impact_markers) && data.impact_markers.length > 0) {
+                                  return (
+                                    <div key={entry.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                                      <p className="text-xs font-semibold text-slate-700 font-['Poppins']">{entry.label}</p>
+                                      <div className="mt-2">
+                                        <VehicleImpactDiagram
+                                          variant={getImpactVariant(data.mode)}
+                                          markers={data.impact_markers}
+                                          onChange={() => {}}
+                                          readOnly
+                                          title=""
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div key={entry.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                                    <p className="text-xs font-semibold text-slate-700 font-['Poppins']">{entry.label}</p>
+                                    <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-900 font-['Poppins']">{entry.value}</p>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>

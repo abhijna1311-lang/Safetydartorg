@@ -18,6 +18,10 @@ interface Props {
   nounLabel?: string;
   /** Show validation state (red border + label when no markers). */
   showError?: boolean;
+  /** Read-only preview: disables interaction, hides Clear/required chrome, softens copy. */
+  readOnly?: boolean;
+  /** Override the top label (defaults to "Mark Damage Areas on DART Vehicle"). */
+  title?: string;
 }
 
 // ── diagram model ───────────────────────────────────────────────────────────────
@@ -129,7 +133,7 @@ const COLORS = [
 ];
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, variant = 'bus', nounLabel, showError = false }: Props) {
+export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, variant = 'bus', nounLabel, showError = false, readOnly = false, title }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const isStreetcar = variant === 'streetcar';
   const isNRV = variant === 'nrv';
@@ -143,6 +147,7 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
   const indexOf = (id: string) => markers.findIndex(m => m.label === id);
 
   const toggle = (id: string, ax: number, ay: number) => {
+    if (readOnly) return;
     const i = indexOf(id);
     if (i >= 0) {
       onChange(markers.filter(m => m.label !== id));
@@ -156,26 +161,28 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
     <div className="space-y-3">
 
       {/* ── Label row ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <label className={`block text-sm font-semibold font-['Poppins'] ${showError && markers.length === 0 ? 'text-red-600' : 'text-slate-800'}`}>
-          Mark damage areas on {noun}
-          <span className="text-red-500 ml-1">*</span>
-        </label>
-        {markers.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 font-['Poppins'] transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
-          >
-            <Trash2 className="w-3 h-3" />
-            Clear all
-          </button>
-        )}
-      </div>
+      {title !== '' && (
+        <div className="flex items-center justify-between">
+          <label className={`block text-sm font-semibold font-['Poppins'] ${showError && markers.length === 0 ? 'text-red-600' : 'text-slate-800'}`}>
+            {title ?? 'Mark Damage Areas on DART Vehicle'}
+            {!readOnly && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          {markers.length > 0 && !readOnly && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 font-['Poppins'] transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
+            >
+              <Trash2 className="w-3 h-3" />
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Diagram card ───────────────────────────────────────────────────── */}
       <div
-        className="rounded-2xl border-2 bg-[#F0F6FB] shadow-sm overflow-hidden"
+        className={`rounded-2xl border-2 bg-[#F0F6FB] shadow-sm overflow-hidden ${readOnly ? 'select-none' : ''}`}
         style={{
           borderColor: showError && markers.length === 0 ? '#DC2626' : markers.length === 0 ? '#CBD5E1' : '#007DBA',
           transition: 'border-color 0.25s',
@@ -185,24 +192,28 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
         <div className="flex items-center gap-2 px-4 py-2 bg-white/70 border-b border-slate-100">
           <Info className="w-3.5 h-3.5 text-[#007DBA] flex-shrink-0" />
           <p className="text-[11px] text-slate-600 font-['Poppins'] flex-1">
-            {markers.length === 0
-              ? `Tap the part of the ${noun} that was hit`
-              : atMax
-                ? 'Maximum reached — tap a marked part to remove it'
-                : `${markers.length} marked — tap another part to add, or tap a marked one to remove`}
+            {readOnly
+              ? markers.length === 0
+                ? `No damage areas marked on the ${noun}`
+                : `${markers.length} ${markers.length === 1 ? 'area' : 'areas'} marked`
+              : markers.length === 0
+                ? `Tap the part of the ${noun} that was hit`
+                : atMax
+                  ? 'Maximum reached — tap a marked part to remove it'
+                  : `${markers.length} marked — tap another part to add, or tap a marked one to remove`}
           </p>
           <span className="text-[10px] font-semibold font-['Poppins'] text-[#007DBA]/50">
-            {markers.length} selected
+            {readOnly ? `${markers.length} marked` : `${markers.length} selected`}
           </span>
         </div>
 
         {/* ── Tappable diagram ────────────────────────────────────────────── */}
-        <div className="relative select-none px-3 pt-1 pb-3">
+        <div className={`relative select-none px-3 pt-1 pb-3 ${readOnly ? 'pointer-events-none' : ''}`}>
           <svg
             viewBox={`0 0 ${VB_W} ${VB_H}`}
             className="w-full h-auto block"
             role="group"
-            aria-label={`${vehicleLabel} impact diagram — tap a part to mark it`}
+            aria-label={readOnly ? `${vehicleLabel} damage diagram — read-only preview` : `${vehicleLabel} impact diagram — tap a part to mark it`}
           >
             {/* orientation hints */}
             <text x={isNRV ? 754 : isStreetcar ? 798 : isRail ? 828 : 912} y={isRail || isNRV ? 138 : 162} textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, letterSpacing: '1.5px', fill: '#B4C0CE', fontFamily: 'Poppins' }}>FRONT</text>
@@ -396,14 +407,16 @@ export function VehicleImpactDiagram({ markers, onChange, maxMarkers = 12, varia
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-slate-800 font-medium font-['Poppins']">{m.label ?? 'Impact point'}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onChange(markers.filter((_, j) => j !== i))}
-                      className="w-6 h-6 flex items-center justify-center rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      aria-label={`Remove ${m.label ?? 'impact point'}`}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => onChange(markers.filter((_, j) => j !== i))}
+                        className="w-6 h-6 flex items-center justify-center rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        aria-label={`Remove ${m.label ?? 'impact point'}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -8,6 +8,7 @@ import { YesNoToggle } from '../form/YesNoToggle';
 import { PersonListEditor } from '../PersonListEditor';
 import { OtherVehiclesEditor } from '../OtherVehiclesEditor';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
+import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
 import type { AccidentReportData, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
@@ -78,37 +79,7 @@ function Field({ label, required, error, children }: { label: string; required?:
   );
 }
 
-// A KPI card. The optional per-type breakdown sits inline to the right of the icon + number.
-function SummaryCard({ glyph, tone, total, label, parts }: { glyph: string; tone: string; total: number; label: string; parts?: { key: string; glyph: string; title: string; value: number }[] }) {
-  return (
-    <div className="h-full rounded-xl border border-slate-200/70 bg-white px-4 py-3">
-      <div className="flex items-center gap-4">
-        <div className="flex shrink-0 items-center gap-2.5">
-          <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tone}`}>
-            <span className="material-symbols-rounded text-[19px]">{glyph}</span>
-          </span>
-          <div className="min-w-0">
-            <p className="text-lg font-semibold leading-none text-slate-800 font-['Poppins'] dart-tabular">{total}</p>
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400 font-['Poppins']">{label}</p>
-          </div>
-        </div>
-        {parts && parts.length > 0 && (
-          <div className="ml-auto grid grid-cols-3 divide-x divide-slate-100 border-l border-slate-100 pl-2">
-            {parts.map(p => (
-              <div key={p.key} aria-label={p.title} className="group relative flex flex-col items-center gap-0.5 px-6">
-                <span className={`material-symbols-rounded text-[15px] ${p.value > 0 ? 'text-[#1c3570]' : 'text-slate-300'}`}>{p.glyph}</span>
-                <span className={`text-[13px] font-semibold font-['Poppins'] dart-tabular ${p.value > 0 ? 'text-slate-700' : 'text-slate-300'}`}>{p.value}</span>
-                <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 font-['Poppins']">
-                  {p.title}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+
 
 export function Step3PeopleImpact({
   data,
@@ -177,7 +148,6 @@ export function Step3PeopleImpact({
   );
   const operatorAnswered = isHiRail || (data.operator_injured !== undefined
     && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined)));
-  const passengersAnswered = data.passengers_on_board !== undefined;
   const peopleAnswered = data.people_involved !== undefined
     && (data.people_involved !== true || (people.length > 0 && people.every(personComplete)));
   const pedestriansAnswered = !isPedestrianCollision || pedestrianCount >= 1;
@@ -185,7 +155,7 @@ export function Step3PeopleImpact({
     || ((data.other_vehicles?.length || 0) > 0 && (data.other_vehicles || []).every(vehicleComplete));
   const canProceed = isInitiationStage || isSupervisorReview
     ? true
-    : (operatorAnswered && passengersAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
+    : (operatorAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
   const [showErrors, setShowErrors] = useState(false);
   const handleNextClick = () => {
     if (canProceed) {
@@ -311,13 +281,13 @@ export function Step3PeopleImpact({
               <div className="px-6 py-6 md:px-7 md:py-7">
                 <div className="flex flex-col gap-3 lg:flex-row">
                   <div className="lg:w-52 lg:shrink-0">
-                    <SummaryCard glyph="groups" tone="bg-[#eaf1fb] text-[#1c3570]" total={totalPeople} label="Total people" />
+                    <PeopleImpactSummaryCard glyph="groups" tone="bg-[#eaf1fb] text-[#1c3570]" total={totalPeople} label="Total people" />
                   </div>
                   <div className="lg:flex-1">
-                    <SummaryCard glyph="personal_injury" tone="bg-amber-50 text-amber-600" total={withInjuries} label="With injuries" parts={injuredParts} />
+                    <PeopleImpactSummaryCard glyph="personal_injury" tone="bg-amber-50 text-amber-600" total={withInjuries} label="With injuries" parts={injuredParts} />
                   </div>
                   <div className="lg:flex-1">
-                    <SummaryCard glyph="local_hospital" tone="bg-red-50 text-red-500" total={transportedCount} label="Transported" parts={transportedParts} />
+                    <PeopleImpactSummaryCard glyph="local_hospital" tone="bg-red-50 text-red-500" total={transportedCount} label="Transported" parts={transportedParts} />
                   </div>
                 </div>
               </div>
@@ -354,9 +324,9 @@ export function Step3PeopleImpact({
 
               {/* 2 — People involved */}
               <Section title="People involved" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
-                <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && (data.passengers_on_board === undefined || data.people_involved === undefined) ? 'border-red-300' : 'border-slate-200/70'}`}>
+                <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.people_involved === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
                   {(
-                    <BoolRow label="How many passengers were on board?" required>
+                    <BoolRow label="How many passengers were on board?">
                       <input
                         type="number"
                         min={0}
@@ -364,11 +334,11 @@ export function Step3PeopleImpact({
                         value={data.passengers_on_board ?? ''}
                         onChange={e => onUpdate({ passengers_on_board: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0) })}
                         placeholder="Enter count"
-                        className={`dart-input-base w-full text-center sm:w-24 ${showErrors && data.passengers_on_board === undefined ? 'border-red-400' : ''}`}
+                        className="dart-input-base w-full text-center sm:w-24"
                       />
                     </BoolRow>
                   )}
-                  <BoolRow label="Was anyone injured in this event?" required>
+                  <BoolRow label="Was anyone involved in this event?" required>
                     <YesNoToggle value={data.people_involved} onChange={v => onUpdate({ people_involved: v, people: v ? (data.people ?? []) : [] })} />
                   </BoolRow>
                 </div>

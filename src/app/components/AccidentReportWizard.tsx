@@ -61,10 +61,11 @@ const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { 
     { number: 3, title: 'Review' },
   ],
   programManager: [
-    { number: 1, title: 'Investigate' },
-    { number: 2, title: 'Impact' },
-    { number: 3, title: 'Classify' },
-    { number: 4, title: 'Review' },
+    { number: 1, title: 'Investigation Basics' },
+    { number: 2, title: 'Event Analysis' },
+    { number: 3, title: 'People and Impact' },
+    { number: 4, title: 'Classify' },
+    { number: 5, title: 'Review' },
   ],
 };
 
@@ -150,6 +151,10 @@ function shouldUseAssignedSectionFlow(report: WorkflowReport | null | undefined,
 }
 
 function getInitialStepForCurrentRole(report: WorkflowReport | null | undefined, currentRole: UserRole, fallbackStep?: number) {
+  // Dev-scenario override — jump straight to a specific sub-step without walking the flow.
+  if (fallbackStep && fallbackStep > 1) {
+    return fallbackStep;
+  }
   if (shouldUseAssignedSectionFlow(report, currentRole)) {
     return 1;
   }

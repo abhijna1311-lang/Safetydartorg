@@ -15,7 +15,7 @@ export type ScenarioAction =
   | { type: 'go-home' }
   | { type: 'new-blank' }
   | { type: 'open-existing'; reportId: string }
-  | { type: 'inject-and-open'; report: WorkflowReport }
+  | { type: 'inject-and-open'; report: WorkflowReport; initialStep?: number }
   | { type: 'inject-many-and-open'; reports: WorkflowReport[]; openId: string };
 
 export interface DevScenario {
@@ -112,6 +112,10 @@ const busCollisionBase: AccidentReportData = {
   bus_speed: '25',
   point_of_impact: 'Right Side Impact',
   bus_damage: true,
+  impact_markers: [
+    { x: 47, y: 68, label: 'Right Side' },
+    { x: 79, y: 53, label: 'Front' },
+  ],
   runaway_vehicle: false,
   parking_brake_engaged: true,
   evacuation_life_safety: false,
@@ -197,6 +201,11 @@ const busCollisionSupervisorOverlay: Partial<AccidentReportData> = {
   supervisor_damage_requires_tow: false,
   supervisor_damage_count: 1,
   supervisor_tow_count: 0,
+  supervisor_impact_markers: [
+    { x: 47, y: 68, label: 'Right Side' },
+    { x: 79, y: 53, label: 'Front' },
+    { x: 72, y: 78, label: 'Front Wheel Right' },
+  ],
   supervisor_other_vehicles_involved: true,
   supervisor_other_vehicle_count: 1,
   supervisor_other_vehicle_damage_count: 1,
@@ -315,6 +324,9 @@ const lrvDerailmentBase: AccidentReportData = {
   train_action: 'Proceeding Through a Switch',
   train_speed: '8',
   train_damage: true,
+  impact_markers: [
+    { x: 18, y: 24, label: 'Rear Wheel Left' },
+  ],
   disabling_damage: false,
   runaway_train: false,
   lrv_evacuation: false,
@@ -362,6 +374,9 @@ const lrvDerailmentSupervisorOverlay: Partial<AccidentReportData> = {
   supervisor_damage_requires_tow: false,
   supervisor_damage_count: 1,
   supervisor_tow_count: 0,
+  supervisor_impact_markers: [
+    { x: 18, y: 24, label: 'Rear Wheel Left' },
+  ],
   supervisor_dart_employee_fatalities: false,
   supervisor_dart_employee_injuries: false,
   supervisor_passenger_fatalities: false,
@@ -918,7 +933,9 @@ export const DEV_SCENARIOS: DevScenario[] = [
   { id: 'bc-op-step3', name: '③ Step 3 — People + other vehicles', description: '12 passengers, 1 injured (transported), sedan cited, right side + front damage.', role: 'Operator', group: 'Story A · Bus collision (Operator files)', phase: 'Step 3', action: { type: 'inject-and-open', report: bcOperatorStep3 } },
   { id: 'bc-op-review', name: '④ Ready to submit — Step 4', description: 'All operator fields filled. Review before submit.', role: 'Operator', group: 'Story A · Bus collision (Operator files)', phase: 'Step 4', action: { type: 'inject-and-open', report: bcOperatorReadyToSubmit } },
   { id: 'bc-sup-pending', name: '⑤ Awaiting Field Supervisor review', description: 'Operator submitted. Supervisor section pending.', role: 'Supervisor', group: 'Story A · Bus collision (Operator files)', phase: 'Supervisor review', action: { type: 'inject-and-open', report: bcAwaitingSupervisor } },
+  { id: 'bc-sup-people', name: '⑤.a Jump to FS · People and Impact', description: 'Same FS case, lands directly on the People and Impact sub-step.', role: 'Supervisor', group: 'Story A · Bus collision (Operator files)', phase: 'Supervisor review', action: { type: 'inject-and-open', report: bcAwaitingSupervisor, initialStep: 3 } },
   { id: 'bc-pm-pending', name: '⑥ Awaiting Program Manager', description: 'Supervisor done. PM classification pending.', role: 'Program Manager', group: 'Story A · Bus collision (Operator files)', phase: 'PM review', action: { type: 'inject-and-open', report: bcAwaitingPM } },
+  { id: 'bc-pm-people', name: '⑥.a Jump to PM · People and Impact', description: 'Same PM case, lands directly on the People and Impact sub-step.', role: 'Program Manager', group: 'Story A · Bus collision (Operator files)', phase: 'PM review', action: { type: 'inject-and-open', report: bcAwaitingPM, initialStep: 3 } },
   { id: 'bc-closed', name: '⑦ Closed — Non-Preventable', description: 'All sections accepted. PM classified as Non-Preventable.', role: 'Operator', group: 'Story A · Bus collision (Operator files)', phase: 'Closed', action: { type: 'inject-and-open', report: bcClosed } },
 
   // Story B

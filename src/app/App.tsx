@@ -60,6 +60,7 @@ const INITIAL_REPORTS: WorkflowReport[] = [
     closedAt: null,
     formData: {
       ...workdayEmployeeFields('90001'),
+      is_on_behalf: false,
       event_type: 'Collision',
       mode: 'Bus',
       operating_dart_vehicle: true,
@@ -74,30 +75,89 @@ const INITIAL_REPORTS: WorkflowReport[] = [
       cross_street: '7th St',
       city: 'Dallas',
       zip: '75203',
+      address_of_event: 'Cedar Blvd at 7th St, Dallas TX 75203',
+      location_category: 'Street',
       event_at_bus_stop: true,
       bus_stop_name: 'Cedar Blvd at 7th St',
-      bus_status_before: 'In motion',
-      bus_status_after: 'Stopped at scene',
+      bus_status_before: 'In Service',
+      bus_status_after: 'In Service',
       collision_type: 'Collision – with Auto',
-      bus_action: 'Proceeding straight through traffic lane',
-      point_of_impact: 'Right side midpoint near rear door',
-      bus_speed: '18 mph',
+      bus_action: 'Moving Straight',
+      bus_speed: '18',
+      point_of_impact: 'Right Side Impact',
       bus_damage: true,
       bus_damage_confirmed: true,
+      impact_markers: [
+        { x: 47, y: 68, label: 'Right Side' },
+        { x: 79, y: 53, label: 'Front' },
+      ],
+      runaway_vehicle: false,
+      parking_brake_engaged: true,
+      evacuation_life_safety: false,
       weather: 'Clear',
       road_conditions: 'Dry',
       lighting_conditions: 'Daylight',
+      streetlights: 'Streetlights On',
+      traffic_conditions: 'Medium',
+      traffic_controls: 'Traffic Light',
+      roadway_configuration: 'Two Lane Road',
+      operator_injured: false,
       passengers_on_board: 14,
+      passenger_fatalities: 0,
       passengers_injured: 1,
+      passengers_transported: 1,
+      passengers_fled: 0,
+      courtesy_cards: 1,
+      people: [
+        { id: 'p-1', role: 'Passenger', name: 'Ana Rodriguez', injured: true, injured_body_part: 'Neck', transported_to_hospital: true, fled_scene: false, courtesy_card: true },
+        { id: 'p-2', role: 'Passenger', name: 'Marcus Chen', injured: false },
+      ],
+      other_vehicles: [
+        { id: 'ov-1', vehicle_type: 'Passenger Auto/St Wagon', action: 'Changing lanes', direction: 'Same direction', occupants: 2, injuries: 1, fatalities: 0, transported: 1, fled: 0, damage: true, damage_area: ['Right Side', 'Front'], point_of_impact: 'Right Side', tow_away: true },
+      ],
+      pedestrians_involved: 0,
+      police_at_scene: true,
+      police_type: 'Dallas Police',
+      dart_supervisor_investigating: true,
       severity_level: 'Moderate',
       supervisor_badge_number: '90002',
       supervisor_name: 'Alexia Putellas',
+      supervisor_first_name: 'Alexia',
+      supervisor_last_name: 'Putellas',
       supervisor_division: 'Bus Operations',
       supervisor_arrival_date: '2026-07-15',
       supervisor_arrival_time: '09:28',
-      supervisor_event_description: 'Arrived on scene, secured the area, and documented right-side contact damage.',
+      supervisor_incident_date: '2026-07-15',
+      supervisor_incident_time: '09:12',
+      supervisor_address_of_event: 'Cedar Blvd at 7th St, Dallas TX 75203',
+      supervisor_location_category: 'Street',
+      supervisor_event_description: 'Arrived on scene, secured the area, and documented right-side contact damage. Sedan driver cited for unsafe lane change.',
+      supervisor_report_type: 'Collision',
+      supervisor_dart_vehicle_type: 'Bus',
+      supervisor_vehicle_number: '2045',
+      supervisor_scene_diagram_completed: true,
+      supervisor_scene_photos_taken: true,
+      supervisor_dart_vehicle_damaged: true,
+      supervisor_damage_requires_tow: false,
       supervisor_damage_count: 1,
       supervisor_tow_count: 0,
+      supervisor_impact_markers: [
+        { x: 47, y: 68, label: 'Right Side' },
+        { x: 79, y: 53, label: 'Front' },
+        { x: 72, y: 78, label: 'Front Wheel Right' },
+      ],
+      supervisor_other_vehicles_involved: true,
+      supervisor_other_vehicle_count: 1,
+      supervisor_other_vehicle_damage_count: 1,
+      supervisor_other_vehicle_tow_count: 1,
+      supervisor_dart_employee_fatalities: false,
+      supervisor_dart_employee_injuries: false,
+      supervisor_passenger_fatalities: false,
+      supervisor_passenger_injuries: true,
+      supervisor_passenger_injury_count: 1,
+      supervisor_collision_between_dart_vehicles: false,
+      supervisor_police_called: true,
+      supervisor_confirmation_checked: true,
       confirmation_checked: true,
     },
   },
@@ -278,6 +338,8 @@ function AppBody() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [reports, setReports] = useState<WorkflowReport[]>(INITIAL_REPORTS);
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
+  // Dev-only: lets a scenario land the wizard on a specific sub-step (e.g. jump SPM straight to People and Impact).
+  const [devInitialStep, setDevInitialStep] = useState<number | undefined>(undefined);
   const { setRole } = useUserRole();
 
   const handleNavigate = (view: View) => {
@@ -327,6 +389,7 @@ function AppBody() {
 
   const handleApplyScenario = (scenario: DevScenario) => {
     setRole(scenario.role);
+    setDevInitialStep(undefined);
     switch (scenario.action.type) {
       case 'go-home':
         setActiveReportId(null);
@@ -350,6 +413,7 @@ function AppBody() {
           return next;
         });
         setActiveReportId(report.id);
+        setDevInitialStep(scenario.action.initialStep);
         setCurrentView('new-report');
         break;
       }
@@ -389,6 +453,7 @@ function AppBody() {
           onNavigate={handleNavigate}
           onBackToHome={handleBackToHome}
           initialReport={activeReport}
+          initialStep={devInitialStep}
           onSaveReport={handleSaveReport}
           existingReports={reports}
           onOpenReport={handleOpenReport}
