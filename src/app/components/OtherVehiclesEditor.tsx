@@ -22,6 +22,8 @@ const TYPES_NON_DART = opt([
 ]);
 const ACTIONS = opt(['Going Straight', 'Making a left turn', 'Making a right turn', 'Going backwards', 'Changing lanes', 'Stopped', 'Negotiating a curve', 'Parked']);
 const POINTS = opt(['Front Impact', 'Rear Impact', 'Sideswipe', 'Driver Side Mirror', 'Passenger Side Mirror', 'Left Side Impact', 'Right Side Impact', 'Roof/Top of vehicle', 'Underbody', 'Front/Rear Wheel']);
+// Stakeholder-specified order (not alphabetized) to match the PM screen.
+const COLLISION_TYPES = ['Head On', 'Sideswipe', 'Rear-Ending', 'Rear-Ended', 'Other Front Impact', 'Right Side Impact', 'Left Side Impact', 'Other Rear Impact', 'Roof/top of vehicle'].map(v => ({ value: v, label: v }));
 const DIRECTIONS = opt([
   'Traveling in the same direction ahead of DART vehicle',
   'Approaching at an angle from the left',
@@ -189,7 +191,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
           );
         const recordComplete = v.occupants !== undefined
           && occupantsComplete
-          && v.dart_dart !== undefined && !!v.vehicle_type && !!v.action && !!v.point_of_impact
+          && v.dart_dart !== undefined && !!v.vehicle_type && !!v.collision_type && !!v.action && !!v.point_of_impact
           && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
@@ -267,6 +269,25 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                       </BoolRow>
                     </div>
 
+                    {/* Vehicle */}
+                    <div>
+                      <GroupLabel>Vehicle</GroupLabel>
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-2">
+                        <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
+                          <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
+                        </Field>
+                        <Field label="Other vehicle collision type" required error={showErrors && !v.collision_type}>
+                          <CustomSelect value={v.collision_type || ''} onChange={val => update(v.id, { collision_type: val })} options={COLLISION_TYPES} placeholder="Select collision type" />
+                        </Field>
+                        <Field label="Vehicle action" required error={showErrors && !v.action}>
+                          <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
+                        </Field>
+                        <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
+                          <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
+                        </Field>
+                      </div>
+                    </div>
+
                     {/* Occupants */}
                     <div>
                       <GroupLabel>Occupants</GroupLabel>
@@ -341,22 +362,6 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                           </div>
                         </div>
                       )}
-                    </div>
-
-                    {/* Vehicle */}
-                    <div>
-                      <GroupLabel>Vehicle</GroupLabel>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-3">
-                        <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
-                          <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
-                        </Field>
-                        <Field label="Vehicle action" required error={showErrors && !v.action}>
-                          <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
-                        </Field>
-                        <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
-                          <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
-                        </Field>
-                      </div>
                     </div>
 
                     {/* Damage */}

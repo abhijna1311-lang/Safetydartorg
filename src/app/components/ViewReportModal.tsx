@@ -200,8 +200,9 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
                   <FieldValue label="Operator date/time correct" value={data?.operator_datetime_correct} />
                   <FieldValue label="Employee contacted" value={data?.employee_contacted_program_manager_date} />
                   <FieldValue label="Collision with" value={data?.program_manager_collision_with} />
-                  <FieldValue label="DART vehicle collision type" value={data?.program_manager_dart_collision_type} />
-                  <FieldValue label="Other vehicle collision type" value={data?.program_manager_other_collision_type} />
+                  <FieldValue label="DART vehicle collision type" value={data?.program_manager_other_collision_type} />
+                  <FieldValue label="DART vehicle action" value={data?.program_manager_dart_action} />
+                  <FieldValue label="DART vehicle point of impact" value={data?.program_manager_dart_collision_type} />
                   <FieldValue label="Damage to property" value={data?.damage_to_property} />
                   <FieldValue label="Life-safety evacuation" value={data?.program_manager_life_safety_evacuation} />
                   <FieldValue label="Tow-away" value={data?.program_manager_tow_away} />

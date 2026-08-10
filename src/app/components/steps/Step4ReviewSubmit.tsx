@@ -212,6 +212,30 @@ const PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS = [
   'Roof/top of vehicle',
 ].map(value => ({ value, label: value }));
 
+const PROGRAM_MANAGER_DART_ACTION_OPTIONS = [
+  'Going Straight',
+  'Making a left turn',
+  'Making a right turn',
+  'Going backwards',
+  'Changing lanes',
+  'Stopped',
+  'Negotiating a curve',
+  'Parked',
+].map(value => ({ value, label: value }));
+
+const PROGRAM_MANAGER_DART_POINT_OF_IMPACT_OPTIONS = [
+  'Front Impact',
+  'Rear Impact',
+  'Sideswipe',
+  'Driver Side Mirror',
+  'Passenger Side Mirror',
+  'Left Side Impact',
+  'Right Side Impact',
+  'Roof/Top of vehicle',
+  'Underbody',
+  'Front/Rear Wheel',
+].map(value => ({ value, label: value }));
+
 const PROGRAM_MANAGER_DERAIL_CONFIG_OPTIONS = [
   'Switch',
   'Curve',
@@ -3053,38 +3077,36 @@ export function Step4ReviewSubmit({
                             />
                           </div>
                         </div>
-                        <AnimatePresence initial={false}>
-                          {pmShowOtherVehicleCollisionType && (
-                            <motion.div
-                              key="pm-other-collision-type"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ height: { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 }, opacity: { duration: 0.2, ease: 'easeInOut' } }}
-                              className="overflow-hidden bg-slate-50/60"
-                            >
-                              <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                                <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Other vehicle collision type</div>
-                                <div className="w-full sm:w-72">
-                                  <CustomSelect
-                                    value={data.program_manager_other_collision_type || ''}
-                                    onChange={(value) => onUpdate({ program_manager_other_collision_type: value })}
-                                    options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
-                                    placeholder="Select collision type"
-                                  />
-                                </div>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                         <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0, textTransform: 'none' }}>Point of impact</div>
+                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>DART vehicle collision type</div>
+                          <div className="w-full sm:w-72">
+                            <CustomSelect
+                              value={data.program_manager_other_collision_type || ''}
+                              onChange={(value) => onUpdate({ program_manager_other_collision_type: value })}
+                              options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
+                              placeholder="Select collision type"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>DART vehicle action</div>
+                          <div className="w-full sm:w-72">
+                            <CustomSelect
+                              value={data.program_manager_dart_action || ''}
+                              onChange={(value) => onUpdate({ program_manager_dart_action: value })}
+                              options={PROGRAM_MANAGER_DART_ACTION_OPTIONS}
+                              placeholder="Select action"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0, textTransform: 'none' }}>DART vehicle point of impact</div>
                           <div className="w-full sm:w-72">
                             <CustomSelect
                               value={data.program_manager_dart_collision_type || ''}
                               onChange={(value) => onUpdate({ program_manager_dart_collision_type: value })}
-                              options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
-                              placeholder="Select collision type"
+                              options={PROGRAM_MANAGER_DART_POINT_OF_IMPACT_OPTIONS}
+                              placeholder="Select point of impact"
                             />
                           </div>
                         </div>
@@ -3559,8 +3581,9 @@ export function Step4ReviewSubmit({
                         ...(data.program_manager_primary_contributing_factor ? [{ label: 'Primary factor', value: data.program_manager_primary_contributing_factor }] : []),
                         ...(isEventCollision ? [
                           { label: 'Collisions with', value: formatReviewValue(data.program_manager_collision_with) },
-                          ...(pmShowOtherVehicleCollisionType ? [{ label: 'Other vehicle collision type', value: formatReviewValue(data.program_manager_other_collision_type) }] : []),
-                          { label: 'DART vehicle collision type', value: formatReviewValue(data.program_manager_dart_collision_type) },
+                          { label: 'DART vehicle collision type', value: formatReviewValue(data.program_manager_other_collision_type) },
+                          { label: 'DART vehicle action', value: formatReviewValue(data.program_manager_dart_action) },
+                          { label: 'DART vehicle point of impact', value: formatReviewValue(data.program_manager_dart_collision_type) },
                         ] : []),
                         ...(derailmentApplies ? [
                           { label: 'Derail configuration', value: formatReviewValue(data.program_manager_derail_configuration) },

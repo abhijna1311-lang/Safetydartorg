@@ -29,6 +29,7 @@ export interface OtherVehicle {
   injured_occupants?: OtherVehicleOccupantInjury[];
   dart_dart?: boolean;        // collision between two DART vehicles — changes the type list
   vehicle_type?: string;
+  collision_type?: string;
   action?: string;
   point_of_impact?: string;
   direction?: string;         // direction relative to the DART vehicle
@@ -420,6 +421,7 @@ export interface AccidentReportData {
   program_manager_primary_contributing_factor?: string;
   program_manager_collision_type?: string;
   program_manager_dart_collision_type?: string;
+  program_manager_dart_action?: string;
   program_manager_other_collision_type?: string;
   program_manager_derail_configuration?: string;
   program_manager_cars_derailed_count?: number;
