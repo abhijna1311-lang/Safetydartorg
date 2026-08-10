@@ -67,9 +67,13 @@ interface Props {
   emptyTitle?: string;
   emptyHint?: string;
   addLabel?: string;
+  // Supervisor variant: hides the "Injury severity" row (severity is a PM-only classification).
+  hideSeverity?: boolean;
+  // Supervisor variant: age group is optional (label loses the required marker; completeness ignores it).
+  ageOptional?: boolean;
 }
 
-export function PMPersonListEditor({ people, onChange, showErrors = false, roleLock, emptyTitle, emptyHint, addLabel }: Props) {
+export function PMPersonListEditor({ people, onChange, showErrors = false, roleLock, emptyTitle, emptyHint, addLabel, hideSeverity = false, ageOptional = false }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const isOperatorMode = roleLock === 'Operator';
 
@@ -141,12 +145,12 @@ export function PMPersonListEditor({ people, onChange, showErrors = false, roleL
           !!p.role
           && !!p.outcome
           && (isOperatorMode || p.is_dart_employee !== undefined)
-          && (isOperatorMode || !!p.age_group)
+          && (isOperatorMode || ageOptional || !!p.age_group)
           && (isOperatorMode || !!p.gender)
-          && (!isInjured || (!!p.severity && !!p.body_part && p.transported_to_hospital !== undefined))
+          && (!isInjured || ((hideSeverity || !!p.severity) && !!p.body_part && p.transported_to_hospital !== undefined))
         );
         const details: string[] = [];
-        if (isInjured && p.severity) details.push(p.severity);
+        if (isInjured && !hideSeverity && p.severity) details.push(p.severity);
         if (isInjured && p.body_part) details.push(p.body_part);
         if (!isOperatorMode && p.age_group) details.push(p.age_group);
         if (!isOperatorMode && p.gender) details.push(p.gender);
@@ -219,13 +223,13 @@ export function PMPersonListEditor({ people, onChange, showErrors = false, roleL
                           </Field>
                         )}
                         {!isOperatorMode && (
-                          <Field label="Age group" required>
+                          <Field label={ageOptional ? 'Age group (optional)' : 'Age group'} required={!ageOptional}>
                             <CustomSelect
                               value={p.age_group || ''}
                               onChange={v => update(p.id, { age_group: (v || undefined) as PMPersonRecord['age_group'] })}
                               options={p.is_dart_employee ? AGE_GROUPS.filter(o => o.value !== 'Child (12 and under)') : AGE_GROUPS}
                               placeholder="Select age"
-                              error={showErrors && !p.age_group}
+                              error={showErrors && !ageOptional && !p.age_group}
                             />
                           </Field>
                         )}
@@ -242,11 +246,13 @@ export function PMPersonListEditor({ people, onChange, showErrors = false, roleL
                       <div>
                         <GroupLabel>Injury</GroupLabel>
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                          <BoolRow label="Injury severity" required error={showErrors && !p.severity}>
-                            <div className="w-full sm:w-60">
-                              <CustomSelect value={p.severity || ''} onChange={v => update(p.id, { severity: (v || undefined) as PMInjurySeverity })} options={SEVERITIES} placeholder="Select severity" error={showErrors && !p.severity} />
-                            </div>
-                          </BoolRow>
+                          {!hideSeverity && (
+                            <BoolRow label="Injury severity" required error={showErrors && !p.severity}>
+                              <div className="w-full sm:w-60">
+                                <CustomSelect value={p.severity || ''} onChange={v => update(p.id, { severity: (v || undefined) as PMInjurySeverity })} options={SEVERITIES} placeholder="Select severity" error={showErrors && !p.severity} />
+                              </div>
+                            </BoolRow>
+                          )}
                           <BoolRow label="Injured body part" required error={showErrors && !p.body_part}>
                             <div className="w-full sm:w-60">
                               <CustomSelect value={p.body_part || ''} onChange={v => update(p.id, { body_part: (v || undefined) as PMInjuryBodyPart })} options={BODY_PARTS} placeholder="Select" error={showErrors && !p.body_part} />

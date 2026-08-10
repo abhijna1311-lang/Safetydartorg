@@ -2238,12 +2238,12 @@ export function Step4ReviewSubmit({
 
               {supervisorReviewStep === 2 && (() => {
                 // Auto-sync legacy count fields so review, drawer, and reviewer decision keep working.
-                const syncPeople = (people: Person[]) => {
+                const syncPeople = (people: PMPersonRecord[]) => {
                   const passengers = people.filter(p => p.role === 'Passenger');
                   const pedestrians = people.filter(p => p.role === 'Pedestrian');
-                  const passengerInjured = passengers.filter(p => p.injured).length;
-                  const pedestrianInjured = pedestrians.filter(p => p.injured).length;
-                  const employeeInjured = people.filter(p => p.is_dart_employee && p.injured).length + (data.supervisor_operator_injured ? 1 : 0);
+                  const passengerInjured = passengers.filter(p => p.outcome === 'Injured').length;
+                  const pedestrianInjured = pedestrians.filter(p => p.outcome === 'Injured').length;
+                  const employeeInjured = people.filter(p => p.is_dart_employee && p.outcome === 'Injured').length + (data.supervisor_operator_injured ? 1 : 0);
                   const employeeTransported = people.filter(p => p.is_dart_employee && p.transported_to_hospital).length + (data.supervisor_operator_transported ? 1 : 0);
                   onUpdate({
                     supervisor_people: people,
@@ -2263,9 +2263,9 @@ export function Step4ReviewSubmit({
                 const supTotalPeople = 1 /* operator */ + supPassengerCount + supPedestrians.length;
                 const supOperatorInjured = data.supervisor_operator_injured ? 1 : 0;
                 const supOperatorTransported = data.supervisor_operator_transported ? 1 : 0;
-                const supEmployeesInjuredList = supervisorPeople.filter(p => p.is_dart_employee && p.injured).length;
-                const supPassengersInjured = supervisorPeople.filter(p => p.role === 'Passenger' && p.injured).length;
-                const supPedestriansInjured = supPedestrians.filter(p => p.injured).length;
+                const supEmployeesInjuredList = supervisorPeople.filter(p => p.is_dart_employee && p.outcome === 'Injured').length;
+                const supPassengersInjured = supervisorPeople.filter(p => p.role === 'Passenger' && p.outcome === 'Injured').length;
+                const supPedestriansInjured = supPedestrians.filter(p => p.outcome === 'Injured').length;
                 const supEmployeesTransportedList = supervisorPeople.filter(p => p.is_dart_employee && p.transported_to_hospital).length;
                 const supPassengersTransported = supervisorPeople.filter(p => p.role === 'Passenger' && p.transported_to_hospital).length;
                 const supPedestriansTransported = supPedestrians.filter(p => p.transported_to_hospital).length;
@@ -2309,7 +2309,7 @@ export function Step4ReviewSubmit({
                           ...(!value ? { supervisor_operator_injured_body_part: undefined, supervisor_operator_transported: undefined } : {}),
                         });
                         // Recompute employee counts using the just-set operator value.
-                        const employeeInjured = supervisorPeople.filter(p => p.is_dart_employee && p.injured).length + (value ? 1 : 0);
+                        const employeeInjured = supervisorPeople.filter(p => p.is_dart_employee && p.outcome === 'Injured').length + (value ? 1 : 0);
                         const employeeTransported = supervisorPeople.filter(p => p.is_dart_employee && p.transported_to_hospital).length + (value && data.supervisor_operator_transported ? 1 : 0);
                         onUpdate({
                           supervisor_dart_employee_injuries: employeeInjured > 0,
@@ -2386,10 +2386,11 @@ export function Step4ReviewSubmit({
                       className="overflow-hidden"
                     >
                       <div className="pt-4">
-                        <PersonListEditor
+                        <PMPersonListEditor
                           people={supervisorPeople}
                           onChange={(list) => syncPeople(list)}
-                          injuryDetailsRequired
+                          hideSeverity
+                          ageOptional
                         />
                       </div>
                     </motion.div>
@@ -3125,16 +3126,14 @@ export function Step4ReviewSubmit({
                   <div className="pt-6 border-t border-slate-100">
                     <ContributingFactorsPicker
                       selected={contributingFactorsList}
-                      primary={data.program_manager_primary_contributing_factor}
                       onSelectedChange={(next) => {
                         const patch: Partial<typeof data> = { program_manager_contributing_factors_list: next };
-                        // If the current primary was just removed, clear it too.
+                        // Clear the legacy primary field if the previously-primary factor was removed.
                         if (data.program_manager_primary_contributing_factor && !next.includes(data.program_manager_primary_contributing_factor)) {
                           patch.program_manager_primary_contributing_factor = undefined;
                         }
                         onUpdate(patch);
                       }}
-                      onPrimaryChange={(next) => onUpdate({ program_manager_primary_contributing_factor: next })}
                     />
                   </div>
                 </div>
