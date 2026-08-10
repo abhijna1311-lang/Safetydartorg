@@ -191,7 +191,20 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
           && occupantsComplete
           && v.dart_dart !== undefined && !!v.vehicle_type && !!v.action && !!v.point_of_impact
           && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
-        const subtitle = [v.vehicle_type || 'Type not set', `${v.occupants ?? 0} occ.`, v.damage ? 'damaged' : null, v.tow_away ? 'towed' : null].filter(Boolean).join(' · ');
+        // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
+        const subtitleParts = [
+          v.vehicle_type || 'Type not set',
+          `${v.occupants ?? 0} occ.`,
+          v.point_of_impact ? `${v.point_of_impact} impact` : null,
+          v.damage ? 'damaged' : null,
+          v.tow_away ? 'towed' : null,
+        ].filter(Boolean);
+        const subtitle = subtitleParts.join(' · ');
+        const fatalCount = v.fatalities ?? 0;
+        const transportedCount = isOperator
+          ? injuredOccupants.filter(o => o.transported === 'yes').length
+          : (v.transported ?? 0);
+        const fledCount = v.fled ?? 0;
 
         return (
           <div key={v.id} className={`overflow-hidden rounded-xl border bg-white transition-shadow ${showErrors && !recordComplete ? 'border-red-300' : open ? 'border-[#112458]/30 shadow-sm' : 'border-slate-200/70'}`}>
@@ -204,8 +217,26 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                 <p className="truncate text-sm font-semibold text-slate-800 font-['Poppins']">Vehicle {idx + 2}</p>
                 <p className="truncate text-xs text-slate-500 font-['Poppins']">{subtitle}</p>
               </button>
+              {fatalCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 font-['Poppins']" title={`${fatalCount} fatal`}>
+                  <span className="material-symbols-rounded text-[13px]" aria-hidden="true">warning</span>
+                  {fatalCount} fatal
+                </span>
+              )}
               {hasInjuries && (
                 <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 font-['Poppins']">{v.injuries} injured</span>
+              )}
+              {transportedCount > 0 && (
+                <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-600 font-['Poppins']" title={`${transportedCount} transported to hospital`}>
+                  <span className="material-symbols-rounded text-[13px]" aria-hidden="true">local_hospital</span>
+                  {transportedCount}
+                </span>
+              )}
+              {fledCount > 0 && (
+                <span className="hidden md:inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 font-['Poppins']" title={`${fledCount} fled the scene`}>
+                  <span className="material-symbols-rounded text-[13px]" aria-hidden="true">directions_run</span>
+                  {fledCount}
+                </span>
               )}
               <button type="button" onClick={() => setOpenId(open ? null : v.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.2)]" aria-label={open ? `Collapse vehicle ${idx + 2}` : `Edit vehicle ${idx + 2}`}>
                 {open

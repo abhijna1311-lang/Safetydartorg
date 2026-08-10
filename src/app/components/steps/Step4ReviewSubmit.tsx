@@ -2260,7 +2260,14 @@ export function Step4ReviewSubmit({
                 // KPI banner numbers — same shape as Operator's Step 3, adapted to supervisor_* fields.
                 const supPassengerCount = data.supervisor_passengers_on_board || 0;
                 const supPedestrians = supervisorPeople.filter(p => p.role === 'Pedestrian');
-                const supTotalPeople = 1 /* operator */ + supPassengerCount + supPedestrians.length;
+                const supOtherVehicles = data.supervisor_other_vehicles ?? [];
+                const supOtherOccupants = supOtherVehicles.reduce((s, v) => s + (v.occupants ?? 0), 0);
+                const supOtherInjuries = supOtherVehicles.reduce((s, v) => s + (v.injuries ?? 0), 0);
+                const supOtherTransported = supOtherVehicles.reduce((s, v) => {
+                  const perRow = (v.injured_occupants ?? []).filter(o => o.transported === 'yes').length;
+                  return s + (perRow > 0 ? perRow : (v.transported ?? 0));
+                }, 0);
+                const supTotalPeople = 1 /* operator */ + supPassengerCount + supPedestrians.length + supOtherOccupants;
                 const supOperatorInjured = data.supervisor_operator_injured ? 1 : 0;
                 const supOperatorTransported = data.supervisor_operator_transported ? 1 : 0;
                 const supEmployeesInjuredList = supervisorPeople.filter(p => p.is_dart_employee && p.outcome === 'Injured').length;
@@ -2269,17 +2276,19 @@ export function Step4ReviewSubmit({
                 const supEmployeesTransportedList = supervisorPeople.filter(p => p.is_dart_employee && p.transported_to_hospital).length;
                 const supPassengersTransported = supervisorPeople.filter(p => p.role === 'Passenger' && p.transported_to_hospital).length;
                 const supPedestriansTransported = supPedestrians.filter(p => p.transported_to_hospital).length;
-                const supWithInjuries = supOperatorInjured + supEmployeesInjuredList + supPassengersInjured + supPedestriansInjured;
-                const supTransported = supOperatorTransported + supEmployeesTransportedList + supPassengersTransported + supPedestriansTransported;
+                const supWithInjuries = supOperatorInjured + supEmployeesInjuredList + supPassengersInjured + supPedestriansInjured + supOtherInjuries;
+                const supTransported = supOperatorTransported + supEmployeesTransportedList + supPassengersTransported + supPedestriansTransported + supOtherTransported;
                 const supInjuredParts = [
                   { key: 'emp', glyph: 'badge', title: 'Employees', value: supOperatorInjured + supEmployeesInjuredList },
                   { key: 'pax', glyph: 'event_seat', title: 'Passengers', value: supPassengersInjured },
                   { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: supPedestriansInjured },
+                  { key: 'oth', glyph: 'directions_car', title: 'Other vehicle occupants', value: supOtherInjuries },
                 ];
                 const supTransportedParts = [
                   { key: 'emp', glyph: 'badge', title: 'Employees', value: supOperatorTransported + supEmployeesTransportedList },
                   { key: 'pax', glyph: 'event_seat', title: 'Passengers', value: supPassengersTransported },
                   { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: supPedestriansTransported },
+                  { key: 'oth', glyph: 'directions_car', title: 'Other vehicle occupants', value: supOtherTransported },
                 ];
                 return (
               <div className="dart-card dart-card--surface overflow-hidden">

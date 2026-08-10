@@ -103,25 +103,35 @@ export function Step3PeopleImpact({
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
 
-  // People involved — top-line KPIs summarize the whole step (operator + employees + passengers + pedestrians).
+  // People involved — top-line KPIs summarize the whole step (operator + employees + passengers + pedestrians + other-vehicle occupants).
   const people = data.people ?? [];
   const pedestrianCount = people.filter(p => p.role === 'Pedestrian').length;
   const employeesInjured = (data.operator_injured ? 1 : 0) + (data.other_employees_injured_count || 0);
   const employeesTransported = data.operator_transported ? 1 : 0;
   const passengersInjuredCount = people.filter(p => p.role === 'Passenger' && p.injured).length;
-  const totalPeople = 1 /* operator */ + (data.other_employees_injured_count || 0) + (data.passengers_on_board || 0) + pedestrianCount;
-  const withInjuries = employeesInjured + people.filter(p => p.injured).length;
-  const transportedCount = employeesTransported + people.filter(p => p.transported_to_hospital).length;
+  const otherVehicles = data.other_vehicles ?? [];
+  const otherVehicleOccupants = otherVehicles.reduce((sum, v) => sum + (v.occupants ?? 0), 0);
+  const otherVehicleInjuries = otherVehicles.reduce((sum, v) => sum + (v.injuries ?? 0), 0);
+  const otherVehicleTransported = otherVehicles.reduce((sum, v) => {
+    // Operator variant captures transport per injured occupant; fall back to aggregate for any legacy data.
+    const perRow = (v.injured_occupants ?? []).filter(o => o.transported === 'yes').length;
+    return sum + (perRow > 0 ? perRow : (v.transported ?? 0));
+  }, 0);
+  const totalPeople = 1 /* operator */ + (data.other_employees_injured_count || 0) + (data.passengers_on_board || 0) + pedestrianCount + otherVehicleOccupants;
+  const withInjuries = employeesInjured + people.filter(p => p.injured).length + otherVehicleInjuries;
+  const transportedCount = employeesTransported + people.filter(p => p.transported_to_hospital).length + otherVehicleTransported;
   const byRole = (role: Person['role'], pred: (p: Person) => boolean) => people.filter(p => p.role === role && pred(p)).length;
   const injuredParts = [
     { key: 'emp', glyph: 'badge', title: 'Employees', value: employeesInjured },
     { key: 'pax', glyph: 'event_seat', title: 'Passengers', value: byRole('Passenger', p => !!p.injured) },
     { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: byRole('Pedestrian', p => !!p.injured) },
+    { key: 'oth', glyph: 'directions_car', title: 'Other vehicle occupants', value: otherVehicleInjuries },
   ];
   const transportedParts = [
     { key: 'emp', glyph: 'badge', title: 'Employees', value: employeesTransported },
     { key: 'pax', glyph: 'event_seat', title: 'Passengers', value: byRole('Passenger', p => p.transported_to_hospital) },
     { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: byRole('Pedestrian', p => p.transported_to_hospital) },
+    { key: 'oth', glyph: 'directions_car', title: 'Other vehicle occupants', value: otherVehicleTransported },
   ];
 
   const personComplete = (person: Person) => {
