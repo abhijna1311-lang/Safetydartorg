@@ -16,6 +16,7 @@ import { TimePickerInput } from '../TimePickerInput';
 import { SupervisorPersonListEditor } from '../SupervisorPersonListEditor';
 import { PersonListEditor } from '../PersonListEditor';
 import { PMPersonListEditor } from '../PMPersonListEditor';
+import { ContributingFactorsPicker } from '../ContributingFactorsPicker';
 import { OtherVehiclesEditor } from '../OtherVehiclesEditor';
 import { VehicleImpactDiagram } from '../VehicleImpactDiagram';
 import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
@@ -198,28 +199,6 @@ const PROGRAM_MANAGER_COLLISION_WITH_OPTIONS = [
   'Collision – with Non-Fixed Object',
   'Collision – with Animal',
 ].map(value => ({ value, label: value }));
-
-const PROGRAM_MANAGER_CONTRIBUTING_FACTORS = [
-  'Cell Phone',
-  'Consuming Food',
-  'Speeding',
-  'Failure to obey a stop sign',
-  'Disregarded a red traffic signal',
-  'Earpiece',
-  'Grooming/Personal Hygiene',
-  'Drowsy/ Falling Asleep',
-  'No Seatbelt',
-  'Paper',
-  'Unsafe following',
-  'Unsafe Lane Change/Merging/Passing',
-  'Unsafe Railroad Crossing',
-  'Competitive/Aggressive driving',
-  'Unsafe Braking',
-  'Failure to Yield to Pedestrian(s)',
-  'Failure to Yield to Vehicle(s)',
-  'Unsafe Turning',
-  'Driving with two hands off the wheel',
-];
 
 const PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS = [
   'Head On',
@@ -2659,15 +2638,6 @@ export function Step4ReviewSubmit({
           const derailmentApplies = isEventDerailment || (isEventCollision && data.supervisor_derailment_confirmed === true);
           const invalidDerailmentMode = isEventDerailment && !modeIsRail;
           const contributingFactorsList = data.program_manager_contributing_factors_list || [];
-          const toggleContributingFactor = (factor: string) => {
-            const set = new Set(contributingFactorsList);
-            if (set.has(factor)) {
-              set.delete(factor);
-            } else {
-              set.add(factor);
-            }
-            onUpdate({ program_manager_contributing_factors_list: Array.from(set) });
-          };
 
           const pmEmployeeInjuryRecords = resizePMInjuryRecords(data.program_manager_employee_injury_records, data.program_manager_employee_injury_count);
           const pmEmployeeFatalityRecords = resizeDemographicRecords(data.program_manager_employee_fatality_records, data.program_manager_employee_fatality_count);
@@ -3073,17 +3043,6 @@ export function Step4ReviewSubmit({
                             />
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0, textTransform: 'none' }}>Point of impact</div>
-                          <div className="w-full sm:w-72">
-                            <CustomSelect
-                              value={data.program_manager_dart_collision_type || ''}
-                              onChange={(value) => onUpdate({ program_manager_dart_collision_type: value })}
-                              options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
-                              placeholder="Select collision type"
-                            />
-                          </div>
-                        </div>
                         <AnimatePresence initial={false}>
                           {pmShowOtherVehicleCollisionType && (
                             <motion.div
@@ -3108,6 +3067,17 @@ export function Step4ReviewSubmit({
                             </motion.div>
                           )}
                         </AnimatePresence>
+                        <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0, textTransform: 'none' }}>Point of impact</div>
+                          <div className="w-full sm:w-72">
+                            <CustomSelect
+                              value={data.program_manager_dart_collision_type || ''}
+                              onChange={(value) => onUpdate({ program_manager_dart_collision_type: value })}
+                              options={PROGRAM_MANAGER_COLLISION_TYPE_OPTIONS}
+                              placeholder="Select collision type"
+                            />
+                          </div>
+                        </div>
                       </>
                     )}
                     <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
@@ -3117,7 +3087,7 @@ export function Step4ReviewSubmit({
                           value={data.program_manager_dart_vehicle_damaged}
                           onChange={(v) => onUpdate({
                             program_manager_dart_vehicle_damaged: v,
-                            ...(v ? {} : { program_manager_impact_markers: [] }),
+                            ...(v ? {} : { program_manager_impact_markers: [], program_manager_disabling_damage: undefined }),
                           })}
                         />
                       </div>
@@ -3132,6 +3102,15 @@ export function Step4ReviewSubmit({
                           transition={{ height: LAYOUT_SPRING, opacity: { duration: 0.2, ease: 'easeInOut' } }}
                           className="overflow-hidden bg-slate-50/40"
                         >
+                          <div className="flex flex-col gap-2.5 border-b border-slate-200/60 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+                            <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Was there disabling damage to this vehicle?</div>
+                            <div className="w-full sm:w-72 [&_.dart-seg]:grid [&_.dart-seg]:w-full">
+                              <YesNoButtons
+                                value={data.program_manager_disabling_damage}
+                                onChange={(v) => onUpdate({ program_manager_disabling_damage: v })}
+                              />
+                            </div>
+                          </div>
                           <div className="px-4 py-5 sm:px-5">
                             <VehicleImpactDiagram
                               variant={pmImpactVariant}
@@ -3144,31 +3123,19 @@ export function Step4ReviewSubmit({
                     </AnimatePresence>
                   </div>
                   <div className="pt-6 border-t border-slate-100">
-                    <div className={FIELD_LABEL_CLASS}>Contributing factors</div>
-                    <p className="mb-4 text-xs text-slate-500 font-['Poppins']">Select all that apply.</p>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                      {PROGRAM_MANAGER_CONTRIBUTING_FACTORS.map((factor) => {
-                        const checked = contributingFactorsList.includes(factor);
-                        return (
-                          <label
-                            key={factor}
-                            className={`group flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-[13px] leading-snug transition-all font-['Poppins'] ${
-                              checked
-                                ? 'border-[#00205B] bg-[#00205B]/[0.04] text-[#00205B] ring-1 ring-[#00205B]/15 shadow-sm'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50/60'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleContributingFactor(factor)}
-                              className="h-4 w-4 shrink-0 rounded border-slate-300 text-[#00205B] focus:ring-[#FFCD00] cursor-pointer"
-                            />
-                            <span>{factor}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                    <ContributingFactorsPicker
+                      selected={contributingFactorsList}
+                      primary={data.program_manager_primary_contributing_factor}
+                      onSelectedChange={(next) => {
+                        const patch: Partial<typeof data> = { program_manager_contributing_factors_list: next };
+                        // If the current primary was just removed, clear it too.
+                        if (data.program_manager_primary_contributing_factor && !next.includes(data.program_manager_primary_contributing_factor)) {
+                          patch.program_manager_primary_contributing_factor = undefined;
+                        }
+                        onUpdate(patch);
+                      }}
+                      onPrimaryChange={(next) => onUpdate({ program_manager_primary_contributing_factor: next })}
+                    />
                   </div>
                 </div>
               </div>
@@ -3264,46 +3231,134 @@ export function Step4ReviewSubmit({
                 </div>
               </div>
 
-              {/* DART operator injury — mirrors Op/FS card. Fatality + severity are the SPM additions. */}
+              {/* DART operator injury — single-record outcome flow (the operator submitted the report). */}
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">DART operator injury</h3>
-                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Fatalities and injuries to DART employees involved in the event.</p>
-                <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                  <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                    <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Number of employee fatalities</div>
-                    <div className="shrink-0"><input
-                      type="number"
-                      min={0}
-                      value={data.program_manager_employee_fatality_count ?? ''}
-                      onChange={(e) => {
-                        const count = parseOptionalCount(e.target.value);
-                        onUpdate({
-                          program_manager_employee_fatality_count: count,
-                          program_manager_employee_fatality_records: resizeDemographicRecords(data.program_manager_employee_fatality_records, count),
-                        });
-                      }}
-                      className="dart-input-base w-full text-center sm:w-24"
-                    /></div>
-                  </div>
-                  <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                    <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Number of employees injured</div>
-                    <div className="shrink-0"><input
-                      type="number"
-                      min={0}
-                      value={data.program_manager_employee_injury_count ?? ''}
-                      onChange={(e) => {
-                        const count = parseOptionalCount(e.target.value);
-                        onUpdate({
-                          program_manager_employee_injury_count: count,
-                          program_manager_employee_injury_records: resizePMInjuryRecords(data.program_manager_employee_injury_records, count),
-                        });
-                      }}
-                      className="dart-input-base w-full text-center sm:w-24"
-                    /></div>
-                  </div>
-                </div>
-                {pmEmployeeFatalityRecords.length > 0 && <div className="mt-4">{renderPMFatalityRecords(pmEmployeeFatalityRecords, 'program_manager_employee_fatality_records', 'Deceased employee')}</div>}
-                {pmEmployeeInjuryRecords.length > 0 && <div className="mt-4">{renderPMInjuryRecords(pmEmployeeInjuryRecords, 'program_manager_employee_injury_records', 'Injured employee', false)}</div>}
+                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Program Manager's outcome for the operator who filed the report.</p>
+                {(() => {
+                  const operatorOutcome = data.program_manager_operator_outcome
+                    ?? ((data.program_manager_employee_fatality_count || 0) > 0 ? 'Fatality'
+                      : (data.program_manager_employee_injury_count || 0) > 0 ? 'Injured'
+                      : undefined);
+                  const operatorFatality = data.program_manager_employee_fatality_records?.[0] || {};
+                  const operatorInjury = data.program_manager_employee_injury_records?.[0] || {};
+                  const setOperatorOutcome = (next: 'Not Sure' | 'Injured' | 'Fatality') => {
+                    if (next === 'Not Sure') {
+                      onUpdate({
+                        program_manager_operator_outcome: 'Not Sure',
+                        program_manager_employee_fatality_count: 0,
+                        program_manager_employee_fatality_records: [],
+                        program_manager_employee_injury_count: 0,
+                        program_manager_employee_injury_records: [],
+                      });
+                    } else if (next === 'Fatality') {
+                      onUpdate({
+                        program_manager_operator_outcome: 'Fatality',
+                        program_manager_employee_fatality_count: 1,
+                        program_manager_employee_fatality_records: [{ ...operatorFatality, is_dart_employee: true }],
+                        program_manager_employee_injury_count: 0,
+                        program_manager_employee_injury_records: [],
+                      });
+                    } else {
+                      onUpdate({
+                        program_manager_operator_outcome: 'Injured',
+                        program_manager_employee_injury_count: 1,
+                        program_manager_employee_injury_records: [{ ...operatorInjury }],
+                        program_manager_employee_fatality_count: 0,
+                        program_manager_employee_fatality_records: [],
+                      });
+                    }
+                  };
+                  const patchFatality = (patch: Partial<SupervisorDemographicRecord>) => {
+                    onUpdate({
+                      program_manager_employee_fatality_records: [{ ...operatorFatality, ...patch, is_dart_employee: true }],
+                      program_manager_employee_fatality_count: 1,
+                    });
+                  };
+                  const patchInjury = (patch: Partial<PMInjuryRecord>) => {
+                    onUpdate({
+                      program_manager_employee_injury_records: [{ ...operatorInjury, ...patch }],
+                      program_manager_employee_injury_count: 1,
+                    });
+                  };
+                  return (
+                    <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                      <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+                        <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Outcome</div>
+                        <div className="w-full sm:w-72">
+                          <CustomSelect
+                            value={operatorOutcome || ''}
+                            onChange={(v) => setOperatorOutcome(v as 'Not Sure' | 'Injured' | 'Fatality')}
+                            options={[
+                              { value: 'Not Sure', label: 'Not Sure' },
+                              { value: 'Injured', label: 'Injured' },
+                              { value: 'Fatality', label: 'Fatal' },
+                            ]}
+                            placeholder="Select outcome"
+                          />
+                        </div>
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {operatorOutcome === 'Fatality' && (
+                          <motion.div key="pm-op-fatal-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
+                            <BoolRow label="Age group">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={operatorFatality.age_group || ''}
+                                  onChange={(v) => patchFatality({ age_group: (v || undefined) as SupervisorDemographicRecord['age_group'] })}
+                                  options={AGE_GROUP_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select age"
+                                />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Gender">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={operatorFatality.gender || ''}
+                                  onChange={(v) => patchFatality({ gender: (v || undefined) as SupervisorDemographicRecord['gender'] })}
+                                  options={GENDER_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select gender"
+                                />
+                              </div>
+                            </BoolRow>
+                          </motion.div>
+                        )}
+                        {operatorOutcome === 'Injured' && (
+                          <motion.div key="pm-op-injured-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
+                            <BoolRow label="Injury severity">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={operatorInjury.severity || ''}
+                                  onChange={(v) => patchInjury({ severity: (v || undefined) as PMInjurySeverity })}
+                                  options={PM_INJURY_SEVERITY_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select severity"
+                                />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Injured body part">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={operatorInjury.body_part || ''}
+                                  onChange={(v) => patchInjury({ body_part: (v || undefined) as PMInjuryBodyPart })}
+                                  options={PM_INJURY_BODY_PART_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select"
+                                />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Transported to hospital?">
+                              <div className="w-full sm:w-72 [&_.dart-seg]:grid [&_.dart-seg]:w-full">
+                                <YesNoButtons
+                                  value={operatorInjury.transported_to_hospital}
+                                  onChange={(v) => patchInjury({ transported_to_hospital: v })}
+                                />
+                              </div>
+                            </BoolRow>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* People involved — gate first, then add-person editor mirrors Op/FS pattern. */}
@@ -3342,47 +3397,52 @@ export function Step4ReviewSubmit({
                 </AnimatePresence>
               </div>
 
-              {/* Other vehicles — mirrors Op/FS card, extended with SPM fatality + severity depth. */}
+              {/* Other vehicles — use shared OtherVehiclesEditor to match Field Supervisor UX. */}
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Other vehicles</h3>
-                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Fatalities and injuries to occupants of the other vehicle involved.</p>
+                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Add each vehicle involved besides the DART vehicle. Occupants are recorded as counts; use the fields below to provide PM fatality/injury details if needed.</p>
                 <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                   <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                    <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Number of occupant fatalities in other vehicle</div>
-                    <div className="shrink-0"><input
-                      type="number"
-                      min={0}
-                      value={data.program_manager_other_vehicle_fatality_count ?? ''}
-                      onChange={(e) => {
-                        const count = parseOptionalCount(e.target.value);
-                        onUpdate({
-                          program_manager_other_vehicle_fatality_count: count,
-                          program_manager_other_vehicle_fatality_records: resizeDemographicRecords(data.program_manager_other_vehicle_fatality_records, count),
-                        });
-                      }}
-                      className="dart-input-base w-full text-center sm:w-24"
-                    /></div>
+                    <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Were other vehicles involved?</div>
+                    <div className="shrink-0"><YesNoButtons value={data.program_manager_other_vehicles_involved} onChange={(value) => {
+                      const nextList = value ? (data.program_manager_other_vehicles ?? []) : [];
+                      onUpdate({
+                        program_manager_other_vehicles_involved: value,
+                        program_manager_other_vehicles: nextList,
+                        program_manager_other_vehicle_fatality_count: value ? nextList.reduce((s, v) => s + (v.fatalities || 0), 0) : undefined,
+                        program_manager_other_vehicle_injury_count: value ? nextList.reduce((s, v) => s + (v.injuries || 0), 0) : undefined,
+                      });
+                    }} /></div>
                   </div>
                 </div>
+
+                <AnimatePresence initial={false}>
+                  {data.program_manager_other_vehicles_involved === true && (
+                    <motion.div
+                      key="pm-other-vehicles-list"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ height: LAYOUT_SPRING, opacity: { duration: 0.2, ease: 'easeInOut' } }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-4">
+                        <OtherVehiclesEditor
+                          vehicles={data.program_manager_other_vehicles ?? []}
+                          onChange={(list) => onUpdate({
+                            program_manager_other_vehicles: list,
+                            program_manager_other_vehicle_fatality_count: list.reduce((s, v) => s + (v.fatalities || 0), 0) || undefined,
+                            program_manager_other_vehicle_injury_count: list.reduce((s, v) => s + (v.injuries || 0), 0) || undefined,
+                          })}
+                          injuryDetailsRequired
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* PM-specific per-occupant details (kept for PM severity/fatality depth) */}
                 {pmOtherVehicleFatalityRecords.length > 0 && <div className="mt-4">{renderPMFatalityRecords(pmOtherVehicleFatalityRecords, 'program_manager_other_vehicle_fatality_records', 'Deceased occupant')}</div>}
-                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                  <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                    <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Number of occupants injured in other vehicle</div>
-                    <div className="shrink-0"><input
-                      type="number"
-                      min={0}
-                      value={data.program_manager_other_vehicle_injury_count ?? ''}
-                      onChange={(e) => {
-                        const count = parseOptionalCount(e.target.value);
-                        onUpdate({
-                          program_manager_other_vehicle_injury_count: count,
-                          program_manager_other_vehicle_injury_records: resizePMInjuryRecords(data.program_manager_other_vehicle_injury_records, count),
-                        });
-                      }}
-                      className="dart-input-base w-full text-center sm:w-24"
-                    /></div>
-                  </div>
-                </div>
                 {pmOtherVehicleInjuryRecords.length > 0 && <div className="mt-4">{renderPMInjuryRecords(pmOtherVehicleInjuryRecords, 'program_manager_other_vehicle_injury_records', 'Injured occupant', true)}</div>}
               </div>
               </div>
@@ -3488,10 +3548,11 @@ export function Step4ReviewSubmit({
                       2,
                       [
                         { label: 'Contributing factors', value: contributingFactorsList.length > 0 ? contributingFactorsList.join(', ') : 'Not entered', wide: true },
+                        ...(data.program_manager_primary_contributing_factor ? [{ label: 'Primary factor', value: data.program_manager_primary_contributing_factor }] : []),
                         ...(isEventCollision ? [
                           { label: 'Collisions with', value: formatReviewValue(data.program_manager_collision_with) },
-                          { label: 'DART vehicle collision type', value: formatReviewValue(data.program_manager_dart_collision_type) },
                           ...(pmShowOtherVehicleCollisionType ? [{ label: 'Other vehicle collision type', value: formatReviewValue(data.program_manager_other_collision_type) }] : []),
+                          { label: 'DART vehicle collision type', value: formatReviewValue(data.program_manager_dart_collision_type) },
                         ] : []),
                         ...(derailmentApplies ? [
                           { label: 'Derail configuration', value: formatReviewValue(data.program_manager_derail_configuration) },

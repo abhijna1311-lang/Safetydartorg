@@ -408,6 +408,8 @@ export interface AccidentReportData {
   program_manager_collision_with?: string;
   program_manager_contributing_factors?: string;
   program_manager_contributing_factors_list?: string[];
+  // Single factor flagged as the primary driver for classification narrative.
+  program_manager_primary_contributing_factor?: string;
   program_manager_collision_type?: string;
   program_manager_dart_collision_type?: string;
   program_manager_other_collision_type?: string;
@@ -446,15 +448,22 @@ export interface AccidentReportData {
   program_manager_people_involved?: boolean;
   // Yes/No gate that reveals the SPM damage-area diagram.
   program_manager_dart_vehicle_damaged?: boolean;
+  // SPM-side confirmation that the damage disables the vehicle from further service.
+  program_manager_disabling_damage?: boolean;
   // Independent SPM record of DART vehicle impact points — mirrors the Op/FS diagram, kept separate
   // so each role's observations survive the review cycle for downstream reporting (NTSD, TxDOT).
   program_manager_impact_markers?: { x: number; y: number; label?: string }[];
   // Per-operator list for the SPM "DART operator injury" card.
   program_manager_operator_people?: PMPersonRecord[];
+  // Single-operator outcome for the SPM "DART operator injury" card.
+  program_manager_operator_outcome?: 'Not Sure' | 'Injured' | 'Fatality';
   program_manager_other_vehicle_fatality_count?: number;
   program_manager_other_vehicle_fatality_records?: SupervisorDemographicRecord[];
   program_manager_other_vehicle_injury_count?: number;
   program_manager_other_vehicle_injury_records?: PMInjuryRecord[];
+  // Program manager per-vehicle details (mirror Operator / Field Supervisor shape)
+  program_manager_other_vehicles_involved?: boolean;
+  program_manager_other_vehicles?: OtherVehicle[];
 
   // Classification
   program_manager_classification?: string;
