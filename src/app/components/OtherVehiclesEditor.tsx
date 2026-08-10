@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from './CustomSelect';
 import { YesNoToggle } from './form/YesNoToggle';
 import { DamageAreaChips } from './steps/sections/DamageAreaChips';
-import type { OtherVehicle } from '../types/accident-report';
+import type { OtherVehicle, OtherVehicleOccupantInjury } from '../types/accident-report';
 
 const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
 
@@ -82,9 +82,36 @@ interface Props {
   onChange: (vehicles: OtherVehicle[]) => void;
   showErrors?: boolean;
   injuryDetailsRequired?: boolean;
+  // 'operator' drops "Occupant fatalities" and captures gender + transported per injured occupant.
+  variant?: 'operator' | 'full';
 }
 
-export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true }: Props) {
+const GENDER_OPTS = [
+  { value: 'Female', label: 'Female' },
+  { value: 'Male', label: 'Male' },
+];
+const TRANSPORTED_OPTS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'not_sure', label: 'Not sure' },
+];
+
+const makeInjuredOccupant = (): OtherVehicleOccupantInjury => ({
+  id: `io-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+});
+
+const syncInjuredOccupants = (existing: OtherVehicleOccupantInjury[] | undefined, targetCount: number): OtherVehicleOccupantInjury[] => {
+  const list = existing ?? [];
+  if (list.length === targetCount) return list;
+  if (list.length < targetCount) {
+    const add = Array.from({ length: targetCount - list.length }, makeInjuredOccupant);
+    return [...list, ...add];
+  }
+  return list.slice(0, targetCount);
+};
+
+export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, variant = 'full' }: Props) {
+  const isOperator = variant === 'operator';
   const [openId, setOpenId] = useState<string | null>(null);
 
   const update = (id: string, patch: Partial<OtherVehicle>) =>
@@ -103,13 +130,29 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
 
   // 0 or empty occupants clears the whole occupant breakdown.
   const setOccupants = (id: string, n: number | undefined) => {
-    if (!n || n < 1) update(id, { occupants: n, fatalities: undefined, injuries: undefined, fled: undefined, transported: undefined });
+    if (!n || n < 1) update(id, { occupants: n, fatalities: undefined, injuries: undefined, fled: undefined, transported: undefined, injured_occupants: [] });
     else update(id, { occupants: n });
   };
-  // 0 injuries clears "transported" (can't transport an injured occupant if none are injured).
+  // 0 injuries clears transported + per-injury records (nothing to describe).
   const setInjuries = (id: string, n: number | undefined) => {
-    if (!n || n < 1) update(id, { injuries: n, transported: undefined });
-    else update(id, { injuries: n });
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+    if (!n || n < 1) {
+      update(id, { injuries: n, transported: undefined, injured_occupants: [] });
+      return;
+    }
+    if (isOperator) {
+      update(id, { injuries: n, injured_occupants: syncInjuredOccupants(v.injured_occupants, n) });
+      return;
+    }
+    update(id, { injuries: n });
+  };
+
+  const updateInjuredOccupant = (vehicleId: string, occupantId: string, patch: Partial<OtherVehicleOccupantInjury>) => {
+    const v = vehicles.find(x => x.id === vehicleId);
+    if (!v) return;
+    const next = (v.injured_occupants ?? []).map(o => (o.id === occupantId ? { ...o, ...patch } : o));
+    update(vehicleId, { injured_occupants: next });
   };
 
   if (vehicles.length === 0) {
@@ -135,8 +178,17 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const hasOccupants = (v.occupants ?? 0) > 0;
         const hasInjuries = (v.injuries ?? 0) > 0;
         const typeOptions = v.dart_dart ? TYPES_DART : TYPES_NON_DART;
+        const injuredOccupants = v.injured_occupants ?? [];
+        const injuredRowsComplete = !isOperator || !injuryDetailsRequired || !hasInjuries
+          || (injuredOccupants.length === (v.injuries ?? 0) && injuredOccupants.every(o => !!o.gender && !!o.transported));
+        const occupantsComplete = !hasOccupants
+          || (
+            isOperator
+              ? (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete))
+              : (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined))))
+          );
         const recordComplete = v.occupants !== undefined
-          && (!hasOccupants || (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined)))))
+          && occupantsComplete
           && v.dart_dart !== undefined && !!v.vehicle_type && !!v.action && !!v.point_of_impact
           && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         const subtitle = [v.vehicle_type || 'Type not set', `${v.occupants ?? 0} occ.`, v.damage ? 'damaged' : null, v.tow_away ? 'towed' : null].filter(Boolean).join(' · ');
@@ -187,22 +239,26 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Occupants */}
                     <div>
                       <GroupLabel>Occupants</GroupLabel>
-                      {/* Full-width until a count is entered; grows to 4 (then 5 with hospital transport) columns from md up. */}
+                      {/* Column count adapts to which follow-ups apply: fatalities and aggregate transport for FS/PM, per-injury rows below for the operator. */}
                       <div
                         className={`grid gap-x-5 gap-y-4 ${
                           hasOccupants
-                            ? hasInjuries
-                              ? 'grid-cols-1 md:grid-cols-5'
-                              : 'grid-cols-1 md:grid-cols-4'
+                            ? isOperator
+                              ? 'grid-cols-1 md:grid-cols-3'
+                              : hasInjuries
+                                ? 'grid-cols-1 md:grid-cols-5'
+                                : 'grid-cols-1 md:grid-cols-4'
                             : 'grid-cols-1'
                         }`}
                       >
                         <NumberField label="Number of occupants in vehicle" required error={showErrors && v.occupants === undefined} value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
-                            <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
+                            {!isOperator && (
+                              <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
+                            )}
                             <NumberField label="Occupant injuries" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && v.injuries === undefined} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
-                            {hasInjuries && (
+                            {!isOperator && hasInjuries && (
                               <NumberField
                                 label="Occupants transported to hospital"
                                 required={injuryDetailsRequired}
@@ -215,6 +271,45 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                           </>
                         )}
                       </div>
+                      {isOperator && hasInjuries && (
+                        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+                          <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Injured occupants ({injuredOccupants.length})</p>
+                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture gender and hospital transport for each injured occupant.</p>
+                          </div>
+                          <div className="divide-y divide-slate-100">
+                            {injuredOccupants.map((occ, occIdx) => {
+                              const genderMissing = showErrors && injuryDetailsRequired && !occ.gender;
+                              const transportMissing = showErrors && injuryDetailsRequired && !occ.transported;
+                              return (
+                                <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+                                  <p className="w-28 shrink-0 text-[12px] font-semibold text-slate-500 font-['Poppins']">Occupant {occIdx + 1}</p>
+                                  <div className="grid flex-1 grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                                    <Field label="Gender" required={injuryDetailsRequired} error={genderMissing}>
+                                      <CustomSelect
+                                        value={occ.gender || ''}
+                                        onChange={val => updateInjuredOccupant(v.id, occ.id, { gender: (val || undefined) as OtherVehicleOccupantInjury['gender'] })}
+                                        options={GENDER_OPTS}
+                                        placeholder="Select"
+                                        error={genderMissing}
+                                      />
+                                    </Field>
+                                    <Field label="Transported to hospital" required={injuryDetailsRequired} error={transportMissing}>
+                                      <CustomSelect
+                                        value={occ.transported || ''}
+                                        onChange={val => updateInjuredOccupant(v.id, occ.id, { transported: (val || undefined) as OtherVehicleOccupantInjury['transported'] })}
+                                        options={TRANSPORTED_OPTS}
+                                        placeholder="Select"
+                                        error={transportMissing}
+                                      />
+                                    </Field>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Vehicle */}

@@ -372,7 +372,7 @@ export function Step3PeopleImpact({
               {/* 3 — Other vehicles (auto collisions only) */}
               {isAutoCollision && (
                 <Section title="Other vehicles" help="Add each vehicle involved besides the DART vehicle. Occupants are recorded as counts, not by name.">
-                  <OtherVehiclesEditor vehicles={data.other_vehicles ?? []} onChange={list => onUpdate({ other_vehicles: list })} showErrors={showErrors} injuryDetailsRequired={!isHiRail} />
+                  <OtherVehiclesEditor variant="operator" vehicles={data.other_vehicles ?? []} onChange={list => onUpdate({ other_vehicles: list })} showErrors={showErrors} injuryDetailsRequired={!isHiRail} />
                 </Section>
               )}
 

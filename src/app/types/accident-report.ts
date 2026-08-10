@@ -26,6 +26,7 @@ export interface OtherVehicle {
   injuries?: number;
   fled?: number;
   transported?: number;
+  injured_occupants?: OtherVehicleOccupantInjury[];
   dart_dart?: boolean;        // collision between two DART vehicles — changes the type list
   vehicle_type?: string;
   action?: string;
@@ -35,6 +36,13 @@ export interface OtherVehicle {
   damage_area?: string[];
   impact_markers?: { x: number; y: number; label?: string }[];
   tow_away?: boolean;
+}
+
+// Per-injured-occupant record used by the Operator flow (gender + hospital-transport tri-state).
+export interface OtherVehicleOccupantInjury {
+  id: string;
+  gender?: 'Female' | 'Male';
+  transported?: 'yes' | 'no' | 'not_sure';
 }
 
 export interface PedestrianRecord {
@@ -363,7 +371,7 @@ export interface AccidentReportData {
   supervisor_operator_transported?: boolean;
   supervisor_passengers_on_board?: number;
   supervisor_people_involved?: boolean;
-  supervisor_people?: Person[];
+  supervisor_people?: PMPersonRecord[];
   supervisor_police_at_scene?: boolean;
   supervisor_police_type?: string;
   supervisor_dart_supervisor_investigating?: boolean;
