@@ -7,7 +7,6 @@ import {
   Eye,
   RotateCcw,
   ShieldAlert,
-  Star,
   X,
 } from 'lucide-react';
 
@@ -74,12 +73,10 @@ export const CONTRIBUTING_FACTORS_FLAT = CONTRIBUTING_FACTOR_CATEGORIES.flatMap(
 
 interface Props {
   selected: string[];
-  primary?: string;
   onSelectedChange: (next: string[]) => void;
-  onPrimaryChange: (next: string | undefined) => void;
 }
 
-export function ContributingFactorsPicker({ selected, primary, onSelectedChange, onPrimaryChange }: Props) {
+export function ContributingFactorsPicker({ selected, onSelectedChange }: Props) {
   // A category is always active — no empty-editor state.
   const [activeId, setActiveId] = useState<string>('attention');
   // Mobile review sheet (persistent summary is visible on desktop).
@@ -98,39 +95,23 @@ export function ContributingFactorsPicker({ selected, primary, onSelectedChange,
     const next = new Set(selectedSet);
     if (next.has(factor)) {
       next.delete(factor);
-      if (primary === factor) onPrimaryChange(undefined);
     } else {
       next.add(factor);
     }
     onSelectedChange(Array.from(next));
   };
 
-  const togglePrimary = (factor: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    event.preventDefault();
-    if (!selectedSet.has(factor)) {
-      // Selecting the star also selects the factor.
-      onSelectedChange(Array.from(new Set([...selected, factor])));
-      onPrimaryChange(factor);
-      return;
-    }
-    onPrimaryChange(primary === factor ? undefined : factor);
-  };
-
   const clearAll = () => {
     onSelectedChange([]);
-    onPrimaryChange(undefined);
   };
 
   const removeFactor = (factor: string) => {
     onSelectedChange(selected.filter(f => f !== factor));
-    if (primary === factor) onPrimaryChange(undefined);
   };
 
   // Shared chip renderer for the active-category panel.
   const renderChip = (factor: string) => {
     const isSelected = selectedSet.has(factor);
-    const isPrimary = primary === factor;
     return (
       <button
         key={factor}
@@ -139,9 +120,7 @@ export function ContributingFactorsPicker({ selected, primary, onSelectedChange,
         aria-pressed={isSelected}
         className={`dart-press group flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-all font-['Poppins'] ${
           isSelected
-            ? isPrimary
-              ? 'border-[#00205B] bg-[#00205B] text-white ring-2 ring-[#00205B]/25 shadow-[0_6px_16px_-8px_rgba(0,32,91,0.55)]'
-              : 'border-[#00205B]/60 bg-[#00205B] text-white shadow-[0_6px_16px_-10px_rgba(0,32,91,0.5)]'
+            ? 'border-[#00205B]/60 bg-[#00205B] text-white shadow-[0_6px_16px_-10px_rgba(0,32,91,0.5)]'
             : 'border-slate-200 bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.06)] hover:border-[#00205B]/40 hover:bg-white hover:shadow-[0_4px_12px_-4px_rgba(15,23,42,0.15)]'
         }`}
       >
@@ -155,27 +134,6 @@ export function ContributingFactorsPicker({ selected, primary, onSelectedChange,
           <Check className={`h-3.5 w-3.5 ${isSelected ? 'opacity-100' : 'opacity-0'}`} strokeWidth={3} />
         </span>
         <span className="min-w-0 flex-1 truncate text-[13px] leading-snug">{factor}</span>
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => togglePrimary(factor, e)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              togglePrimary(factor, e as unknown as React.MouseEvent);
-            }
-          }}
-          aria-label={isPrimary ? `Unmark ${factor} as primary` : `Mark ${factor} as primary`}
-          className={`grid h-6 w-6 place-items-center rounded transition-colors ${
-            isSelected
-              ? isPrimary
-                ? 'text-[#FFCD00]'
-                : 'text-white/60 hover:text-white'
-              : 'text-slate-300 group-hover:text-slate-400 hover:!text-[#00205B]'
-          }`}
-        >
-          <Star className="h-3.5 w-3.5" fill={isPrimary ? 'currentColor' : 'none'} strokeWidth={2} />
-        </span>
       </button>
     );
   };
@@ -202,26 +160,20 @@ export function ContributingFactorsPicker({ selected, primary, onSelectedChange,
                     <p className="mt-1.5 text-[12.5px] text-slate-400">None selected</p>
                   ) : (
                     <ul className="mt-2 space-y-1.5">
-                      {chosen.map(f => {
-                        const isPrimary = primary === f;
-                        return (
-                          <li key={f} className="group flex items-center gap-2 text-[13px] text-slate-700">
-                            <Check className="h-3.5 w-3.5 shrink-0 text-[#00205B]" strokeWidth={3} />
-                            <span className="min-w-0 flex-1 truncate">{f}</span>
-                            {isPrimary && (
-                              <Star className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" fill="currentColor" strokeWidth={0} />
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => removeFactor(f)}
-                              aria-label={`Remove ${f}`}
-                              className="grid h-6 w-6 shrink-0 place-items-center rounded text-slate-300 opacity-0 transition-opacity hover:bg-slate-100 hover:text-slate-600 group-hover:opacity-100 focus:opacity-100"
-                            >
-                              <X className="h-3.5 w-3.5" strokeWidth={2.5} />
-                            </button>
-                          </li>
-                        );
-                      })}
+                      {chosen.map(f => (
+                        <li key={f} className="group flex items-center gap-2 text-[13px] text-slate-700">
+                          <Check className="h-3.5 w-3.5 shrink-0 text-[#00205B]" strokeWidth={3} />
+                          <span className="min-w-0 flex-1 truncate">{f}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFactor(f)}
+                            aria-label={`Remove ${f}`}
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded text-slate-300 opacity-0 transition-opacity hover:bg-slate-100 hover:text-slate-600 group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          </button>
+                        </li>
+                      ))}
                     </ul>
                   )}
                 </div>
@@ -229,16 +181,7 @@ export function ContributingFactorsPicker({ selected, primary, onSelectedChange,
             })}
           </div>
           <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-3">
-            {primary ? (
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 shrink-0 text-[#B8860B]" fill="currentColor" strokeWidth={0} />
-                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-800">{primary}</span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">Primary factor</span>
-              </div>
-            ) : (
-              <p className="text-[12px] text-slate-500">Star a factor while editing to mark it primary.</p>
-            )}
-            <div className="mt-2 flex items-center justify-end">
+            <div className="flex items-center justify-end">
               <button
                 type="button"
                 onClick={clearAll}
@@ -338,7 +281,7 @@ export function ContributingFactorsPicker({ selected, primary, onSelectedChange,
                     <span className="text-[11px] font-semibold text-[#00205B] font-['Poppins']">{activeSelectedInCat.length} selected</span>
                   )}
                 </div>
-                <p className="mt-0.5 text-[11px] text-slate-500 font-['Poppins']">Select all that apply. Star one factor to mark it primary.</p>
+                <p className="mt-0.5 text-[11px] text-slate-500 font-['Poppins']">Select all that apply.</p>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-2.5 p-3 sm:grid-cols-2 xl:grid-cols-3">
