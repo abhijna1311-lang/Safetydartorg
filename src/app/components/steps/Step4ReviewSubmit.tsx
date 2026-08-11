@@ -2428,42 +2428,8 @@ export function Step4ReviewSubmit({
                         </div>
                       </div>
                       <AnimatePresence initial={false}>
-                        {supOperatorOutcome === 'Fatality' && (
-                          <motion.div key="sup-op-fatal-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
-                            <BoolRow label="Age group">
-                              <div className="w-full sm:w-60">
-                                <CustomSelect
-                                  value={supOperatorFatality.age_group || ''}
-                                  onChange={(v) => patchSupFatality({ age_group: (v || undefined) as SupervisorDemographicRecord['age_group'] })}
-                                  options={AGE_GROUP_OPTIONS.map((option) => ({ value: option, label: option }))}
-                                  placeholder="Select age"
-                                />
-                              </div>
-                            </BoolRow>
-                            <BoolRow label="Gender">
-                              <div className="w-full sm:w-60">
-                                <CustomSelect
-                                  value={supOperatorFatality.gender || ''}
-                                  onChange={(v) => patchSupFatality({ gender: (v || undefined) as SupervisorDemographicRecord['gender'] })}
-                                  options={GENDER_OPTIONS.map((option) => ({ value: option, label: option }))}
-                                  placeholder="Select gender"
-                                />
-                              </div>
-                            </BoolRow>
-                          </motion.div>
-                        )}
                         {supOperatorOutcome === 'Injured' && (
                           <motion.div key="sup-op-injured-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
-                            <BoolRow label="Injury severity">
-                              <div className="w-full sm:w-60">
-                                <CustomSelect
-                                  value={supOperatorInjury.severity || ''}
-                                  onChange={(v) => patchSupInjury({ severity: (v || undefined) as PMInjurySeverity })}
-                                  options={PM_INJURY_SEVERITY_OPTIONS.map((option) => ({ value: option, label: option }))}
-                                  placeholder="Select severity"
-                                />
-                              </div>
-                            </BoolRow>
                             <BoolRow label="Injured body part">
                               <div className="w-full sm:w-60">
                                 <CustomSelect

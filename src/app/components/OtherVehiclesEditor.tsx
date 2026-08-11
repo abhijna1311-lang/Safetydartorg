@@ -247,10 +247,11 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
               && !!o.transported
               && (!(isSupervisor || isPM) || !!o.age_group)
               && (!isPM || (!!o.severity && !!o.body_part))
+              && (!(isSupervisor || isPM) || o.is_dart_employee !== undefined)
             ));
-        const fatalRowsComplete = !isPM || !hasFatalities
+        const fatalRowsComplete = !(isSupervisor || isPM) || !hasFatalities
           || (fatalOccupants.length === (v.fatalities ?? 0)
-            && fatalOccupants.every(o => !!o.age_group && !!o.gender));
+            && fatalOccupants.every(o => !!o.age_group && !!o.gender && o.is_dart_employee !== undefined));
         const occupantsComplete = !hasOccupants
           || (
             perOccupant
@@ -264,8 +265,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const recordComplete = v.occupants !== undefined
           && occupantsComplete
           && v.dart_dart !== undefined && !!v.vehicle_type && (isOperator || !!v.collision_type) && !!v.action && !!v.point_of_impact
-          && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0))
-          && (!(isSupervisor || isPM) || v.dart_employee !== undefined);
+          && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
           v.vehicle_type || 'Type not set',
@@ -360,17 +360,6 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
                         </Field>
-                        {(isSupervisor || isPM) && (
-                          <Field label="DART employee?" required error={showErrors && v.dart_employee === undefined}>
-                            <CustomSelect
-                              value={v.dart_employee === undefined ? '' : (v.dart_employee ? 'yes' : 'no')}
-                              onChange={val => update(v.id, { dart_employee: val === '' ? undefined : val === 'yes' })}
-                              options={YES_NO_OPTS}
-                              placeholder="Select"
-                              error={showErrors && v.dart_employee === undefined}
-                            />
-                          </Field>
-                        )}
                       </div>
                     </div>
 
@@ -394,7 +383,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         <NumberField label="Number of occupants in vehicle" required error={showErrors && v.occupants === undefined} value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
-                            {(!perOccupant || isPM) && (
+                            {(!perOccupant || isSupervisor || isPM) && (
                               <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => setFatalities(v.id, n)} />
                             )}
                             <NumberField label="Occupant injuries" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && v.injuries === undefined} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
@@ -429,10 +418,11 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                               const genderRequired = injuryDetailsRequired && !isSupervisor;
                               const genderMissing = showErrors && genderRequired && !occ.gender;
                               const transportMissing = showErrors && injuryDetailsRequired && !occ.transported;
+                              const employeeMissing = showErrors && injuryDetailsRequired && occ.is_dart_employee === undefined;
                               const rowGrid = isPM
-                                ? 'sm:grid-cols-2 lg:grid-cols-5'
+                                ? 'sm:grid-cols-2 lg:grid-cols-6'
                                 : isSupervisor
-                                  ? 'sm:grid-cols-3'
+                                  ? 'sm:grid-cols-4'
                                   : 'sm:grid-cols-2';
                               return (
                                 <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start">
@@ -489,6 +479,17 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                                         error={transportMissing}
                                       />
                                     </Field>
+                                    {(isSupervisor || isPM) && (
+                                      <Field label="DART employee?" required={injuryDetailsRequired} error={employeeMissing}>
+                                        <CustomSelect
+                                          value={occ.is_dart_employee === undefined ? '' : (occ.is_dart_employee ? 'yes' : 'no')}
+                                          onChange={val => updateInjuredOccupant(v.id, occ.id, { is_dart_employee: val === '' ? undefined : val === 'yes' })}
+                                          options={YES_NO_OPTS}
+                                          placeholder="Select"
+                                          error={employeeMissing}
+                                        />
+                                      </Field>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -496,20 +497,30 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                           </div>
                         </div>
                       )}
-                      {isPM && hasFatalities && (
+                      {(isSupervisor || isPM) && hasFatalities && (
                         <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
                           <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
                             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Deceased occupants ({fatalOccupants.length})</p>
-                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture age and gender for each deceased occupant.</p>
+                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture DART employee status, age, and gender for each deceased occupant.</p>
                           </div>
                           <div className="divide-y divide-slate-100">
                             {fatalOccupants.map((occ, occIdx) => {
                               const ageMissing = showErrors && !occ.age_group;
                               const genderMissing = showErrors && !occ.gender;
+                              const employeeMissing = showErrors && occ.is_dart_employee === undefined;
                               return (
                                 <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start">
                                   <p className="w-28 shrink-0 pt-1 text-[12px] font-semibold text-slate-500 font-['Poppins']">Deceased #{occIdx + 1}</p>
-                                  <div className="grid flex-1 grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                                  <div className="grid flex-1 grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-3">
+                                    <Field label="DART employee?" required error={employeeMissing}>
+                                      <CustomSelect
+                                        value={occ.is_dart_employee === undefined ? '' : (occ.is_dart_employee ? 'yes' : 'no')}
+                                        onChange={val => updateFatalOccupant(v.id, occ.id, { is_dart_employee: val === '' ? undefined : val === 'yes' })}
+                                        options={YES_NO_OPTS}
+                                        placeholder="Select"
+                                        error={employeeMissing}
+                                      />
+                                    </Field>
                                     <Field label="Age group" required error={ageMissing}>
                                       <CustomSelect
                                         value={occ.age_group || ''}

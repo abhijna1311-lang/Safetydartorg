@@ -49,6 +49,7 @@ export interface OtherVehicle {
 // Program Manager also captures injury severity and body part.
 export interface OtherVehicleOccupantInjury {
   id: string;
+  is_dart_employee?: boolean;
   age_group?: SupervisorDemographicRecord['age_group'];
   gender?: 'Female' | 'Male';
   transported?: 'yes' | 'no' | 'not_sure';
@@ -59,6 +60,7 @@ export interface OtherVehicleOccupantInjury {
 // Per-deceased-occupant record for the Program Manager other-vehicle flow.
 export interface OtherVehicleFatalOccupant {
   id: string;
+  is_dart_employee?: boolean;
   age_group?: SupervisorDemographicRecord['age_group'];
   gender?: 'Female' | 'Male';
 }
