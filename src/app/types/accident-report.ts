@@ -460,6 +460,9 @@ export interface AccidentReportData {
   program_manager_dart_vehicle_damaged?: boolean;
   // SPM-side confirmation that the damage disables the vehicle from further service.
   program_manager_disabling_damage?: boolean;
+  // SPM-only aggregate: were any of the OTHER vehicles disabled by their damage, and which ones.
+  program_manager_other_vehicles_disabling_damage_present?: boolean;
+  program_manager_other_vehicles_disabling_damage_vehicle_ids?: string[];
   // Independent SPM record of DART vehicle impact points — mirrors the Op/FS diagram, kept separate
   // so each role's observations survive the review cycle for downstream reporting (NTSD, TxDOT).
   program_manager_impact_markers?: { x: number; y: number; label?: string }[];
