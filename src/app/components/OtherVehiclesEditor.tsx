@@ -89,12 +89,6 @@ interface Props {
   // 'supervisor' matches operator's per-occupant capture and also asks age group.
   // 'pm' keeps fatalities count and captures severity + body part + age + gender + transported per injured occupant.
   variant?: 'operator' | 'supervisor' | 'pm' | 'full';
-  // SPM-only aggregate disabling-damage questions. When omitted, panel is not rendered.
-  pmDisablingDamage?: {
-    present?: boolean;
-    vehicleIds?: string[];
-    onChange: (patch: { present?: boolean; vehicleIds?: string[] }) => void;
-  };
 }
 
 const GENDER_OPTS = [
@@ -150,7 +144,7 @@ const syncFatalOccupants = (existing: OtherVehicleFatalOccupant[] | undefined, t
   return list.slice(0, targetCount);
 };
 
-export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, variant = 'full', pmDisablingDamage }: Props) {
+export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, variant = 'full' }: Props) {
   const isOperator = variant === 'operator';
   const isSupervisor = variant === 'supervisor';
   const isPM = variant === 'pm';
@@ -560,6 +554,11 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                           </div>
                           );
                         })()}
+                        {isPM && v.damage === true && (
+                          <BoolRow label="Were there any disabling damages?">
+                            <YesNoToggle value={v.disabling_damage} onChange={val => update(v.id, { disabling_damage: val })} />
+                          </BoolRow>
+                        )}
                         <BoolRow label="Point of impact" required error={showErrors && !v.point_of_impact}>
                           <div className="w-full sm:w-60">
                             <CustomSelect value={v.point_of_impact || ''} onChange={val => update(v.id, { point_of_impact: val })} options={POINTS} placeholder="Select" />
@@ -582,41 +581,6 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
           </div>
         );
       })}
-
-      {pmDisablingDamage && vehicles.length > 0 && (
-        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-          <BoolRow label="Were there any disabling damages?" sentenceCase>
-            <YesNoToggle
-              value={pmDisablingDamage.present}
-              onChange={(val) => pmDisablingDamage.onChange({ present: val, vehicleIds: val ? pmDisablingDamage.vehicleIds : [] })}
-            />
-          </BoolRow>
-          <AnimatePresence initial={false}>
-            {pmDisablingDamage.present === true && (
-              <motion.div
-                key="pm-disabling-damage-vehicles"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
-                className="overflow-hidden border-t border-slate-100 bg-slate-50/40"
-              >
-                <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-                  <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0, textTransform: 'none' }}>What vehicle had disabling damages?</p>
-                  <div className="w-full sm:w-72">
-                    <MultiSelect
-                      value={pmDisablingDamage.vehicleIds ?? []}
-                      onChange={(next) => pmDisablingDamage.onChange({ vehicleIds: next })}
-                      options={vehicles.map((v, idx) => ({ value: v.id, label: `Other vehicle #${idx + 1}${v.vehicle_type ? ` — ${v.vehicle_type}` : ''}` }))}
-                      placeholder="Select vehicle(s)"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
 
       <button
         type="button"

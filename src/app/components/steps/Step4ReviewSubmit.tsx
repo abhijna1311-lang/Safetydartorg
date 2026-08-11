@@ -3553,26 +3553,18 @@ export function Step4ReviewSubmit({
                         <OtherVehiclesEditor
                           vehicles={data.program_manager_other_vehicles ?? []}
                           onChange={(list) => {
-                            const remainingIds = new Set(list.map(v => v.id));
-                            const prunedDamageIds = (data.program_manager_other_vehicles_disabling_damage_vehicle_ids ?? [])
-                              .filter(id => remainingIds.has(id));
+                            const damagedIds = list.filter(v => v.disabling_damage === true).map(v => v.id);
+                            const anyAnswered = list.some(v => v.disabling_damage !== undefined);
                             onUpdate({
                               program_manager_other_vehicles: list,
                               program_manager_other_vehicle_fatality_count: list.reduce((s, v) => s + (v.fatalities || 0), 0) || undefined,
                               program_manager_other_vehicle_injury_count: list.reduce((s, v) => s + (v.injuries || 0), 0) || undefined,
-                              program_manager_other_vehicles_disabling_damage_vehicle_ids: prunedDamageIds.length > 0 ? prunedDamageIds : undefined,
+                              program_manager_other_vehicles_disabling_damage_present: anyAnswered ? damagedIds.length > 0 : undefined,
+                              program_manager_other_vehicles_disabling_damage_vehicle_ids: damagedIds.length > 0 ? damagedIds : undefined,
                             });
                           }}
                           injuryDetailsRequired
                           variant="pm"
-                          pmDisablingDamage={{
-                            present: data.program_manager_other_vehicles_disabling_damage_present,
-                            vehicleIds: data.program_manager_other_vehicles_disabling_damage_vehicle_ids,
-                            onChange: (patch) => onUpdate({
-                              ...('present' in patch ? { program_manager_other_vehicles_disabling_damage_present: patch.present } : {}),
-                              ...('vehicleIds' in patch ? { program_manager_other_vehicles_disabling_damage_vehicle_ids: patch.vehicleIds && patch.vehicleIds.length > 0 ? patch.vehicleIds : undefined } : {}),
-                            }),
-                          }}
                         />
                       </div>
                     </motion.div>

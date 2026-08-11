@@ -39,6 +39,7 @@ export interface OtherVehicle {
   damage?: boolean;
   damage_area?: string[];
   impact_markers?: { x: number; y: number; label?: string }[];
+  disabling_damage?: boolean;
   tow_away?: boolean;
 }
 
