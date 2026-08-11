@@ -371,6 +371,9 @@ export interface AccidentReportData {
   supervisor_operator_injured?: boolean;
   supervisor_operator_injured_body_part?: string;
   supervisor_operator_transported?: boolean;
+  // Field Supervisor outcome for the operator, mirrors the PM "DART Operator Injury" flow.
+  supervisor_operator_outcome?: 'Not Sure' | 'Injured' | 'Fatality';
+  supervisor_operator_injury_record?: PMInjuryRecord;
   supervisor_passengers_on_board?: number;
   supervisor_people_involved?: boolean;
   supervisor_people?: PMPersonRecord[];

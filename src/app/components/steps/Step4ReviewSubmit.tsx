@@ -2342,54 +2342,152 @@ export function Step4ReviewSubmit({
               </div>
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">DART operator injury</h3>
-                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Field Supervisor's assessment of the DART operator, independent of the operator's own report.</p>
-                <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                  <BoolRow label="Was the DART operator injured in this event?">
-                    <YesNoToggle
-                      value={data.supervisor_operator_injured}
-                      onChange={(value) => {
-                        onUpdate({
-                          supervisor_operator_injured: value,
-                          ...(!value ? { supervisor_operator_injured_body_part: undefined, supervisor_operator_transported: undefined } : {}),
-                        });
-                        // Recompute employee counts using the just-set operator value.
-                        const employeeInjured = supervisorPeople.filter(p => p.is_dart_employee && p.outcome === 'Injured').length + (value ? 1 : 0);
-                        const employeeTransported = supervisorPeople.filter(p => p.is_dart_employee && p.transported_to_hospital).length + (value && data.supervisor_operator_transported ? 1 : 0);
-                        onUpdate({
-                          supervisor_dart_employee_injuries: employeeInjured > 0,
-                          supervisor_dart_employee_injury_count: employeeInjured > 0 ? employeeInjured : undefined,
-                          supervisor_dart_employee_hospital_transport_count: employeeTransported > 0 ? employeeTransported : undefined,
-                        });
-                      }}
-                    />
-                  </BoolRow>
-                  <AnimatePresence initial={false}>
-                    {data.supervisor_operator_injured === true && (
-                      <motion.div key="sup-op-injury-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
-                        <BoolRow label="Injured body part">
-                          <div className="w-full sm:w-60">
-                            <CustomSelect
-                              value={data.supervisor_operator_injured_body_part || ''}
-                              onChange={(v) => onUpdate({ supervisor_operator_injured_body_part: v })}
-                              options={[{ value: 'Head', label: 'Head' }, { value: 'Upper body', label: 'Upper body' }, { value: 'Lower body', label: 'Lower body' }]}
-                              placeholder="Select"
-                            />
-                          </div>
-                        </BoolRow>
-                        <BoolRow label="Was the operator transported to hospital?">
-                          <YesNoToggle
-                            value={data.supervisor_operator_transported}
-                            onChange={(value) => {
-                              onUpdate({ supervisor_operator_transported: value });
-                              const employeeTransported = supervisorPeople.filter(p => p.is_dart_employee && p.transported_to_hospital).length + (value ? 1 : 0);
-                              onUpdate({ supervisor_dart_employee_hospital_transport_count: employeeTransported > 0 ? employeeTransported : undefined });
-                            }}
+                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Field Supervisor's outcome for the operator who filed the report.</p>
+                {(() => {
+                  const supOperatorOutcome = data.supervisor_operator_outcome
+                    ?? ((data.supervisor_dart_employee_fatality_count || 0) > 0 ? 'Fatality'
+                      : data.supervisor_operator_injured === true ? 'Injured'
+                      : undefined);
+                  const supOperatorFatality = data.supervisor_dart_employee_fatality_details?.[0] || {};
+                  const supOperatorInjury: PMInjuryRecord = data.supervisor_operator_injury_record || {
+                    body_part: data.supervisor_operator_injured_body_part as PMInjuryBodyPart | undefined,
+                    transported_to_hospital: data.supervisor_operator_transported,
+                  };
+                  const setSupOperatorOutcome = (next: 'Not Sure' | 'Injured' | 'Fatality') => {
+                    if (next === 'Not Sure') {
+                      onUpdate({
+                        supervisor_operator_outcome: 'Not Sure',
+                        supervisor_operator_injured: false,
+                        supervisor_operator_injured_body_part: undefined,
+                        supervisor_operator_transported: undefined,
+                        supervisor_operator_injury_record: undefined,
+                        supervisor_dart_employee_fatalities: false,
+                        supervisor_dart_employee_fatality_count: undefined,
+                        supervisor_dart_employee_fatality_details: [],
+                        supervisor_dart_employee_injuries: false,
+                        supervisor_dart_employee_injury_count: undefined,
+                      });
+                    } else if (next === 'Fatality') {
+                      onUpdate({
+                        supervisor_operator_outcome: 'Fatality',
+                        supervisor_operator_injured: false,
+                        supervisor_operator_injured_body_part: undefined,
+                        supervisor_operator_transported: undefined,
+                        supervisor_operator_injury_record: undefined,
+                        supervisor_dart_employee_fatalities: true,
+                        supervisor_dart_employee_fatality_count: 1,
+                        supervisor_dart_employee_fatality_details: [{ ...supOperatorFatality, is_dart_employee: true }],
+                        supervisor_dart_employee_injuries: false,
+                        supervisor_dart_employee_injury_count: undefined,
+                      });
+                    } else {
+                      onUpdate({
+                        supervisor_operator_outcome: 'Injured',
+                        supervisor_operator_injured: true,
+                        supervisor_operator_injured_body_part: supOperatorInjury.body_part,
+                        supervisor_operator_transported: supOperatorInjury.transported_to_hospital,
+                        supervisor_operator_injury_record: { ...supOperatorInjury },
+                        supervisor_dart_employee_injuries: true,
+                        supervisor_dart_employee_injury_count: 1,
+                        supervisor_dart_employee_fatalities: false,
+                        supervisor_dart_employee_fatality_count: undefined,
+                        supervisor_dart_employee_fatality_details: [],
+                      });
+                    }
+                  };
+                  const patchSupFatality = (patch: Partial<SupervisorDemographicRecord>) => {
+                    onUpdate({
+                      supervisor_dart_employee_fatality_details: [{ ...supOperatorFatality, ...patch, is_dart_employee: true }],
+                      supervisor_dart_employee_fatality_count: 1,
+                      supervisor_dart_employee_fatalities: true,
+                    });
+                  };
+                  const patchSupInjury = (patch: Partial<PMInjuryRecord>) => {
+                    const next: PMInjuryRecord = { ...supOperatorInjury, ...patch };
+                    onUpdate({
+                      supervisor_operator_injury_record: next,
+                      supervisor_operator_injured_body_part: next.body_part,
+                      supervisor_operator_transported: next.transported_to_hospital,
+                    });
+                  };
+                  return (
+                    <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                      <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+                        <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Outcome</div>
+                        <div className="w-full sm:w-72">
+                          <CustomSelect
+                            value={supOperatorOutcome || ''}
+                            onChange={(v) => setSupOperatorOutcome(v as 'Not Sure' | 'Injured' | 'Fatality')}
+                            options={[
+                              { value: 'Not Sure', label: 'Not Sure' },
+                              { value: 'Injured', label: 'Injured' },
+                              { value: 'Fatality', label: 'Fatal' },
+                            ]}
+                            placeholder="Select outcome"
                           />
-                        </BoolRow>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                        </div>
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {supOperatorOutcome === 'Fatality' && (
+                          <motion.div key="sup-op-fatal-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
+                            <BoolRow label="Age group">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={supOperatorFatality.age_group || ''}
+                                  onChange={(v) => patchSupFatality({ age_group: (v || undefined) as SupervisorDemographicRecord['age_group'] })}
+                                  options={AGE_GROUP_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select age"
+                                />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Gender">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={supOperatorFatality.gender || ''}
+                                  onChange={(v) => patchSupFatality({ gender: (v || undefined) as SupervisorDemographicRecord['gender'] })}
+                                  options={GENDER_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select gender"
+                                />
+                              </div>
+                            </BoolRow>
+                          </motion.div>
+                        )}
+                        {supOperatorOutcome === 'Injured' && (
+                          <motion.div key="sup-op-injured-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
+                            <BoolRow label="Injury severity">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={supOperatorInjury.severity || ''}
+                                  onChange={(v) => patchSupInjury({ severity: (v || undefined) as PMInjurySeverity })}
+                                  options={PM_INJURY_SEVERITY_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select severity"
+                                />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Injured body part">
+                              <div className="w-full sm:w-60">
+                                <CustomSelect
+                                  value={supOperatorInjury.body_part || ''}
+                                  onChange={(v) => patchSupInjury({ body_part: (v || undefined) as PMInjuryBodyPart })}
+                                  options={PM_INJURY_BODY_PART_OPTIONS.map((option) => ({ value: option, label: option }))}
+                                  placeholder="Select"
+                                />
+                              </div>
+                            </BoolRow>
+                            <BoolRow label="Transported to hospital?">
+                              <div className="w-full sm:w-72 [&_.dart-seg]:grid [&_.dart-seg]:w-full">
+                                <YesNoButtons
+                                  value={supOperatorInjury.transported_to_hospital}
+                                  onChange={(v) => patchSupInjury({ transported_to_hospital: v })}
+                                />
+                              </div>
+                            </BoolRow>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
