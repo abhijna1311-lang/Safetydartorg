@@ -31,6 +31,7 @@ export interface OtherVehicle {
   // Per-deceased-occupant demographics captured by the Program Manager flow.
   fatal_occupants?: OtherVehicleFatalOccupant[];
   dart_dart?: boolean;        // collision between two DART vehicles — changes the type list
+  dart_employee?: boolean;    // supervisor/PM only — was the driver of this other vehicle a DART employee
   vehicle_type?: string;
   collision_type?: string;
   action?: string;

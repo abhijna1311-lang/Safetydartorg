@@ -115,6 +115,10 @@ const TRANSPORTED_OPTS = [
   { value: 'no', label: 'No' },
   { value: 'not_sure', label: 'Not sure' },
 ];
+const YES_NO_OPTS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+];
 
 const makeInjuredOccupant = (): OtherVehicleOccupantInjury => ({
   id: `io-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -260,7 +264,8 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const recordComplete = v.occupants !== undefined
           && occupantsComplete
           && v.dart_dart !== undefined && !!v.vehicle_type && (isOperator || !!v.collision_type) && !!v.action && !!v.point_of_impact
-          && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
+          && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0))
+          && (!(isSupervisor || isPM) || v.dart_employee !== undefined);
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
           v.vehicle_type || 'Type not set',
@@ -355,6 +360,17 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
                         </Field>
+                        {(isSupervisor || isPM) && (
+                          <Field label="DART employee?" required error={showErrors && v.dart_employee === undefined}>
+                            <CustomSelect
+                              value={v.dart_employee === undefined ? '' : (v.dart_employee ? 'yes' : 'no')}
+                              onChange={val => update(v.id, { dart_employee: val === '' ? undefined : val === 'yes' })}
+                              options={YES_NO_OPTS}
+                              placeholder="Select"
+                              error={showErrors && v.dart_employee === undefined}
+                            />
+                          </Field>
+                        )}
                       </div>
                     </div>
 
