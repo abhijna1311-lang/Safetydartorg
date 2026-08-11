@@ -2584,6 +2584,7 @@ export function Step4ReviewSubmit({
                             supervisor_collision_between_dart_vehicles: list.some(v => v.dart_dart),
                           })}
                           injuryDetailsRequired
+                          variant="supervisor"
                         />
                       </div>
                     </motion.div>

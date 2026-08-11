@@ -40,9 +40,11 @@ export interface OtherVehicle {
   tow_away?: boolean;
 }
 
-// Per-injured-occupant record used by the Operator flow (gender + hospital-transport tri-state).
+// Per-injured-occupant record used by the Operator and Field Supervisor flows.
+// Operator captures gender + hospital-transport tri-state; Field Supervisor also captures age group.
 export interface OtherVehicleOccupantInjury {
   id: string;
+  age_group?: SupervisorDemographicRecord['age_group'];
   gender?: 'Female' | 'Male';
   transported?: 'yes' | 'no' | 'not_sure';
 }
