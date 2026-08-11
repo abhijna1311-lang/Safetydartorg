@@ -3355,16 +3355,8 @@ export function Step4ReviewSubmit({
                       : undefined);
                   const operatorFatality = data.program_manager_employee_fatality_records?.[0] || {};
                   const operatorInjury = data.program_manager_employee_injury_records?.[0] || {};
-                  const setOperatorOutcome = (next: 'Not Sure' | 'Injured' | 'Fatality') => {
-                    if (next === 'Not Sure') {
-                      onUpdate({
-                        program_manager_operator_outcome: 'Not Sure',
-                        program_manager_employee_fatality_count: 0,
-                        program_manager_employee_fatality_records: [],
-                        program_manager_employee_injury_count: 0,
-                        program_manager_employee_injury_records: [],
-                      });
-                    } else if (next === 'Fatality') {
+                  const setOperatorOutcome = (next: 'Injured' | 'Fatality') => {
+                    if (next === 'Fatality') {
                       onUpdate({
                         program_manager_operator_outcome: 'Fatality',
                         program_manager_employee_fatality_count: 1,
@@ -3401,9 +3393,8 @@ export function Step4ReviewSubmit({
                         <div className="w-full sm:w-72">
                           <CustomSelect
                             value={operatorOutcome || ''}
-                            onChange={(v) => setOperatorOutcome(v as 'Not Sure' | 'Injured' | 'Fatality')}
+                            onChange={(v) => setOperatorOutcome(v as 'Injured' | 'Fatality')}
                             options={[
-                              { value: 'Not Sure', label: 'Not Sure' },
                               { value: 'Injured', label: 'Injured' },
                               { value: 'Fatality', label: 'Fatal' },
                             ]}
