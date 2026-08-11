@@ -8,6 +8,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
+import { BUS_STOP_OPTIONS } from '../../../data/busStops';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -433,7 +434,14 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
               >
                 <BoolRow label="Name of the bus stop" required>
                   <div className="w-full sm:w-64">
-                    <input type="text" value={data.bus_stop_name || ''} onChange={e => onUpdate({ bus_stop_name: e.target.value })} placeholder="Bus stop name" className={inputCls} />
+                    <SearchableCombobox
+                      options={BUS_STOP_OPTIONS}
+                      value={data.bus_stop_name || ''}
+                      onChange={v => onUpdate({ bus_stop_name: v })}
+                      placeholder="Select bus stop"
+                      searchPlaceholder="Search bus stops…"
+                      emptyMessage="No bus stops match…"
+                    />
                   </div>
                 </BoolRow>
               </motion.div>

@@ -8,6 +8,7 @@ import { FLEET, BUS_STATUS_OPTIONS, VehicleRecordCard } from './BusCollisionSect
 import { NRV_FLEET, NRVRecordCard } from './NRVCollisionSection';
 import { TRAIN_FLEET, STREETCAR_FLEET, TrainRecordCard } from './LRVCollisionSection';
 import { HI_RAIL_FLEET } from './DerailmentSection';
+import { BUS_STOP_OPTIONS } from '../../../data/busStops';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -377,7 +378,14 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
               >
                 <BoolRow label="Name of the bus stop" required>
                   <div className="w-full sm:w-64">
-                    <input type="text" value={data.bus_stop_name || ''} onChange={e => onUpdate({ bus_stop_name: e.target.value })} placeholder="Bus stop name" className={inputCls} />
+                    <SearchableCombobox
+                      options={BUS_STOP_OPTIONS}
+                      value={data.bus_stop_name || ''}
+                      onChange={v => onUpdate({ bus_stop_name: v })}
+                      placeholder="Select bus stop"
+                      searchPlaceholder="Search bus stops…"
+                      emptyMessage="No bus stops match…"
+                    />
                   </div>
                 </BoolRow>
               </motion.div>

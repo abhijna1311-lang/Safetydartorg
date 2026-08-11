@@ -23,6 +23,7 @@ import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
 import type { AccidentReportData, PMClassification, Person, PMInjuryBodyPart, PMInjuryRecord, PMInjurySeverity, PMPersonRecord, SupervisorDemographicRecord, SupervisorOtherVehicleRecord } from '../../types/accident-report';
 import { useUserRole, type UserRole } from '../../context/UserRoleContext';
 import { EMPLOYEE_DB } from '../../data/employeeDatabase';
+import { BUS_STOP_OPTIONS } from '../../data/busStops';
 import { type WorkflowSectionKey, type WorkflowSectionState, type WorkflowSectionStatus, type WorkflowSections } from '../../types/workflow-report';
 import { PMReviewActionBar } from '../PMReviewActionBar';
 import { ActionSelectionScreen } from '../actions/ActionSelectionScreen';
@@ -2137,7 +2138,16 @@ export function Step4ReviewSubmit({
                               <motion.div key="sup-bus-stop-name" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ height: { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 }, opacity: { duration: 0.2, ease: 'easeInOut' } }} className="overflow-hidden bg-slate-50/60">
                                 <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
                                   <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Name of the bus stop <span className="text-red-500">*</span></div>
-                                  <div className="w-full sm:w-64"><input type="text" value={data.supervisor_bus_stop_name || ''} onChange={(e) => onUpdate({ supervisor_bus_stop_name: e.target.value })} placeholder="Bus stop name" className={INPUT_CLASS} /></div>
+                                  <div className="w-full sm:w-64">
+                                    <SearchableCombobox
+                                      options={BUS_STOP_OPTIONS}
+                                      value={data.supervisor_bus_stop_name || ''}
+                                      onChange={(v) => onUpdate({ supervisor_bus_stop_name: v })}
+                                      placeholder="Select bus stop"
+                                      searchPlaceholder="Search bus stops…"
+                                      emptyMessage="No bus stops match…"
+                                    />
+                                  </div>
                                 </div>
                               </motion.div>
                             )}

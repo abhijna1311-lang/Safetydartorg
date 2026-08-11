@@ -6,6 +6,7 @@ import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobo
 import { DatePickerInput } from '../../DatePickerInput';
 import { TimePickerInput } from '../../TimePickerInput';
 import { YesNoToggle } from '../../form/YesNoToggle';
+import { BUS_STOP_OPTIONS } from '../../../data/busStops';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -170,7 +171,14 @@ export function BusVehicleLocationSection({ data, onUpdate }: Props) {
           {data.event_at_bus_stop === true && (
             <motion.div {...fade} key="stop-name">
               <Field label="Name of the bus stop" required>
-                <input type="text" value={data.bus_stop_name || ''} onChange={e => onUpdate({ bus_stop_name: e.target.value })} placeholder="Bus stop name" className={inputCls} />
+                <SearchableCombobox
+                  options={BUS_STOP_OPTIONS}
+                  value={data.bus_stop_name || ''}
+                  onChange={v => onUpdate({ bus_stop_name: v })}
+                  placeholder="Select bus stop"
+                  searchPlaceholder="Search bus stops…"
+                  emptyMessage="No bus stops match…"
+                />
               </Field>
             </motion.div>
           )}
