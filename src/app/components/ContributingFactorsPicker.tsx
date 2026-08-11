@@ -197,7 +197,7 @@ export function ContributingFactorsPicker({ selected, onSelectedChange }: Props)
   );
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-[#EEF2F8] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_0_rgba(15,23,42,0.04)] sm:p-5">
+    <div className="rounded-2xl border border-slate-200 bg-[#EEF2F8] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_0_rgba(15,23,42,0.04)] sm:p-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -260,7 +260,7 @@ export function ContributingFactorsPicker({ selected, onSelectedChange }: Props)
       </div>
 
       {/* Editing workspace — full width, wraps content. No sidebar to distort its height. */}
-      <div className="relative mt-4 overflow-hidden rounded-xl border border-[#8FACD1] bg-gradient-to-b from-[#F7FAFF] to-white shadow-[0_0_0_1px_rgba(22,57,120,0.06),0_10px_28px_-16px_rgba(22,57,120,0.18)]">
+      <div className="relative mt-4 overflow-hidden rounded-xl border border-[#8FACD1] bg-gradient-to-b from-[#F7FAFF] to-white shadow-[0_0_0_1px_rgba(22,57,120,0.06),0_2px_6px_-2px_rgba(22,57,120,0.08)]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeCategory.id}
