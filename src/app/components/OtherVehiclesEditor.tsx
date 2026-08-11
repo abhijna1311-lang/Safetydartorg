@@ -345,7 +345,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      <div className={`grid grid-cols-1 gap-x-5 gap-y-4 ${isOperator ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-3">
                         <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
