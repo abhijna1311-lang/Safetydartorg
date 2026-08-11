@@ -212,7 +212,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const injuredRowsComplete = !perOccupant || !injuryDetailsRequired || !hasInjuries
           || (injuredOccupants.length === (v.injuries ?? 0)
             && injuredOccupants.every(o =>
-              !!o.gender
+              (isSupervisor || !!o.gender)
               && !!o.transported
               && (!(isSupervisor || isPM) || !!o.age_group)
               && (!isPM || (!!o.severity && !!o.body_part))
@@ -380,7 +380,8 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                               const ageMissing = showErrors && (isSupervisor || isPM) && injuryDetailsRequired && !occ.age_group;
                               const severityMissing = showErrors && isPM && injuryDetailsRequired && !occ.severity;
                               const bodyPartMissing = showErrors && isPM && injuryDetailsRequired && !occ.body_part;
-                              const genderMissing = showErrors && injuryDetailsRequired && !occ.gender;
+                              const genderRequired = injuryDetailsRequired && !isSupervisor;
+                              const genderMissing = showErrors && genderRequired && !occ.gender;
                               const transportMissing = showErrors && injuryDetailsRequired && !occ.transported;
                               const rowGrid = isPM
                                 ? 'sm:grid-cols-2 lg:grid-cols-5'
@@ -424,7 +425,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                                         />
                                       </Field>
                                     )}
-                                    <Field label="Gender" required={injuryDetailsRequired} error={genderMissing}>
+                                    <Field label="Gender" required={genderRequired} error={genderMissing}>
                                       <CustomSelect
                                         value={occ.gender || ''}
                                         onChange={val => updateInjuredOccupant(v.id, occ.id, { gender: (val || undefined) as OtherVehicleOccupantInjury['gender'] })}
