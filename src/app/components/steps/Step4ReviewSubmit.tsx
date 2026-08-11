@@ -2348,7 +2348,6 @@ export function Step4ReviewSubmit({
                     ?? ((data.supervisor_dart_employee_fatality_count || 0) > 0 ? 'Fatality'
                       : data.supervisor_operator_injured === true ? 'Injured'
                       : undefined);
-                  const supOperatorFatality = data.supervisor_dart_employee_fatality_details?.[0] || {};
                   const supOperatorInjury: PMInjuryRecord = data.supervisor_operator_injury_record || {
                     body_part: data.supervisor_operator_injured_body_part as PMInjuryBodyPart | undefined,
                     transported_to_hospital: data.supervisor_operator_transported,
@@ -2376,7 +2375,7 @@ export function Step4ReviewSubmit({
                         supervisor_operator_injury_record: undefined,
                         supervisor_dart_employee_fatalities: true,
                         supervisor_dart_employee_fatality_count: 1,
-                        supervisor_dart_employee_fatality_details: [{ ...supOperatorFatality, is_dart_employee: true }],
+                        supervisor_dart_employee_fatality_details: [{ is_dart_employee: true }],
                         supervisor_dart_employee_injuries: false,
                         supervisor_dart_employee_injury_count: undefined,
                       });
@@ -2394,13 +2393,6 @@ export function Step4ReviewSubmit({
                         supervisor_dart_employee_fatality_details: [],
                       });
                     }
-                  };
-                  const patchSupFatality = (patch: Partial<SupervisorDemographicRecord>) => {
-                    onUpdate({
-                      supervisor_dart_employee_fatality_details: [{ ...supOperatorFatality, ...patch, is_dart_employee: true }],
-                      supervisor_dart_employee_fatality_count: 1,
-                      supervisor_dart_employee_fatalities: true,
-                    });
                   };
                   const patchSupInjury = (patch: Partial<PMInjuryRecord>) => {
                     const next: PMInjuryRecord = { ...supOperatorInjury, ...patch };
