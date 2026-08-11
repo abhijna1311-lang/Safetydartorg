@@ -198,7 +198,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
           );
         const recordComplete = v.occupants !== undefined
           && occupantsComplete
-          && v.dart_dart !== undefined && !!v.vehicle_type && !!v.collision_type && !!v.action && !!v.point_of_impact
+          && v.dart_dart !== undefined && !!v.vehicle_type && (isOperator || !!v.collision_type) && !!v.action && !!v.point_of_impact
           && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
@@ -279,13 +279,15 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 md:grid-cols-2">
+                      <div className={`grid grid-cols-1 gap-x-5 gap-y-4 ${isOperator ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
                         <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
-                        <Field label="Other vehicle collision type" required error={showErrors && !v.collision_type}>
-                          <CustomSelect value={v.collision_type || ''} onChange={val => update(v.id, { collision_type: val })} options={COLLISION_TYPES} placeholder="Select collision type" />
-                        </Field>
+                        {!isOperator && (
+                          <Field label="Other vehicle collision type" required error={showErrors && !v.collision_type}>
+                            <CustomSelect value={v.collision_type || ''} onChange={val => update(v.id, { collision_type: val })} options={COLLISION_TYPES} placeholder="Select collision type" />
+                          </Field>
+                        )}
                         <Field label="Vehicle action" required error={showErrors && !v.action}>
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
                         </Field>
