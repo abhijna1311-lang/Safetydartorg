@@ -371,12 +371,14 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         className={`grid gap-x-5 gap-y-4 ${
                           hasOccupants
                             ? isPM
-                              ? 'grid-cols-1 md:grid-cols-4'
+                              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
                               : perOccupant
-                                ? 'grid-cols-1 md:grid-cols-3'
+                                ? isSupervisor
+                                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
                                 : hasInjuries
-                                  ? 'grid-cols-1 md:grid-cols-5'
-                                  : 'grid-cols-1 md:grid-cols-4'
+                                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-5'
+                                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
                             : 'grid-cols-1'
                         }`}
                       >
