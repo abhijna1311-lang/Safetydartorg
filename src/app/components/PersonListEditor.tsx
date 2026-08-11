@@ -9,6 +9,7 @@ const opt = (arr: string[]) => arr.map(v => ({ value: v, label: v }));
 const ROLES = opt(['Passenger', 'Pedestrian']);
 const GENDERS = opt(['Female', 'Male']);
 const YES_NO = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
+const YES_NO_NOT_SURE = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }, { value: 'not_sure', label: 'Not Sure' }];
 const BODY_PARTS = opt(['Head', 'Upper body', 'Lower body']);
 const PASSENGER_ACTIONS = opt(['Boarding Bus', 'Alighting Bus', 'On Board']);
 const DOORS = opt(['Front doors', 'Rear doors']);
@@ -152,7 +153,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                 <p className="truncate text-sm font-semibold text-slate-800 font-['Poppins']">{displayName}</p>
                 <p className={`truncate text-xs font-['Poppins'] ${subtitle ? 'text-slate-500' : 'italic text-slate-400'}`}>{subtitle || 'No details added yet'}</p>
               </button>
-              {p.transported_to_hospital && (
+              {p.transported_to_hospital === true && (
                 <span className="hidden items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 font-['Poppins'] sm:inline-flex">
                   <span className="material-symbols-rounded text-[14px]">local_hospital</span> Transported
                 </span>
@@ -248,7 +249,15 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                           </div>
                         </BoolRow>
                         <BoolRow label="Transported to hospital?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.transported_to_hospital === undefined}>
-                          <YesNoToggle value={p.transported_to_hospital} onChange={v => update(p.id, { transported_to_hospital: v })} />
+                          <div className="w-full sm:w-60">
+                            <CustomSelect
+                              value={p.transported_to_hospital === true ? 'yes' : p.transported_to_hospital === false ? 'no' : p.transported_to_hospital === 'not_sure' ? 'not_sure' : ''}
+                              onChange={v => update(p.id, { transported_to_hospital: v === 'yes' ? true : v === 'no' ? false : v === 'not_sure' ? 'not_sure' : undefined })}
+                              options={YES_NO_NOT_SURE}
+                              placeholder="Select"
+                              error={showErrors && injuryDetailsRequired && p.transported_to_hospital === undefined}
+                            />
+                          </div>
                         </BoolRow>
                       </div>
                     </div>

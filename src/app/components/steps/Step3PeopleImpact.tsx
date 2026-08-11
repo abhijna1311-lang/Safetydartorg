@@ -119,7 +119,7 @@ export function Step3PeopleImpact({
   }, 0);
   const totalPeople = 1 /* operator */ + (data.other_employees_injured_count || 0) + (data.passengers_on_board || 0) + pedestrianCount + otherVehicleOccupants;
   const withInjuries = employeesInjured + people.filter(p => p.injured).length + otherVehicleInjuries;
-  const transportedCount = employeesTransported + people.filter(p => p.transported_to_hospital).length + otherVehicleTransported;
+  const transportedCount = employeesTransported + people.filter(p => p.transported_to_hospital === true).length + otherVehicleTransported;
   const byRole = (role: Person['role'], pred: (p: Person) => boolean) => people.filter(p => p.role === role && pred(p)).length;
   const injuredParts = [
     { key: 'emp', glyph: 'badge', title: 'Employees', value: employeesInjured },
@@ -129,8 +129,8 @@ export function Step3PeopleImpact({
   ];
   const transportedParts = [
     { key: 'emp', glyph: 'badge', title: 'Employees', value: employeesTransported },
-    { key: 'pax', glyph: 'event_seat', title: 'Passengers', value: byRole('Passenger', p => p.transported_to_hospital) },
-    { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: byRole('Pedestrian', p => p.transported_to_hospital) },
+    { key: 'pax', glyph: 'event_seat', title: 'Passengers', value: byRole('Passenger', p => p.transported_to_hospital === true) },
+    { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: byRole('Pedestrian', p => p.transported_to_hospital === true) },
     { key: 'oth', glyph: 'directions_car', title: 'Other vehicle occupants', value: otherVehicleTransported },
   ];
 

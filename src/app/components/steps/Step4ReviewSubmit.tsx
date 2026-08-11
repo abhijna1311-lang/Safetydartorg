@@ -1718,7 +1718,7 @@ export function Step4ReviewSubmit({
                         `}>
                           {person.fatal ? 'Fatal' : person.injured ? 'Injured' : 'No injury'}
                         </span>
-                        {person.transported_to_hospital && (
+                        {person.transported_to_hospital === true && (
                           <span className="text-xs text-slate-600 font-['Poppins']">Transported</span>
                         )}
                       </div>

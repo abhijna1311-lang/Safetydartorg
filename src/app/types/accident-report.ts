@@ -7,7 +7,8 @@ export interface Person {
   injured?: boolean;
   fatal?: boolean;
   injured_body_part?: string;
-  transported_to_hospital?: boolean;
+  // Operator flow supports a "Not sure" answer for Passenger/Pedestrian transport status.
+  transported_to_hospital?: boolean | 'not_sure';
   fled_scene?: boolean;
   // Passenger-specific
   passenger_action?: string;
