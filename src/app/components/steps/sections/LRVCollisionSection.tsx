@@ -228,13 +228,13 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
         </AnimatePresence>
 
         <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={`grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${isStreetcar ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
-          <Field label={isStreetcar ? 'Streetcar number' : 'Train number'} required error={showErrors && !data.train_number}>
+          <Field label={isStreetcar ? 'Streetcar number' : 'LRV number'} required error={showErrors && !data.train_number}>
             <SearchableCombobox
               options={trainOptions}
               value={data.train_number || ''}
               onChange={handleTrainChange}
               placeholder={isStreetcar ? 'Search streetcar #' : 'Search train #'}
-              searchPlaceholder={isStreetcar ? 'Type streetcar number...' : 'Type train number...'}
+              searchPlaceholder={isStreetcar ? 'Type streetcar number...' : 'Type LRV number...'}
               emptyMessage={isStreetcar ? 'No streetcars found' : 'No trains found'}
             />
           </Field>

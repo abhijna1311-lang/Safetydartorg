@@ -709,7 +709,7 @@ export function Step4ReviewSubmit({
       { label: 'Reason you did not go to the scene', value: formatReviewValue(data.supervisor_no_scene_reason), required: true },
     ] : []),
     ...(hasSupervisorVehicleType ? [
-      { label: supervisorVehicleType === 'Bus' ? 'Bus vehicle number' : supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : supervisorVehicleType === 'Light Rail Vehicle' ? 'Train number' : 'Vehicle number', value: formatReviewValue(data.supervisor_vehicle_number), required: true },
+      { label: supervisorVehicleType === 'Bus' ? 'Bus vehicle number' : supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : supervisorVehicleType === 'Light Rail Vehicle' ? 'LRV number' : 'Vehicle number', value: formatReviewValue(data.supervisor_vehicle_number), required: true },
       { label: supervisorVehicleType === 'Bus' ? 'Fleet type' : 'Fleet or asset type', value: formatReviewValue(data.supervisor_fleet), required: true },
     ] : []),
     ...(supervisorVehicleType === 'Bus' ? [
@@ -2030,7 +2030,7 @@ export function Step4ReviewSubmit({
                               />
                             </div>
                             <div>
-                              <div className={FIELD_LABEL_CLASS}>{supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : 'Train number'}</div>
+                              <div className={FIELD_LABEL_CLASS}>{supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : 'LRV number'}</div>
                               <input
                                 type="text"
                                 readOnly

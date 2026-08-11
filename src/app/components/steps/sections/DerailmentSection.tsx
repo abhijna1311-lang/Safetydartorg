@@ -160,7 +160,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
         )}
 
         <div className={`grid grid-cols-1 gap-4 ${isLRV ? 'sm:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'}`}>
-          <Field label={isLRV ? 'Train number' : 'Hi-Rail vehicle number'} required error={showErrors && !data.train_number}>
+          <Field label={isLRV ? 'LRV number' : 'Hi-Rail vehicle number'} required error={showErrors && !data.train_number}>
             <SearchableCombobox options={vehicleOptions} value={data.train_number || ''} onChange={handleVehicleChange} placeholder={isLRV ? 'Search train #' : 'Search Hi-Rail #'} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
           </Field>
           {isLRV && (

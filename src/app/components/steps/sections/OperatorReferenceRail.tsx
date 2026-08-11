@@ -332,7 +332,7 @@ const OPERATOR_TRANSCRIPT_FIELDS: TranscriptFieldDefinition[] = [
   {
     id: 'train_number',
     section: 'Train vehicle details',
-    label: 'Train number',
+    label: 'LRV number',
     path: 'train_number',
   },
   {

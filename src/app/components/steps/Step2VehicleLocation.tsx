@@ -299,8 +299,8 @@ export function Step2VehicleLocation({
                   </>
                 ) : (
                   <>
-                    <IntakeField label="Train number" required>
-                      <input type="text" value={data.train_number || ''} onChange={(e) => onUpdate({ train_number: e.target.value })} placeholder="Enter train number" className={inputCls} />
+                    <IntakeField label="LRV number" required>
+                      <input type="text" value={data.train_number || ''} onChange={(e) => onUpdate({ train_number: e.target.value })} placeholder="Enter LRV number" className={inputCls} />
                     </IntakeField>
                     <IntakeField label="Event location" required>
                       <input type="text" value={data.address_of_event || ''} onChange={(e) => onUpdate({ address_of_event: e.target.value })} placeholder="Enter location" className={inputCls} />

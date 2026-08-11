@@ -94,7 +94,7 @@ export function LRVVehicleLocationSection({ data, onUpdate }: Props) {
       {/* Train Vehicle */}
       <Card title="Train vehicle details" complete={!!data.train_number}>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Train number" required>
+          <Field label="LRV number" required>
             <input type="text" value={data.train_number || ''} onChange={e => onUpdate({ train_number: e.target.value })} placeholder="e.g. T-2045" className={inputCls} />
           </Field>
           <Field label="Car number involved in event">
