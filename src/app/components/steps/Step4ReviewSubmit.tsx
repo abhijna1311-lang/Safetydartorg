@@ -3578,9 +3578,6 @@ export function Step4ReviewSubmit({
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* PM-specific deceased occupant demographics (per-fatality). Injured occupant details now live inline in the editor above. */}
-                {pmOtherVehicleFatalityRecords.length > 0 && <div className="mt-4">{renderPMFatalityRecords(pmOtherVehicleFatalityRecords, 'program_manager_other_vehicle_fatality_records', 'Deceased occupant')}</div>}
               </div>
               </div>
               </>)}

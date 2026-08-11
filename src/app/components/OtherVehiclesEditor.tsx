@@ -4,7 +4,7 @@ import { CustomSelect } from './CustomSelect';
 import { MultiSelect } from './MultiSelect';
 import { YesNoToggle } from './form/YesNoToggle';
 import { DamageAreaChips } from './steps/sections/DamageAreaChips';
-import type { OtherVehicle, OtherVehicleOccupantInjury, PMInjuryBodyPart, PMInjurySeverity } from '../types/accident-report';
+import type { OtherVehicle, OtherVehicleFatalOccupant, OtherVehicleOccupantInjury, PMInjuryBodyPart, PMInjurySeverity } from '../types/accident-report';
 
 const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
 
@@ -136,6 +136,20 @@ const syncInjuredOccupants = (existing: OtherVehicleOccupantInjury[] | undefined
   return list.slice(0, targetCount);
 };
 
+const makeFatalOccupant = (): OtherVehicleFatalOccupant => ({
+  id: `fo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+});
+
+const syncFatalOccupants = (existing: OtherVehicleFatalOccupant[] | undefined, targetCount: number): OtherVehicleFatalOccupant[] => {
+  const list = existing ?? [];
+  if (list.length === targetCount) return list;
+  if (list.length < targetCount) {
+    const add = Array.from({ length: targetCount - list.length }, makeFatalOccupant);
+    return [...list, ...add];
+  }
+  return list.slice(0, targetCount);
+};
+
 export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, variant = 'full', pmDisablingDamage }: Props) {
   const isOperator = variant === 'operator';
   const isSupervisor = variant === 'supervisor';
@@ -160,7 +174,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
 
   // 0 or empty occupants clears the whole occupant breakdown.
   const setOccupants = (id: string, n: number | undefined) => {
-    if (!n || n < 1) update(id, { occupants: n, fatalities: undefined, injuries: undefined, fled: undefined, transported: undefined, injured_occupants: [] });
+    if (!n || n < 1) update(id, { occupants: n, fatalities: undefined, injuries: undefined, fled: undefined, transported: undefined, injured_occupants: [], fatal_occupants: [] });
     else update(id, { occupants: n });
   };
   // 0 injuries clears transported + per-injury records (nothing to describe).
@@ -177,12 +191,29 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
     }
     update(id, { injuries: n });
   };
+  // PM captures per-deceased demographics inline; keep list length in sync with the fatalities count.
+  const setFatalities = (id: string, n: number | undefined) => {
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+    if (!n || n < 1) {
+      update(id, { fatalities: n, fatal_occupants: [] });
+      return;
+    }
+    update(id, { fatalities: n, fatal_occupants: syncFatalOccupants(v.fatal_occupants, n) });
+  };
 
   const updateInjuredOccupant = (vehicleId: string, occupantId: string, patch: Partial<OtherVehicleOccupantInjury>) => {
     const v = vehicles.find(x => x.id === vehicleId);
     if (!v) return;
     const next = (v.injured_occupants ?? []).map(o => (o.id === occupantId ? { ...o, ...patch } : o));
     update(vehicleId, { injured_occupants: next });
+  };
+
+  const updateFatalOccupant = (vehicleId: string, occupantId: string, patch: Partial<OtherVehicleFatalOccupant>) => {
+    const v = vehicles.find(x => x.id === vehicleId);
+    if (!v) return;
+    const next = (v.fatal_occupants ?? []).map(o => (o.id === occupantId ? { ...o, ...patch } : o));
+    update(vehicleId, { fatal_occupants: next });
   };
 
   if (vehicles.length === 0) {
@@ -207,8 +238,10 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const open = openId === v.id;
         const hasOccupants = (v.occupants ?? 0) > 0;
         const hasInjuries = (v.injuries ?? 0) > 0;
+        const hasFatalities = (v.fatalities ?? 0) > 0;
         const typeOptions = v.dart_dart ? TYPES_DART : TYPES_NON_DART;
         const injuredOccupants = v.injured_occupants ?? [];
+        const fatalOccupants = v.fatal_occupants ?? [];
         const injuredRowsComplete = !perOccupant || !injuryDetailsRequired || !hasInjuries
           || (injuredOccupants.length === (v.injuries ?? 0)
             && injuredOccupants.every(o =>
@@ -217,12 +250,15 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
               && (!(isSupervisor || isPM) || !!o.age_group)
               && (!isPM || (!!o.severity && !!o.body_part))
             ));
+        const fatalRowsComplete = !isPM || !hasFatalities
+          || (fatalOccupants.length === (v.fatalities ?? 0)
+            && fatalOccupants.every(o => !!o.age_group && !!o.gender));
         const occupantsComplete = !hasOccupants
           || (
             perOccupant
               ? (
                   isPM
-                    ? (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete)))
+                    ? (v.fatalities !== undefined && fatalRowsComplete && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete)))
                     : (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete))
                 )
               : (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined))))
@@ -349,7 +385,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         {hasOccupants && (
                           <>
                             {(!perOccupant || isPM) && (
-                              <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
+                              <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => setFatalities(v.id, n)} />
                             )}
                             <NumberField label="Occupant injuries" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && v.injuries === undefined} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
                             {!perOccupant && hasInjuries && (
@@ -441,6 +477,45 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                                         options={TRANSPORTED_OPTS}
                                         placeholder="Select"
                                         error={transportMissing}
+                                      />
+                                    </Field>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {isPM && hasFatalities && (
+                        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+                          <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Deceased occupants ({fatalOccupants.length})</p>
+                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture age and gender for each deceased occupant.</p>
+                          </div>
+                          <div className="divide-y divide-slate-100">
+                            {fatalOccupants.map((occ, occIdx) => {
+                              const ageMissing = showErrors && !occ.age_group;
+                              const genderMissing = showErrors && !occ.gender;
+                              return (
+                                <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start">
+                                  <p className="w-28 shrink-0 pt-1 text-[12px] font-semibold text-slate-500 font-['Poppins']">Deceased #{occIdx + 1}</p>
+                                  <div className="grid flex-1 grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                                    <Field label="Age group" required error={ageMissing}>
+                                      <CustomSelect
+                                        value={occ.age_group || ''}
+                                        onChange={val => updateFatalOccupant(v.id, occ.id, { age_group: (val || undefined) as OtherVehicleFatalOccupant['age_group'] })}
+                                        options={AGE_OPTS}
+                                        placeholder="Select age"
+                                        error={ageMissing}
+                                      />
+                                    </Field>
+                                    <Field label="Gender" required error={genderMissing}>
+                                      <CustomSelect
+                                        value={occ.gender || ''}
+                                        onChange={val => updateFatalOccupant(v.id, occ.id, { gender: (val || undefined) as OtherVehicleFatalOccupant['gender'] })}
+                                        options={GENDER_OPTS}
+                                        placeholder="Select"
+                                        error={genderMissing}
                                       />
                                     </Field>
                                   </div>

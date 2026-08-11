@@ -28,6 +28,8 @@ export interface OtherVehicle {
   fled?: number;
   transported?: number;
   injured_occupants?: OtherVehicleOccupantInjury[];
+  // Per-deceased-occupant demographics captured by the Program Manager flow.
+  fatal_occupants?: OtherVehicleFatalOccupant[];
   dart_dart?: boolean;        // collision between two DART vehicles — changes the type list
   vehicle_type?: string;
   collision_type?: string;
@@ -50,6 +52,13 @@ export interface OtherVehicleOccupantInjury {
   transported?: 'yes' | 'no' | 'not_sure';
   severity?: PMInjurySeverity;
   body_part?: PMInjuryBodyPart;
+}
+
+// Per-deceased-occupant record for the Program Manager other-vehicle flow.
+export interface OtherVehicleFatalOccupant {
+  id: string;
+  age_group?: SupervisorDemographicRecord['age_group'];
+  gender?: 'Female' | 'Male';
 }
 
 export interface PedestrianRecord {
