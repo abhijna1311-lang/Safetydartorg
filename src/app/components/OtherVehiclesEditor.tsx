@@ -405,9 +405,9 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                           <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
                             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Injured occupants ({injuredOccupants.length})</p>
                             <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">{isPM
-                              ? 'Capture severity, body part, age, gender, and hospital transport for each injured occupant.'
+                              ? 'Capture DART employee status, severity, body part, age, gender, and hospital transport for each injured occupant.'
                               : isSupervisor
-                                ? 'Capture age, gender, and hospital transport for each injured occupant.'
+                                ? 'Capture DART employee status, age, gender, and hospital transport for each injured occupant.'
                                 : 'Capture gender and hospital transport for each injured occupant.'}</p>
                           </div>
                           <div className="divide-y divide-slate-100">
@@ -428,6 +428,17 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                                 <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start">
                                   <p className="w-28 shrink-0 pt-1 text-[12px] font-semibold text-slate-500 font-['Poppins']">Occupant {occIdx + 1}</p>
                                   <div className={`grid flex-1 grid-cols-1 gap-x-4 gap-y-3 ${rowGrid}`}>
+                                    {(isSupervisor || isPM) && (
+                                      <Field label="DART employee?" required={injuryDetailsRequired} error={employeeMissing}>
+                                        <CustomSelect
+                                          value={occ.is_dart_employee === undefined ? '' : (occ.is_dart_employee ? 'yes' : 'no')}
+                                          onChange={val => updateInjuredOccupant(v.id, occ.id, { is_dart_employee: val === '' ? undefined : val === 'yes' })}
+                                          options={YES_NO_OPTS}
+                                          placeholder="Select"
+                                          error={employeeMissing}
+                                        />
+                                      </Field>
+                                    )}
                                     {isPM && (
                                       <Field label="Injury severity" required={injuryDetailsRequired} error={severityMissing}>
                                         <CustomSelect
@@ -479,17 +490,6 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                                         error={transportMissing}
                                       />
                                     </Field>
-                                    {(isSupervisor || isPM) && (
-                                      <Field label="DART employee?" required={injuryDetailsRequired} error={employeeMissing}>
-                                        <CustomSelect
-                                          value={occ.is_dart_employee === undefined ? '' : (occ.is_dart_employee ? 'yes' : 'no')}
-                                          onChange={val => updateInjuredOccupant(v.id, occ.id, { is_dart_employee: val === '' ? undefined : val === 'yes' })}
-                                          options={YES_NO_OPTS}
-                                          placeholder="Select"
-                                          error={employeeMissing}
-                                        />
-                                      </Field>
-                                    )}
                                   </div>
                                 </div>
                               );
