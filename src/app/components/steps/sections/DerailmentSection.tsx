@@ -114,6 +114,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
   const showStation = data.location_category === 'Revenue Facility: Transit Station';
   const showGradeCrossing = data.location_category === 'Right-of-Way: Grade Crossing';
   const showLine = isLRV && SHOWS_LINE.includes(data.train_status_before || '');
+  const vehicleLabel = isLRV ? 'LRV' : 'NRV';
 
   const handleVehicleChange = (value: string) => {
     const vehicle = fleet.find(item => item.id === value);
@@ -135,7 +136,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
-      <Section title={isLRV ? 'The train' : 'The Hi-Rail vehicle'} help={`Select the ${isLRV ? 'train' : 'Hi-Rail vehicle'} number to pull its fleet and employee pull-out details.`}>
+      <Section title={isLRV ? 'The train' : 'The NRV vehicle'} help={`Select the ${isLRV ? 'train' : 'NRV'} number to pull its fleet and employee pull-out details.`}>
         {selectedVehicle && (
           <div className="dart-vehicle-strip">
             <div className="dart-vehicle-item">
@@ -160,20 +161,24 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
         )}
 
         <div className={`grid grid-cols-1 gap-4 ${isLRV ? 'sm:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'}`}>
-          <Field label={isLRV ? 'LRV number' : 'Hi-Rail vehicle number'} required error={showErrors && !data.train_number}>
-            <SearchableCombobox options={vehicleOptions} value={data.train_number || ''} onChange={handleVehicleChange} placeholder={isLRV ? 'Search train #' : 'Search Hi-Rail #'} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
+          <Field label={`${vehicleLabel} number`} required error={showErrors && !data.train_number}>
+            <SearchableCombobox options={vehicleOptions} value={data.train_number || ''} onChange={handleVehicleChange} placeholder={isLRV ? 'Search train #' : 'Search NRV #'} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
           </Field>
           {isLRV && (
             <Field label="Car number involved in event" required error={showErrors && !data.car_number}>
               <CustomSelect value={data.car_number || ''} onChange={value => onUpdate({ car_number: value })} options={carOptions} placeholder={selectedVehicle ? 'Select car' : 'Select vehicle first'} disabled={!selectedVehicle} />
             </Field>
           )}
-          <Field label={isLRV ? 'Train status before event' : 'Status before event'} required>
-            <CustomSelect value={data.train_status_before || ''} onChange={value => onUpdate({ train_status_before: value, ...(!SHOWS_LINE.includes(value) ? { rail_line: undefined } : {}) })} options={TRAIN_STATUS} placeholder="Select status" />
-          </Field>
-          <Field label={isLRV ? 'Train status after event' : 'Status after event'} required>
-            <CustomSelect value={data.train_status_after || ''} onChange={value => onUpdate({ train_status_after: value })} options={TRAIN_STATUS} placeholder="Select status" />
-          </Field>
+          {isLRV && (
+            <>
+              <Field label="Train status before event" required>
+                <CustomSelect value={data.train_status_before || ''} onChange={value => onUpdate({ train_status_before: value, ...(!SHOWS_LINE.includes(value) ? { rail_line: undefined } : {}) })} options={TRAIN_STATUS} placeholder="Select status" />
+              </Field>
+              <Field label="Train status after event" required>
+                <CustomSelect value={data.train_status_after || ''} onChange={value => onUpdate({ train_status_after: value })} options={TRAIN_STATUS} placeholder="Select status" />
+              </Field>
+            </>
+          )}
         </div>
 
         <AnimatePresence>

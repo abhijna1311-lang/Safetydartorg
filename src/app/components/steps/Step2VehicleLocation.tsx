@@ -138,7 +138,7 @@ export function Step2VehicleLocation({
     data.train_number && data.derailment_type && data.location_category
     && (data.location_category !== 'Revenue Facility: Transit Station' || data.station_applicable)
     && (data.location_category !== 'Right-of-Way: Grade Crossing' || data.grade_crossing_applicable)
-    && data.train_status_before && data.train_status_after
+    && (data.mode === 'Hi-Rail' || (data.train_status_before && data.train_status_after))
     && (data.mode !== 'Light Rail Vehicle' || data.car_number)
     && (!['In Service', 'Pull-In', 'Pull-Out'].includes(data.train_status_before || '') || data.mode !== 'Light Rail Vehicle' || data.rail_line)
     && data.train_action && answered(data.train_speed)

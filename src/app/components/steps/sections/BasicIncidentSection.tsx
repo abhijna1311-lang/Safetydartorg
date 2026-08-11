@@ -281,7 +281,7 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
       )}
 
       {isHiRail && (
-        <Section title="The Hi-Rail vehicle" help="Enter the Hi-Rail vehicle number — its fleet type and pull-out details are pulled in automatically.">
+        <Section title="The NRV vehicle" help="Enter the NRV number — its fleet type and pull-out details are pulled in automatically.">
           {selectedHiRail && (
             <div className="dart-vehicle-strip">
               <div className="dart-vehicle-item">
@@ -300,12 +300,12 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
           )}
 
           <div style={{ marginTop: selectedHiRail ? 26 : undefined }} className="max-w-xl">
-            <Field label="Hi-Rail vehicle number" required error={showErrors && !data.train_number}>
+            <Field label="NRV number" required error={showErrors && !data.train_number}>
               <SearchableCombobox
                 options={hiRailOptions}
                 value={data.train_number || ''}
                 onChange={handleHiRailChange}
-                placeholder="Search Hi-Rail #"
+                placeholder="Search NRV #"
                 searchPlaceholder="Type vehicle number..."
                 emptyMessage="No vehicles found"
               />
