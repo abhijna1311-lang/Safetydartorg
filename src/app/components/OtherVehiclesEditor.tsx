@@ -4,7 +4,7 @@ import { CustomSelect } from './CustomSelect';
 import { MultiSelect } from './MultiSelect';
 import { YesNoToggle } from './form/YesNoToggle';
 import { DamageAreaChips } from './steps/sections/DamageAreaChips';
-import type { OtherVehicle, OtherVehicleOccupantInjury } from '../types/accident-report';
+import type { OtherVehicle, OtherVehicleOccupantInjury, PMInjuryBodyPart, PMInjurySeverity } from '../types/accident-report';
 
 const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
 
@@ -87,7 +87,8 @@ interface Props {
   injuryDetailsRequired?: boolean;
   // 'operator' drops "Occupant fatalities" and captures gender + transported per injured occupant.
   // 'supervisor' matches operator's per-occupant capture and also asks age group.
-  variant?: 'operator' | 'supervisor' | 'full';
+  // 'pm' keeps fatalities count and captures severity + body part + age + gender + transported per injured occupant.
+  variant?: 'operator' | 'supervisor' | 'pm' | 'full';
   // SPM-only aggregate disabling-damage questions. When omitted, panel is not rendered.
   pmDisablingDamage?: {
     present?: boolean;
@@ -105,6 +106,15 @@ const AGE_OPTS = [
   { value: 'Teen (13 to 18)', label: 'Teen (13 to 18)' },
   { value: 'Adult (19 to 60)', label: 'Adult (19 to 60)' },
   { value: 'Senior Citizen (61 and up)', label: 'Senior Citizen (61 and up)' },
+];
+const SEVERITY_OPTS = [
+  { value: 'Injured – Non-Serious', label: 'Injured – Non-Serious' },
+  { value: 'Injured - Serious', label: 'Injured - Serious' },
+];
+const BODY_PART_OPTS = [
+  { value: 'Head', label: 'Head' },
+  { value: 'Upper body', label: 'Upper body' },
+  { value: 'Lower body', label: 'Lower body' },
 ];
 const TRANSPORTED_OPTS = [
   { value: 'yes', label: 'Yes' },
@@ -129,8 +139,9 @@ const syncInjuredOccupants = (existing: OtherVehicleOccupantInjury[] | undefined
 export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, variant = 'full', pmDisablingDamage }: Props) {
   const isOperator = variant === 'operator';
   const isSupervisor = variant === 'supervisor';
-  // Both operator and supervisor collect per-injured-occupant rows instead of aggregate counts.
-  const perOccupant = isOperator || isSupervisor;
+  const isPM = variant === 'pm';
+  // Operator, Supervisor and PM collect per-injured-occupant rows instead of aggregate 'transported' counts.
+  const perOccupant = isOperator || isSupervisor || isPM;
   const [openId, setOpenId] = useState<string | null>(null);
 
   const update = (id: string, patch: Partial<OtherVehicle>) =>
@@ -200,11 +211,20 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const injuredOccupants = v.injured_occupants ?? [];
         const injuredRowsComplete = !perOccupant || !injuryDetailsRequired || !hasInjuries
           || (injuredOccupants.length === (v.injuries ?? 0)
-            && injuredOccupants.every(o => !!o.gender && !!o.transported && (!isSupervisor || !!o.age_group)));
+            && injuredOccupants.every(o =>
+              !!o.gender
+              && !!o.transported
+              && (!(isSupervisor || isPM) || !!o.age_group)
+              && (!isPM || (!!o.severity && !!o.body_part))
+            ));
         const occupantsComplete = !hasOccupants
           || (
             perOccupant
-              ? (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete))
+              ? (
+                  isPM
+                    ? (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete)))
+                    : (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && injuredRowsComplete))
+                )
               : (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined))))
           );
         const recordComplete = v.occupants !== undefined
@@ -311,22 +331,24 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Occupants */}
                     <div>
                       <GroupLabel>Occupants</GroupLabel>
-                      {/* Column count adapts to which follow-ups apply: fatalities and aggregate transport for FS/PM, per-injury rows below for operator/supervisor. */}
+                      {/* Column count adapts to which follow-ups apply: fatalities and aggregate transport for FS/PM, per-injury rows below for operator/supervisor/pm. */}
                       <div
                         className={`grid gap-x-5 gap-y-4 ${
                           hasOccupants
-                            ? perOccupant
-                              ? 'grid-cols-1 md:grid-cols-3'
-                              : hasInjuries
-                                ? 'grid-cols-1 md:grid-cols-5'
-                                : 'grid-cols-1 md:grid-cols-4'
+                            ? isPM
+                              ? 'grid-cols-1 md:grid-cols-4'
+                              : perOccupant
+                                ? 'grid-cols-1 md:grid-cols-3'
+                                : hasInjuries
+                                  ? 'grid-cols-1 md:grid-cols-5'
+                                  : 'grid-cols-1 md:grid-cols-4'
                             : 'grid-cols-1'
                         }`}
                       >
                         <NumberField label="Number of occupants in vehicle" required error={showErrors && v.occupants === undefined} value={v.occupants} onChange={n => setOccupants(v.id, n)} />
                         {hasOccupants && (
                           <>
-                            {!perOccupant && (
+                            {(!perOccupant || isPM) && (
                               <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => update(v.id, { fatalities: n })} />
                             )}
                             <NumberField label="Occupant injuries" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && v.injuries === undefined} value={v.injuries} onChange={n => setInjuries(v.id, n)} />
@@ -347,18 +369,51 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
                           <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
                             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Injured occupants ({injuredOccupants.length})</p>
-                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">{isSupervisor ? 'Capture age, gender, and hospital transport for each injured occupant.' : 'Capture gender and hospital transport for each injured occupant.'}</p>
+                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">{isPM
+                              ? 'Capture severity, body part, age, gender, and hospital transport for each injured occupant.'
+                              : isSupervisor
+                                ? 'Capture age, gender, and hospital transport for each injured occupant.'
+                                : 'Capture gender and hospital transport for each injured occupant.'}</p>
                           </div>
                           <div className="divide-y divide-slate-100">
                             {injuredOccupants.map((occ, occIdx) => {
-                              const ageMissing = showErrors && isSupervisor && injuryDetailsRequired && !occ.age_group;
+                              const ageMissing = showErrors && (isSupervisor || isPM) && injuryDetailsRequired && !occ.age_group;
+                              const severityMissing = showErrors && isPM && injuryDetailsRequired && !occ.severity;
+                              const bodyPartMissing = showErrors && isPM && injuryDetailsRequired && !occ.body_part;
                               const genderMissing = showErrors && injuryDetailsRequired && !occ.gender;
                               const transportMissing = showErrors && injuryDetailsRequired && !occ.transported;
+                              const rowGrid = isPM
+                                ? 'sm:grid-cols-2 lg:grid-cols-5'
+                                : isSupervisor
+                                  ? 'sm:grid-cols-3'
+                                  : 'sm:grid-cols-2';
                               return (
-                                <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
-                                  <p className="w-28 shrink-0 text-[12px] font-semibold text-slate-500 font-['Poppins']">Occupant {occIdx + 1}</p>
-                                  <div className={`grid flex-1 grid-cols-1 gap-x-4 gap-y-3 ${isSupervisor ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-                                    {isSupervisor && (
+                                <div key={occ.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start">
+                                  <p className="w-28 shrink-0 pt-1 text-[12px] font-semibold text-slate-500 font-['Poppins']">Occupant {occIdx + 1}</p>
+                                  <div className={`grid flex-1 grid-cols-1 gap-x-4 gap-y-3 ${rowGrid}`}>
+                                    {isPM && (
+                                      <Field label="Injury severity" required={injuryDetailsRequired} error={severityMissing}>
+                                        <CustomSelect
+                                          value={occ.severity || ''}
+                                          onChange={val => updateInjuredOccupant(v.id, occ.id, { severity: (val || undefined) as PMInjurySeverity })}
+                                          options={SEVERITY_OPTS}
+                                          placeholder="Select severity"
+                                          error={severityMissing}
+                                        />
+                                      </Field>
+                                    )}
+                                    {isPM && (
+                                      <Field label="Injured body part" required={injuryDetailsRequired} error={bodyPartMissing}>
+                                        <CustomSelect
+                                          value={occ.body_part || ''}
+                                          onChange={val => updateInjuredOccupant(v.id, occ.id, { body_part: (val || undefined) as PMInjuryBodyPart })}
+                                          options={BODY_PART_OPTS}
+                                          placeholder="Select body part"
+                                          error={bodyPartMissing}
+                                        />
+                                      </Field>
+                                    )}
+                                    {(isSupervisor || isPM) && (
                                       <Field label="Age group" required={injuryDetailsRequired} error={ageMissing}>
                                         <CustomSelect
                                           value={occ.age_group || ''}

@@ -2814,7 +2814,8 @@ export function Step4ReviewSubmit({
           const pmEmpTransported = pmEmployeeInjuryRecords.filter(r => r.transported_to_hospital).length;
           const pmPaxTransported = pmPax.filter(p => p.outcome === 'Injured' && p.transported_to_hospital).length;
           const pmPedTransported = pmPed.filter(p => p.outcome === 'Injured' && p.transported_to_hospital).length;
-          const pmOvTransported = pmOtherVehicleInjuryRecords.filter(r => r.transported_to_hospital).length;
+          const pmOvTransported = (data.program_manager_other_vehicles ?? [])
+            .reduce((s, veh) => s + (veh.injured_occupants ?? []).filter(o => o.transported === 'yes').length, 0);
           const pmTotalTransported = pmEmpTransported + pmPaxTransported + pmPedTransported + pmOvTransported;
           const pmFatalityParts = [
             { key: 'emp', glyph: 'badge', title: 'Employees', value: pmEmpFatCount },
@@ -3587,6 +3588,7 @@ export function Step4ReviewSubmit({
                             });
                           }}
                           injuryDetailsRequired
+                          variant="pm"
                           pmDisablingDamage={{
                             present: data.program_manager_other_vehicles_disabling_damage_present,
                             vehicleIds: data.program_manager_other_vehicles_disabling_damage_vehicle_ids,
@@ -3601,9 +3603,8 @@ export function Step4ReviewSubmit({
                   )}
                 </AnimatePresence>
 
-                {/* PM-specific per-occupant details (kept for PM severity/fatality depth) */}
+                {/* PM-specific deceased occupant demographics (per-fatality). Injured occupant details now live inline in the editor above. */}
                 {pmOtherVehicleFatalityRecords.length > 0 && <div className="mt-4">{renderPMFatalityRecords(pmOtherVehicleFatalityRecords, 'program_manager_other_vehicle_fatality_records', 'Deceased occupant')}</div>}
-                {pmOtherVehicleInjuryRecords.length > 0 && <div className="mt-4">{renderPMInjuryRecords(pmOtherVehicleInjuryRecords, 'program_manager_other_vehicle_injury_records', 'Injured occupant', true)}</div>}
               </div>
               </div>
               </>)}
