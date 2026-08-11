@@ -100,10 +100,10 @@ export function LRVVehicleLocationSection({ data, onUpdate }: Props) {
           <Field label="Car number involved in event">
             <input type="text" value={data.car_number || ''} onChange={e => onUpdate({ car_number: e.target.value })} placeholder="e.g. 2101" className={inputCls} />
           </Field>
-          <Field label="Train pull-out date">
+          <Field label="LRV pull-out date">
             <DatePickerInput value={data.train_pullout_date || ''} onChange={v => onUpdate({ train_pullout_date: v })} />
           </Field>
-          <Field label="Train pull-out time">
+          <Field label="LRV pull-out time">
             <TimePickerInput value={data.train_pullout_time || ''} onChange={v => onUpdate({ train_pullout_time: v })} />
           </Field>
         </div>

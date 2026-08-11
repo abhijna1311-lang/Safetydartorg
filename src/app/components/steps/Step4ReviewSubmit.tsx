@@ -720,8 +720,8 @@ export function Step4ReviewSubmit({
     ...(supervisorVehicleType === 'Light Rail Vehicle' || supervisorVehicleType === 'Streetcar' ? [
       { label: 'LRV fleet type', value: formatReviewValue(data.supervisor_lrv_fleet_type) },
       { label: 'Car number involved in event', value: formatReviewValue(data.supervisor_car_number) },
-      { label: 'Train pull-out date', value: formatReviewValue(data.supervisor_train_pullout_date) },
-      { label: 'Train pull-out time', value: formatReviewValue(data.supervisor_train_pullout_time) },
+      { label: 'LRV pull-out date', value: formatReviewValue(data.supervisor_train_pullout_date) },
+      { label: 'LRV pull-out time', value: formatReviewValue(data.supervisor_train_pullout_time) },
     ] : []),
     ...(showSupervisorRevenueQuestion ? [
       { label: 'Revenue service', value: formatReviewValue(data.supervisor_revenue_service) },
@@ -2017,7 +2017,7 @@ export function Step4ReviewSubmit({
                             </div>
                           </div>
                         ) : supervisorVehicleType === 'Light Rail Vehicle' || supervisorVehicleType === 'Streetcar' ? (
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
                             <div>
                               <div className={FIELD_LABEL_CLASS}>LRV fleet type <span className="text-red-500">*</span></div>
                               <SearchableCombobox
@@ -2050,11 +2050,11 @@ export function Step4ReviewSubmit({
                               />
                             </div>
                             <div>
-                              <div className={FIELD_LABEL_CLASS}>Train pull-out date</div>
+                              <div className={FIELD_LABEL_CLASS}>LRV pull-out date</div>
                               <DatePickerInput value={data.supervisor_train_pullout_date || ''} onChange={(value) => onUpdate({ supervisor_train_pullout_date: value })} />
                             </div>
                             <div>
-                              <div className={FIELD_LABEL_CLASS}>Train pull-out time</div>
+                              <div className={FIELD_LABEL_CLASS}>LRV pull-out time</div>
                               <TimePickerInput value={data.supervisor_train_pullout_time || ''} onChange={(value) => onUpdate({ supervisor_train_pullout_time: value })} />
                             </div>
                           </div>

@@ -344,13 +344,13 @@ const OPERATOR_TRANSCRIPT_FIELDS: TranscriptFieldDefinition[] = [
   {
     id: 'train_pullout_date',
     section: 'Train vehicle details',
-    label: 'Train pull-out date',
+    label: 'LRV pull-out date',
     path: 'train_pullout_date',
   },
   {
     id: 'train_pullout_time',
     section: 'Train vehicle details',
-    label: 'Train pull-out time',
+    label: 'LRV pull-out time',
     path: 'train_pullout_time',
   },
   {
