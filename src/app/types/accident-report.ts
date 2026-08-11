@@ -296,6 +296,7 @@ export interface AccidentReportData {
   police_at_scene?: boolean;
   police_type?: string;
   dart_supervisor_investigating?: boolean;
+  ems_at_scene?: boolean;
 
   // Supervisor review
   supervisor_badge_number?: string;

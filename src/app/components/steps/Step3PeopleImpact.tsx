@@ -415,6 +415,10 @@ export function Step3PeopleImpact({
                   <BoolRow label="Was a DART supervisor investigating?">
                     <YesNoToggle value={data.dart_supervisor_investigating} onChange={v => onUpdate({ dart_supervisor_investigating: v })} />
                   </BoolRow>
+
+                  <BoolRow label="Did the EMS arrive at the scene?">
+                    <YesNoToggle value={data.ems_at_scene} onChange={v => onUpdate({ ems_at_scene: v })} />
+                  </BoolRow>
                 </div>
               </Section>
 

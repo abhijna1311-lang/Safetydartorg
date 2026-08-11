@@ -781,6 +781,7 @@ export function Step4ReviewSubmit({
     { label: 'Pedestrian injuries', value: formatReviewValue(data.supervisor_pedestrian_injuries) },
     ...(data.supervisor_pedestrian_injuries ? [{ label: 'Pedestrian injury count', value: formatReviewValue(data.supervisor_pedestrian_injury_count) }] : []),
     ...(data.supervisor_other_vehicles_involved ? [{ label: 'Other vehicle occupant records', value: formatReviewValue(otherVehicleRecords.length) }] : []),
+    { label: 'EMS at scene', value: formatReviewValue(data.ems_at_scene) },
     { label: 'Police called', value: formatReviewValue(data.supervisor_police_called) },
     ...(data.supervisor_police_called ? [
       { label: 'Officer at scene', value: formatReviewValue(data.supervisor_police_officer_name) },
@@ -2486,6 +2487,12 @@ export function Step4ReviewSubmit({
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Police information</h3>
                 <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Officer on scene, who notified police, and the report number.</p>
                 <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                  <BoolRow label="Did the EMS arrive at the scene?">
+                    <YesNoToggle
+                      value={data.ems_at_scene}
+                      onChange={(value) => onUpdate({ ems_at_scene: value })}
+                    />
+                  </BoolRow>
                   <BoolRow label="Were police called?">
                     <YesNoToggle
                       value={data.supervisor_police_called}
