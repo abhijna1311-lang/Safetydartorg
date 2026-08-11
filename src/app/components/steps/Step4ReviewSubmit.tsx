@@ -2220,7 +2220,7 @@ export function Step4ReviewSubmit({
                       </DecisionGroup>
                   )}
                     <div className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-5">
-                      <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Point of impact</div>
+                      <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>DART vehicle point of impact</div>
                       <div className="w-full shrink-0 sm:w-60">
                         <CustomSelect
                           value={data.supervisor_point_of_impact || ''}
