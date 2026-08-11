@@ -3446,30 +3446,6 @@ export function Step4ReviewSubmit({
                         </div>
                       </div>
                       <AnimatePresence initial={false}>
-                        {operatorOutcome === 'Fatality' && (
-                          <motion.div key="pm-op-fatal-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
-                            <BoolRow label="Age group">
-                              <div className="w-full sm:w-60">
-                                <CustomSelect
-                                  value={operatorFatality.age_group || ''}
-                                  onChange={(v) => patchFatality({ age_group: (v || undefined) as SupervisorDemographicRecord['age_group'] })}
-                                  options={AGE_GROUP_OPTIONS.map((option) => ({ value: option, label: option }))}
-                                  placeholder="Select age"
-                                />
-                              </div>
-                            </BoolRow>
-                            <BoolRow label="Gender">
-                              <div className="w-full sm:w-60">
-                                <CustomSelect
-                                  value={operatorFatality.gender || ''}
-                                  onChange={(v) => patchFatality({ gender: (v || undefined) as SupervisorDemographicRecord['gender'] })}
-                                  options={GENDER_OPTIONS.map((option) => ({ value: option, label: option }))}
-                                  placeholder="Select gender"
-                                />
-                              </div>
-                            </BoolRow>
-                          </motion.div>
-                        )}
                         {operatorOutcome === 'Injured' && (
                           <motion.div key="pm-op-injured-follow" {...HEIGHT_REVEAL} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
                             <BoolRow label="Injury severity">
