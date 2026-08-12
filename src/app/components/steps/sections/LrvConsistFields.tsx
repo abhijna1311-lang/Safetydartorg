@@ -12,10 +12,11 @@ interface Props {
 const ADDITIONAL_KEYS = ['lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;
 const COUNT_OPTIONS = [1, 2, 3, 4];
 // Static class strings so Tailwind can extract them at build time.
-const ADDITIONAL_COLS_CLASS: Record<number, string> = {
+const STRIP_COLS_CLASS: Record<number, string> = {
   1: 'sm:grid-cols-1',
   2: 'sm:grid-cols-2',
   3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
 };
 
 const inputCls = 'dart-input-base';
@@ -27,10 +28,10 @@ const rowFade = {
   transition: { duration: 0.18 },
 };
 
-// Count = 1 means the LRV from the top field is the entire consist — no extra inputs needed.
+// Count = 1 means the LRV from the top field is the entire consist.
+// The strip always shows the lead LRV as a read-only pill, then editable slots for the rest.
 export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) {
   const count = data.lrv_consist_count ?? 0;
-  const additionalCount = Math.max(0, count - 1);
 
   const setCount = (next: number) => {
     const extras = Math.max(0, next - 1);
@@ -40,6 +41,7 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
   };
 
   const countMissing = showErrors && count === 0;
+  const leadLabel = data.train_number || 'Pick the LRV above';
 
   return (
     <div className={`rounded-xl border bg-slate-50/60 px-4 py-3.5 md:px-5 ${countMissing ? 'border-red-300' : 'border-slate-200'}`}>
@@ -72,9 +74,7 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
         </div>
 
         <div className="flex-1">
-          <label className="dart-field-label text-slate-500">
-            {additionalCount > 0 ? 'Additional LRV numbers' : 'LRV numbers'}
-          </label>
+          <label className="dart-field-label text-slate-500">Consist</label>
           <AnimatePresence mode="wait" initial={false}>
             {count === 0 ? (
               <motion.p
@@ -84,21 +84,26 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
               >
                 Pick a count to complete the consist.
               </motion.p>
-            ) : count === 1 ? (
-              <motion.p
-                {...rowFade}
-                key="single"
-                className="h-11 flex items-center text-xs text-slate-500 font-['Poppins']"
-              >
-                Just the LRV above — no additional numbers needed.
-              </motion.p>
             ) : (
               <motion.div
                 {...rowFade}
-                key={`inputs-${count}`}
-                className={`grid grid-cols-1 gap-2.5 ${ADDITIONAL_COLS_CLASS[additionalCount]}`}
+                key={`strip-${count}`}
+                className={`grid grid-cols-1 gap-2.5 ${STRIP_COLS_CLASS[count]}`}
               >
-                {ADDITIONAL_KEYS.slice(0, additionalCount).map((key, i) => (
+                {/* Lead LRV — read-only, mirrors the top field. */}
+                <div
+                  aria-label={`LRV 1 (lead): ${data.train_number || 'not selected'}`}
+                  className={`h-11 rounded-lg border px-3 flex items-center gap-2 font-['Poppins'] text-sm ${
+                    data.train_number
+                      ? 'border-[#00205B]/25 bg-[#EAF1F8] text-[#00205B]'
+                      : 'border-dashed border-slate-300 bg-white text-slate-400'
+                  }`}
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">Lead</span>
+                  <span className="dart-tabular truncate">{leadLabel}</span>
+                </div>
+
+                {ADDITIONAL_KEYS.slice(0, Math.max(0, count - 1)).map((key, i) => (
                   <div key={key}>
                     <input
                       type="text"
