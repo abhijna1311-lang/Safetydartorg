@@ -5,6 +5,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
+import { LrvConsistFields } from './LrvConsistFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -229,7 +230,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           )}
         </AnimatePresence>
 
-        <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={`grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${isStreetcar ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
+        <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3">
           <Field label={isStreetcar ? 'Streetcar number' : 'LRV number involved in event'} required error={showErrors && !data.train_number}>
             <SearchableCombobox
               options={trainOptions}
@@ -245,21 +246,6 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
               <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={data.train_number ? 'Select car' : 'Select streetcar first'} disabled={!data.train_number} />
             </Field>
           )}
-          {!isStreetcar && (
-            <Field label="LRVs in consist" required error={showErrors && !data.lrv_consist_count}>
-              <CustomSelect
-                value={data.lrv_consist_count ? String(data.lrv_consist_count) : ''}
-                onChange={v => {
-                  const next = Number(v);
-                  const clear: Partial<AccidentReportData> = {};
-                  CONSIST_KEYS.slice(next).forEach(k => { clear[k] = undefined; });
-                  onUpdate({ lrv_consist_count: next, ...clear });
-                }}
-                options={CONSIST_COUNT_OPTIONS}
-                placeholder="Select count"
-              />
-            </Field>
-          )}
           <Field label={isStreetcar ? 'Streetcar status before event' : 'Train status before event'} required>
             <CustomSelect value={data.train_status_before || ''} onChange={v => onUpdate({ train_status_before: v })} options={TRAIN_STATUS} placeholder="Select status" />
           </Field>
@@ -268,23 +254,9 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           </Field>
         </div>
 
-        <AnimatePresence>
-          {!isStreetcar && consistCount > 0 && (
-            <motion.div {...fade} key="consist-numbers" className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4">
-              {CONSIST_KEYS.slice(0, consistCount).map((key, i) => (
-                <Field key={key} label={`LRV ${i + 1} number`} required error={showErrors && !data[key]}>
-                  <input
-                    type="text"
-                    value={(data[key] as string) || ''}
-                    onChange={e => onUpdate({ [key]: e.target.value })}
-                    placeholder={`e.g. 210${i + 1}`}
-                    className={inputCls}
-                  />
-                </Field>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!isStreetcar && (
+          <LrvConsistFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
+        )}
       </Section>
 
       {/* 2 — What happened: the narrative and mechanics of the collision */}

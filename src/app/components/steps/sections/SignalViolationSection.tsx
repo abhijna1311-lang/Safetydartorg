@@ -6,6 +6,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
 import { TRAIN_FLEET, STREETCAR_FLEET, TrainRecordCard } from './LRVCollisionSection';
+import { LrvConsistFields } from './LrvConsistFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -149,7 +150,7 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
           )}
         </AnimatePresence>
 
-        <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={`grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${isStreetcar ? 'xl:grid-cols-2' : 'xl:grid-cols-3'}`}>
+        <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-2">
           <Field label={isStreetcar ? 'Streetcar number' : 'LRV number involved in event'} required error={showErrors && !data.train_number}>
             <SearchableCombobox
               options={trainOptions}
@@ -165,22 +166,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
               <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={selectedTrain ? 'Select car' : 'Select streetcar first'} disabled={!selectedTrain} />
             </Field>
           )}
-          {!isStreetcar && (
-            <Field label="LRVs in consist" required error={showErrors && !data.lrv_consist_count}>
-              <CustomSelect
-                value={data.lrv_consist_count ? String(data.lrv_consist_count) : ''}
-                onChange={v => {
-                  const next = Number(v);
-                  const keys = ['lrv_consist_1','lrv_consist_2','lrv_consist_3','lrv_consist_4'] as const;
-                  const clear: Partial<AccidentReportData> = {};
-                  keys.slice(next).forEach(k => { clear[k] = undefined; });
-                  onUpdate({ lrv_consist_count: next, ...clear });
-                }}
-                options={[1,2,3,4].map(n => ({ value: String(n), label: String(n) }))}
-                placeholder="Select count"
-              />
-            </Field>
-          )}
           <Field label="Rail line">
             <input
               type="text"
@@ -192,23 +177,9 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
           </Field>
         </div>
 
-        <AnimatePresence>
-          {!isStreetcar && consistCount > 0 && (
-            <motion.div {...fade} key="consist-numbers" className="mt-4 grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4">
-              {(['lrv_consist_1','lrv_consist_2','lrv_consist_3','lrv_consist_4'] as const).slice(0, consistCount).map((key, i) => (
-                <Field key={key} label={`LRV ${i + 1} number`} required error={showErrors && !data[key]}>
-                  <input
-                    type="text"
-                    value={(data[key] as string) || ''}
-                    onChange={e => onUpdate({ [key]: e.target.value })}
-                    placeholder={`e.g. 210${i + 1}`}
-                    className={inputCls}
-                  />
-                </Field>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!isStreetcar && (
+          <LrvConsistFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
+        )}
       </Section>
 
       {/* 2 — The signal violation */}
