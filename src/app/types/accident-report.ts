@@ -391,7 +391,7 @@ export interface AccidentReportData {
   supervisor_operator_injured_body_part?: string;
   supervisor_operator_transported?: boolean;
   // Field Supervisor outcome for the operator, mirrors the PM "DART Operator Injury" flow.
-  supervisor_operator_outcome?: 'Not Sure' | 'Injured' | 'Fatality';
+  supervisor_operator_outcome?: 'Not Injured' | 'Injured' | 'Fatality';
   supervisor_operator_injury_record?: PMInjuryRecord;
   supervisor_passengers_on_board?: number;
   supervisor_people_involved?: boolean;
@@ -492,7 +492,7 @@ export interface AccidentReportData {
   // Per-operator list for the SPM "DART operator injury" card.
   program_manager_operator_people?: PMPersonRecord[];
   // Single-operator outcome for the SPM "DART operator injury" card.
-  program_manager_operator_outcome?: 'Not Sure' | 'Injured' | 'Fatality';
+  program_manager_operator_outcome?: 'Not Injured' | 'Injured' | 'Fatality';
   program_manager_other_vehicle_fatality_count?: number;
   program_manager_other_vehicle_fatality_records?: SupervisorDemographicRecord[];
   program_manager_other_vehicle_injury_count?: number;

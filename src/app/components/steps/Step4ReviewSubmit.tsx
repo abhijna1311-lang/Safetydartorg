@@ -2352,10 +2352,10 @@ export function Step4ReviewSubmit({
                     body_part: data.supervisor_operator_injured_body_part as PMInjuryBodyPart | undefined,
                     transported_to_hospital: data.supervisor_operator_transported,
                   };
-                  const setSupOperatorOutcome = (next: 'Not Sure' | 'Injured' | 'Fatality') => {
-                    if (next === 'Not Sure') {
+                  const setSupOperatorOutcome = (next: 'Not Injured' | 'Injured' | 'Fatality') => {
+                    if (next === 'Not Injured') {
                       onUpdate({
-                        supervisor_operator_outcome: 'Not Sure',
+                        supervisor_operator_outcome: 'Not Injured',
                         supervisor_operator_injured: false,
                         supervisor_operator_injured_body_part: undefined,
                         supervisor_operator_transported: undefined,
@@ -2409,11 +2409,11 @@ export function Step4ReviewSubmit({
                         <div className="w-full sm:w-72">
                           <CustomSelect
                             value={supOperatorOutcome || ''}
-                            onChange={(v) => setSupOperatorOutcome(v as 'Not Sure' | 'Injured' | 'Fatality')}
+                            onChange={(v) => setSupOperatorOutcome(v as 'Not Injured' | 'Injured' | 'Fatality')}
                             options={[
-                              { value: 'Not Sure', label: 'Not Sure' },
-                              { value: 'Injured', label: 'Injured' },
                               { value: 'Fatality', label: 'Fatal' },
+                              { value: 'Injured', label: 'Injured' },
+                              { value: 'Not Injured', label: 'Not Injured' },
                             ]}
                             placeholder="Select outcome"
                           />
@@ -3347,8 +3347,16 @@ export function Step4ReviewSubmit({
                       : undefined);
                   const operatorFatality = data.program_manager_employee_fatality_records?.[0] || {};
                   const operatorInjury = data.program_manager_employee_injury_records?.[0] || {};
-                  const setOperatorOutcome = (next: 'Injured' | 'Fatality') => {
-                    if (next === 'Fatality') {
+                  const setOperatorOutcome = (next: 'Not Injured' | 'Injured' | 'Fatality') => {
+                    if (next === 'Not Injured') {
+                      onUpdate({
+                        program_manager_operator_outcome: 'Not Injured',
+                        program_manager_employee_fatality_count: 0,
+                        program_manager_employee_fatality_records: [],
+                        program_manager_employee_injury_count: 0,
+                        program_manager_employee_injury_records: [],
+                      });
+                    } else if (next === 'Fatality') {
                       onUpdate({
                         program_manager_operator_outcome: 'Fatality',
                         program_manager_employee_fatality_count: 1,
@@ -3385,10 +3393,11 @@ export function Step4ReviewSubmit({
                         <div className="w-full sm:w-72">
                           <CustomSelect
                             value={operatorOutcome || ''}
-                            onChange={(v) => setOperatorOutcome(v as 'Injured' | 'Fatality')}
+                            onChange={(v) => setOperatorOutcome(v as 'Not Injured' | 'Injured' | 'Fatality')}
                             options={[
-                              { value: 'Injured', label: 'Injured' },
                               { value: 'Fatality', label: 'Fatal' },
+                              { value: 'Injured', label: 'Injured' },
+                              { value: 'Not Injured', label: 'Not Injured' },
                             ]}
                             placeholder="Select outcome"
                           />
