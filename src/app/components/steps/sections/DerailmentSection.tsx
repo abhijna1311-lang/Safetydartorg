@@ -118,20 +118,20 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
 
   const handleVehicleChange = (value: string) => {
     const vehicle = fleet.find(item => item.id === value);
-    const cars = vehicle?.cars || [];
     onUpdate({
       train_number: value,
       lrv_fleet_type: vehicle?.fleetType,
       train_pullout_date: vehicle?.pulloutDate,
       train_pullout_time: vehicle?.pulloutTime,
-      lrv_consist_count: isLRV ? cars.length || undefined : undefined,
-      lrv_consist_1: isLRV ? cars[0] : undefined,
-      lrv_consist_2: isLRV ? cars[1] : undefined,
-      lrv_consist_3: isLRV ? cars[2] : undefined,
-      lrv_consist_4: isLRV ? cars[3] : undefined,
+      lrv_consist_count: isLRV ? data.lrv_consist_count : undefined,
+      lrv_consist_1: isLRV ? data.lrv_consist_1 : undefined,
+      lrv_consist_2: isLRV ? data.lrv_consist_2 : undefined,
+      lrv_consist_3: isLRV ? data.lrv_consist_3 : undefined,
+      lrv_consist_4: isLRV ? data.lrv_consist_4 : undefined,
       car_number: undefined,
     });
   };
+  const consistCount = data.lrv_consist_count ?? 0;
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
@@ -161,12 +161,23 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
         )}
 
         <div className={`grid grid-cols-1 gap-4 ${isLRV ? 'sm:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'}`}>
-          <Field label={`${vehicleLabel} number`} required error={showErrors && !data.train_number}>
-            <SearchableCombobox options={vehicleOptions} value={data.train_number || ''} onChange={handleVehicleChange} placeholder={isLRV ? 'Search train #' : 'Search NRV #'} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
+          <Field label={isLRV ? 'LRV number involved in event' : `${vehicleLabel} number`} required error={showErrors && !data.train_number}>
+            <SearchableCombobox options={vehicleOptions} value={data.train_number || ''} onChange={handleVehicleChange} placeholder={isLRV ? 'Search LRV #' : 'Search NRV #'} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
           </Field>
           {isLRV && (
-            <Field label="Car number involved in event" required error={showErrors && !data.car_number}>
-              <CustomSelect value={data.car_number || ''} onChange={value => onUpdate({ car_number: value })} options={carOptions} placeholder={selectedVehicle ? 'Select car' : 'Select vehicle first'} disabled={!selectedVehicle} />
+            <Field label="LRVs in consist" required error={showErrors && !data.lrv_consist_count}>
+              <CustomSelect
+                value={data.lrv_consist_count ? String(data.lrv_consist_count) : ''}
+                onChange={value => {
+                  const next = Number(value);
+                  const keys = ['lrv_consist_1','lrv_consist_2','lrv_consist_3','lrv_consist_4'] as const;
+                  const clear: Partial<AccidentReportData> = {};
+                  keys.slice(next).forEach(k => { clear[k] = undefined; });
+                  onUpdate({ lrv_consist_count: next, ...clear });
+                }}
+                options={[1,2,3,4].map(n => ({ value: String(n), label: String(n) }))}
+                placeholder="Select count"
+              />
             </Field>
           )}
           {isLRV && (
@@ -180,6 +191,24 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
             </>
           )}
         </div>
+
+        <AnimatePresence>
+          {isLRV && consistCount > 0 && (
+            <motion.div {...fade} key="consist-numbers" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {(['lrv_consist_1','lrv_consist_2','lrv_consist_3','lrv_consist_4'] as const).slice(0, consistCount).map((key, i) => (
+                <Field key={key} label={`LRV ${i + 1} number`} required error={showErrors && !data[key]}>
+                  <input
+                    type="text"
+                    value={(data[key] as string) || ''}
+                    onChange={e => onUpdate({ [key]: e.target.value })}
+                    placeholder={`e.g. 210${i + 1}`}
+                    className={inputCls}
+                  />
+                </Field>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {showLine && (

@@ -93,6 +93,14 @@ export function Step2VehicleLocation({
     : `Vehicle and event details for the ${data.mode || 'selected mode'}.`;
   const narrativeRequirementMet = isOperatorNarrativeLocked ? true : Boolean(data.description_of_event);
   const answered = (value: unknown) => value !== undefined && value !== null && value !== '';
+  // LRV consist: user picks a count and enters that many LRV numbers.
+  const lrvConsistComplete = (() => {
+    const n = data.lrv_consist_count ?? 0;
+    if (n <= 0) return false;
+    const values = [data.lrv_consist_1, data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4];
+    return values.slice(0, n).every(Boolean);
+  })();
+  const railVehicleComplete = data.mode === 'Streetcar' ? !!data.car_number : lrvConsistComplete;
   const requiredWeatherComplete = !!(
     data.weather && data.road_conditions && data.lighting_conditions
     && data.traffic_conditions && data.traffic_controls && data.roadway_configuration
@@ -113,7 +121,7 @@ export function Step2VehicleLocation({
     && requiredWeatherComplete
   );
   const railCollisionComplete = !!(
-    data.train_number && data.car_number
+    data.train_number && railVehicleComplete
     && data.train_status_before && data.train_status_after
     && data.lrv_collision_type && data.train_action && data.lrv_point_of_impact && answered(data.train_speed)
     && data.location_category && data.address_of_event && data.city && data.zip
@@ -139,7 +147,7 @@ export function Step2VehicleLocation({
     && (data.location_category !== 'Revenue Facility: Transit Station' || data.station_applicable)
     && (data.location_category !== 'Right-of-Way: Grade Crossing' || data.grade_crossing_applicable)
     && (data.mode === 'Hi-Rail' || (data.train_status_before && data.train_status_after))
-    && (data.mode !== 'Light Rail Vehicle' || data.car_number)
+    && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
     && (!['In Service', 'Pull-In', 'Pull-Out'].includes(data.train_status_before || '') || data.mode !== 'Light Rail Vehicle' || data.rail_line)
     && data.train_action && answered(data.train_speed)
     && answered(data.train_damage) && answered(data.runaway_train)
@@ -148,7 +156,7 @@ export function Step2VehicleLocation({
   );
   const signalViolationComplete = !!(
     data.train_number
-    && (data.mode !== 'Light Rail Vehicle' || data.car_number)
+    && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
     && data.signal_date && data.signal_number
     && data.signal_displaying_properly && data.signal_territory
     && data.train_status_before && data.train_status_after

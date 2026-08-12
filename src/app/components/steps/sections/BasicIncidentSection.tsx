@@ -117,11 +117,13 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
     .map(t => ({ value: t.id, label: t.id, description: t.fleetType }));
   const selectedTrain = trainFleet.find(t => t.id === data.train_number);
-  const consistCars = selectedTrain?.cars ?? [];
-  const carOptions = [...consistCars]
+  const streetcarCars = selectedTrain?.cars ?? [];
+  const carOptions = [...streetcarCars]
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
     .map(c => ({ value: c, label: c }));
-  const hasTrainRecord = !!(selectedTrain && (isStreetcar || data.car_number));
+  // Streetcar still gates on car number; LRV shows the record once a train is picked (consist entered manually).
+  const hasTrainRecord = !!(selectedTrain && (isStreetcar ? data.car_number : true));
+  const consistCount = data.lrv_consist_count ?? 0;
 
   const handleTrainChange = (val: string) => {
     const t = trainFleet.find(x => x.id === val);
@@ -133,11 +135,11 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
       lrv_end_of_line: t?.endOfLine,
       train_pullout_date: t?.pulloutDate,
       train_pullout_time: t?.pulloutTime,
-      lrv_consist_count: isStreetcar ? undefined : cars.length || undefined,
-      lrv_consist_1: isStreetcar ? undefined : cars[0],
-      lrv_consist_2: isStreetcar ? undefined : cars[1],
-      lrv_consist_3: isStreetcar ? undefined : cars[2],
-      lrv_consist_4: isStreetcar ? undefined : cars[3],
+      lrv_consist_count: isStreetcar ? undefined : data.lrv_consist_count,
+      lrv_consist_1: isStreetcar ? undefined : data.lrv_consist_1,
+      lrv_consist_2: isStreetcar ? undefined : data.lrv_consist_2,
+      lrv_consist_3: isStreetcar ? undefined : data.lrv_consist_3,
+      lrv_consist_4: isStreetcar ? undefined : data.lrv_consist_4,
       car_number: isStreetcar ? cars[0] : undefined,
     });
   };
@@ -252,19 +254,35 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
           </AnimatePresence>
 
           <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={`grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${isStreetcar ? 'xl:grid-cols-2' : 'xl:grid-cols-3'}`}>
-            <Field label={isStreetcar ? 'Streetcar number' : 'LRV number'} required error={showErrors && !data.train_number}>
+            <Field label={isStreetcar ? 'Streetcar number' : 'LRV number involved in event'} required error={showErrors && !data.train_number}>
               <SearchableCombobox
                 options={trainOptions}
                 value={data.train_number || ''}
                 onChange={handleTrainChange}
-                placeholder={isStreetcar ? 'Search streetcar #' : 'Search train #'}
+                placeholder={isStreetcar ? 'Search streetcar #' : 'Search LRV #'}
                 searchPlaceholder={isStreetcar ? 'Type streetcar number...' : 'Type LRV number...'}
-                emptyMessage={isStreetcar ? 'No streetcars found' : 'No trains found'}
+                emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
               />
             </Field>
-            {!isStreetcar && (
+            {isStreetcar && (
               <Field label="Car number involved in event" required error={showErrors && !data.car_number}>
-                <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={selectedTrain ? 'Select car' : 'Select train first'} disabled={!selectedTrain} />
+                <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={selectedTrain ? 'Select car' : 'Select streetcar first'} disabled={!selectedTrain} />
+              </Field>
+            )}
+            {!isStreetcar && (
+              <Field label="LRVs in consist" required error={showErrors && !data.lrv_consist_count}>
+                <CustomSelect
+                  value={data.lrv_consist_count ? String(data.lrv_consist_count) : ''}
+                  onChange={v => {
+                    const next = Number(v);
+                    const keys = ['lrv_consist_1','lrv_consist_2','lrv_consist_3','lrv_consist_4'] as const;
+                    const clear: Partial<AccidentReportData> = {};
+                    keys.slice(next).forEach(k => { clear[k] = undefined; });
+                    onUpdate({ lrv_consist_count: next, ...clear });
+                  }}
+                  options={[1,2,3,4].map(n => ({ value: String(n), label: String(n) }))}
+                  placeholder="Select count"
+                />
               </Field>
             )}
             <Field label="Rail line">
@@ -277,6 +295,24 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
               />
             </Field>
           </div>
+
+          <AnimatePresence>
+            {!isStreetcar && consistCount > 0 && (
+              <motion.div {...fade} key="consist-numbers" className="mt-4 grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4">
+                {(['lrv_consist_1','lrv_consist_2','lrv_consist_3','lrv_consist_4'] as const).slice(0, consistCount).map((key, i) => (
+                  <Field key={key} label={`LRV ${i + 1} number`} required error={showErrors && !data[key]}>
+                    <input
+                      type="text"
+                      value={(data[key] as string) || ''}
+                      onChange={e => onUpdate({ [key]: e.target.value })}
+                      placeholder={`e.g. 210${i + 1}`}
+                      className={inputCls}
+                    />
+                  </Field>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Section>
       )}
 
