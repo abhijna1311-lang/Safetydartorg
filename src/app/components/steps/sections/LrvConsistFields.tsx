@@ -1,15 +1,20 @@
 import { AnimatePresence, motion } from 'motion/react';
 import type { AccidentReportData } from '../../../types/accident-report';
 
+type ConsistKey = keyof AccidentReportData;
+
 interface Props {
   data: AccidentReportData;
   onUpdate: (d: Partial<AccidentReportData>) => void;
   showErrors?: boolean;
+  // Field-key overrides so the same UX can drive Operator OR Field Supervisor state.
+  countKey?: ConsistKey;
+  additionalKeys?: readonly [ConsistKey, ConsistKey, ConsistKey];
+  leadNumber?: string;
 }
 
-// The top "LRV number involved in event" field is LRV 1 of the consist.
-// Only LRVs 2–4 are captured here as additional numbers.
-const ADDITIONAL_KEYS = ['lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;
+const DEFAULT_COUNT_KEY: ConsistKey = 'lrv_consist_count';
+const DEFAULT_ADDITIONAL_KEYS = ['lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;
 const COUNT_OPTIONS = [1, 2, 3, 4];
 // Static class strings so Tailwind can extract them at build time.
 const STRIP_COLS_CLASS: Record<number, string> = {
@@ -30,18 +35,26 @@ const rowFade = {
 
 // Count = 1 means the LRV from the top field is the entire consist.
 // The strip always shows the lead LRV as a read-only pill, then editable slots for the rest.
-export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) {
-  const count = data.lrv_consist_count ?? 0;
+export function LrvConsistFields({
+  data,
+  onUpdate,
+  showErrors = false,
+  countKey = DEFAULT_COUNT_KEY,
+  additionalKeys = DEFAULT_ADDITIONAL_KEYS,
+  leadNumber,
+}: Props) {
+  const count = (data[countKey] as number | undefined) ?? 0;
+  const resolvedLead = leadNumber !== undefined ? leadNumber : (data.train_number || '');
 
   const setCount = (next: number) => {
     const extras = Math.max(0, next - 1);
     const clear: Partial<AccidentReportData> = {};
-    ADDITIONAL_KEYS.slice(extras).forEach(k => { clear[k] = undefined; });
-    onUpdate({ lrv_consist_count: next, ...clear });
+    additionalKeys.slice(extras).forEach(k => { clear[k] = undefined; });
+    onUpdate({ [countKey]: next, ...clear });
   };
 
   const countMissing = showErrors && count === 0;
-  const leadLabel = data.train_number || 'Pick the LRV above';
+  const leadLabel = resolvedLead || 'Pick the LRV above';
 
   return (
     <div className={`rounded-xl border bg-slate-50/60 px-4 py-3.5 md:px-5 ${countMissing ? 'border-red-300' : 'border-slate-200'}`}>
@@ -92,9 +105,9 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
               >
                 {/* Lead LRV — read-only, mirrors the top field. */}
                 <div
-                  aria-label={`LRV 1 (lead): ${data.train_number || 'not selected'}`}
+                  aria-label={`LRV 1 (lead): ${resolvedLead || 'not selected'}`}
                   className={`h-11 rounded-lg border px-3 flex items-center gap-2 font-['Poppins'] text-sm ${
-                    data.train_number
+                    resolvedLead
                       ? 'border-[#00205B]/25 bg-[#EAF1F8] text-[#00205B]'
                       : 'border-dashed border-slate-300 bg-white text-slate-400'
                   }`}
@@ -103,7 +116,7 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
                   <span className="dart-tabular truncate">{leadLabel}</span>
                 </div>
 
-                {ADDITIONAL_KEYS.slice(0, Math.max(0, count - 1)).map((key, i) => (
+                {additionalKeys.slice(0, Math.max(0, count - 1)).map((key, i) => (
                   <div key={key}>
                     <input
                       type="text"

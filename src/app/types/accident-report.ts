@@ -355,6 +355,10 @@ export interface AccidentReportData {
   supervisor_train_pullout_date?: string;
   supervisor_train_pullout_time?: string;
   supervisor_lrv_fleet_type?: string;
+  supervisor_lrv_consist_count?: number;
+  supervisor_lrv_consist_2?: string;
+  supervisor_lrv_consist_3?: string;
+  supervisor_lrv_consist_4?: string;
   supervisor_operating_route_number?: string;
   supervisor_block_number?: string;
   supervisor_end_of_line_destination?: string;
