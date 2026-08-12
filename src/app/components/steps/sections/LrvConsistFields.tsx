@@ -7,14 +7,15 @@ interface Props {
   showErrors?: boolean;
 }
 
-const CONSIST_KEYS = ['lrv_consist_1', 'lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;
+// The top "LRV number involved in event" field is LRV 1 of the consist.
+// Only LRVs 2–4 are captured here as additional numbers.
+const ADDITIONAL_KEYS = ['lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;
 const COUNT_OPTIONS = [1, 2, 3, 4];
 // Static class strings so Tailwind can extract them at build time.
-const COLS_CLASS: Record<number, string> = {
-  1: 'grid-cols-1',
+const ADDITIONAL_COLS_CLASS: Record<number, string> = {
+  1: 'sm:grid-cols-1',
   2: 'sm:grid-cols-2',
   3: 'sm:grid-cols-3',
-  4: 'sm:grid-cols-2 lg:grid-cols-4',
 };
 
 const inputCls = 'dart-input-base';
@@ -26,14 +27,15 @@ const rowFade = {
   transition: { duration: 0.18 },
 };
 
-// Groups the "how many LRVs" picker with the LRV number inputs so they read as one unit,
-// not a count that dangles above an isolated number field.
+// Count = 1 means the LRV from the top field is the entire consist — no extra inputs needed.
 export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) {
   const count = data.lrv_consist_count ?? 0;
+  const additionalCount = Math.max(0, count - 1);
 
   const setCount = (next: number) => {
+    const extras = Math.max(0, next - 1);
     const clear: Partial<AccidentReportData> = {};
-    CONSIST_KEYS.slice(next).forEach(k => { clear[k] = undefined; });
+    ADDITIONAL_KEYS.slice(extras).forEach(k => { clear[k] = undefined; });
     onUpdate({ lrv_consist_count: next, ...clear });
   };
 
@@ -71,7 +73,7 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
 
         <div className="flex-1">
           <label className="dart-field-label text-slate-500">
-            LRV numbers
+            {additionalCount > 0 ? 'Additional LRV numbers' : 'LRV numbers'}
           </label>
           <AnimatePresence mode="wait" initial={false}>
             {count === 0 ? (
@@ -80,22 +82,30 @@ export function LrvConsistFields({ data, onUpdate, showErrors = false }: Props) 
                 key="empty"
                 className="h-11 flex items-center text-xs text-slate-400 font-['Poppins']"
               >
-                Pick a count to enter each LRV number.
+                Pick a count to complete the consist.
+              </motion.p>
+            ) : count === 1 ? (
+              <motion.p
+                {...rowFade}
+                key="single"
+                className="h-11 flex items-center text-xs text-slate-500 font-['Poppins']"
+              >
+                Just the LRV above — no additional numbers needed.
               </motion.p>
             ) : (
               <motion.div
                 {...rowFade}
                 key={`inputs-${count}`}
-                className={`grid grid-cols-1 gap-2.5 ${COLS_CLASS[count]}`}
+                className={`grid grid-cols-1 gap-2.5 ${ADDITIONAL_COLS_CLASS[additionalCount]}`}
               >
-                {CONSIST_KEYS.slice(0, count).map((key, i) => (
+                {ADDITIONAL_KEYS.slice(0, additionalCount).map((key, i) => (
                   <div key={key}>
                     <input
                       type="text"
                       value={(data[key] as string) || ''}
                       onChange={e => onUpdate({ [key]: e.target.value })}
-                      placeholder={`LRV ${i + 1} #`}
-                      aria-label={`LRV ${i + 1} number`}
+                      placeholder={`LRV ${i + 2} #`}
+                      aria-label={`LRV ${i + 2} number`}
                       className={`${inputCls} ${showErrors && !data[key] ? '!border-red-400' : ''}`}
                     />
                   </div>

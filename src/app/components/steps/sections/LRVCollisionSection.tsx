@@ -129,7 +129,10 @@ function fmtTime(val?: string) {
 // Train record pulled from the train roster — reads the live data fields each render, so
 // changing the train number re-populates the matching fleet, line and schedule values.
 export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber }: { data: AccidentReportData; showRailLine: boolean; showConsist: boolean; showCarNumber: boolean }) {
-  const consistCars = [data.lrv_consist_1, data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4].filter(Boolean) as string[];
+  // The top LRV field (train_number) is the lead LRV; lrv_consist_2..4 are additional cars.
+  const additional = [data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4].filter(Boolean) as string[];
+  const consistCars = data.train_number ? [data.train_number, ...additional] : additional;
+  const consistTotal = data.lrv_consist_count ?? consistCars.length;
   const cols = [
     { label: 'Fleet type', value: data.lrv_fleet_type, glyph: 'tram' },
     ...(showCarNumber ? [{ label: 'Car number', value: data.car_number, glyph: 'confirmation_number' }] : []),
@@ -153,11 +156,11 @@ export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber
         <div className="dart-vehicle-item">
           <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">train</span></span>
           <div className="dart-vehicle-text">
-            <span className="dart-vehicle-label">Consist ({consistCars.length})</span>
+            <span className="dart-vehicle-label">Consist ({consistTotal})</span>
             <span className="dart-vehicle-value dart-tabular">
               {consistCars.map((car, i) => (
                 <span key={car}>
-                  <span className={car === data.car_number ? 'font-bold text-[#0078AE]' : undefined} title={car === data.car_number ? 'Involved car' : undefined}>{car}</span>
+                  <span className={car === data.train_number ? 'font-bold text-[#0078AE]' : undefined} title={car === data.train_number ? 'Lead LRV' : undefined}>{car}</span>
                   {i < consistCars.length - 1 && <span className="text-slate-300">, </span>}
                 </span>
               ))}

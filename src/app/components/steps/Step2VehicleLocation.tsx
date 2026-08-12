@@ -93,12 +93,13 @@ export function Step2VehicleLocation({
     : `Vehicle and event details for the ${data.mode || 'selected mode'}.`;
   const narrativeRequirementMet = isOperatorNarrativeLocked ? true : Boolean(data.description_of_event);
   const answered = (value: unknown) => value !== undefined && value !== null && value !== '';
-  // LRV consist: user picks a count and enters that many LRV numbers.
+  // LRV consist: count 1 = the top LRV field alone; counts 2–4 also require each additional LRV #.
   const lrvConsistComplete = (() => {
     const n = data.lrv_consist_count ?? 0;
     if (n <= 0) return false;
-    const values = [data.lrv_consist_1, data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4];
-    return values.slice(0, n).every(Boolean);
+    if (n === 1) return true;
+    const additional = [data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4];
+    return additional.slice(0, n - 1).every(Boolean);
   })();
   const railVehicleComplete = data.mode === 'Streetcar' ? !!data.car_number : lrvConsistComplete;
   const requiredWeatherComplete = !!(
