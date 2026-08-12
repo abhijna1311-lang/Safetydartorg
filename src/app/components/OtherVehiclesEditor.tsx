@@ -264,7 +264,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
           );
         const recordComplete = v.occupants !== undefined
           && occupantsComplete
-          && v.dart_dart !== undefined && !!v.vehicle_type && (isOperator || !!v.collision_type) && !!v.action && !!v.point_of_impact
+          && v.dart_dart !== undefined && !!v.vehicle_type && (!isPM || !!v.collision_type) && !!v.action && !!v.point_of_impact
           && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
@@ -345,11 +345,11 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isOperator ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+                      <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isPM ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
                         <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
-                        {!isOperator && (
+                        {isPM && (
                           <Field label="Other vehicle collision type" required error={showErrors && !v.collision_type}>
                             <CustomSelect value={v.collision_type || ''} onChange={val => update(v.id, { collision_type: val })} options={COLLISION_TYPES} placeholder="Select collision type" />
                           </Field>
