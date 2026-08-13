@@ -7,6 +7,7 @@ import { SmartCheckReviewBanner } from '../SmartCheckReviewBanner';
 import { SubmissionSuccessInline } from '../SubmissionSuccessInline';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { FLEET, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
+import { TRAIN_FLEET, STREETCAR_FLEET } from './sections/LRVCollisionSection';
 import { YesNoToggle } from '../form/YesNoToggle';
 import { FormField } from '../form/FormField';
 import { SearchableCombobox, type ComboboxOption } from '../SearchableCombobox';
@@ -170,6 +171,50 @@ function SupervisorVehicleRecordCard({ data }: { data: AccidentReportData }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Supervisor's LRV/Streetcar record strip — mirrors the operator's TrainRecordCard using supervisor_* fields.
+function SupervisorTrainRecordCard({ data, showConsist, showCarNumber, showRailLine }: { data: AccidentReportData; showConsist: boolean; showCarNumber: boolean; showRailLine: boolean }) {
+  const additional = [data.supervisor_lrv_consist_2, data.supervisor_lrv_consist_3, data.supervisor_lrv_consist_4].filter(Boolean) as string[];
+  const consistCars = data.supervisor_vehicle_number ? [data.supervisor_vehicle_number, ...additional] : additional;
+  const consistTotal = data.supervisor_lrv_consist_count ?? consistCars.length;
+  const cols = [
+    { label: 'Fleet type', value: data.supervisor_lrv_fleet_type, glyph: 'tram' },
+    ...(showCarNumber ? [{ label: 'Car number', value: data.supervisor_car_number, glyph: 'confirmation_number' }] : []),
+    ...(showRailLine ? [{ label: 'Rail line', value: data.supervisor_rail_line, glyph: 'route' }] : []),
+    { label: 'Pull-out date', value: fmtSupDate(data.supervisor_train_pullout_date), glyph: 'calendar_month' },
+    { label: 'Pull-out time', value: fmtSupTime(data.supervisor_train_pullout_time), glyph: 'schedule' },
+    { label: 'End of line destination', value: data.supervisor_end_of_line_destination, glyph: 'flag' },
+  ];
+  return (
+    <div className="dart-vehicle-strip">
+      {cols.map(({ label, value, glyph }) => (
+        <div key={label} className="dart-vehicle-item">
+          <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">{glyph}</span></span>
+          <div className="dart-vehicle-text">
+            <span className="dart-vehicle-label">{label}</span>
+            <span className="dart-vehicle-value dart-tabular">{value || '\u2014'}</span>
+          </div>
+        </div>
+      ))}
+      {showConsist && consistCars.length > 0 && (
+        <div className="dart-vehicle-item">
+          <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">train</span></span>
+          <div className="dart-vehicle-text">
+            <span className="dart-vehicle-label">Consist ({consistTotal})</span>
+            <span className="dart-vehicle-value dart-tabular">
+              {consistCars.map((car, i) => (
+                <span key={car}>
+                  <span className={car === data.supervisor_vehicle_number ? 'font-bold text-[#0078AE]' : undefined} title={car === data.supervisor_vehicle_number ? 'Lead LRV' : undefined}>{car}</span>
+                  {i < consistCars.length - 1 && <span className="text-slate-300">, </span>}
+                </span>
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -654,11 +699,14 @@ export function Step4ReviewSubmit({
     label: vehicle.label,
     description: `${vehicle.type} • ${vehicle.route} • ${vehicle.tripId}`,
   }));
-  const supervisorRailFleetOptions: ComboboxOption[] = RAIL_FLEET_DB.map(record => ({
-    value: record.trainNumber,
-    label: record.trainNumber,
-    description: `${record.fleetType} • Car ${record.carNumber} • ${record.source}`,
-  }));
+  const supervisorRailRoster = supervisorVehicleType === 'Streetcar' ? STREETCAR_FLEET : TRAIN_FLEET;
+  const supervisorRailFleetOptions: ComboboxOption[] = [...supervisorRailRoster]
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+    .map(record => ({
+      value: record.id,
+      label: record.id,
+      description: `${record.fleetType} • ${record.railLine}`,
+    }));
   const confirmationChecked = isSupervisorReview
     ? Boolean(data.supervisor_confirmation_checked)
     : isProgramManagerReview
@@ -859,18 +907,27 @@ export function Step4ReviewSubmit({
   };
 
   const updateSupervisorRailVehicleNumber = (value: string) => {
-    const record = RAIL_FLEET_DB.find(item => item.trainNumber === value);
+    const record = supervisorRailRoster.find(item => item.id === value);
+    const cars = record?.cars ?? [];
     onUpdate(record
       ? {
-          supervisor_vehicle_number: record.trainNumber,
+          supervisor_vehicle_number: record.id,
           supervisor_lrv_fleet_type: record.fleetType,
           supervisor_fleet: record.fleetType,
-          supervisor_car_number: record.carNumber,
+          supervisor_rail_line: record.railLine,
+          supervisor_end_of_line_destination: record.endOfLine,
+          supervisor_train_pullout_date: record.pulloutDate,
+          supervisor_train_pullout_time: record.pulloutTime,
+          supervisor_car_number: supervisorVehicleType === 'Streetcar' ? cars[0] : undefined,
         }
       : {
           supervisor_vehicle_number: value,
           supervisor_lrv_fleet_type: undefined,
           supervisor_fleet: undefined,
+          supervisor_rail_line: undefined,
+          supervisor_end_of_line_destination: undefined,
+          supervisor_train_pullout_date: undefined,
+          supervisor_train_pullout_time: undefined,
           supervisor_car_number: undefined,
         });
   };
@@ -1981,7 +2038,15 @@ export function Step4ReviewSubmit({
 
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Vehicle details</h3>
-                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">{supervisorVehicleType ? `Vehicle mode set at intake: ${supervisorVehicleType}. Confirm the vehicle details below.` : 'Confirm the DART vehicle details for this event.'}</p>
+                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">{
+                  supervisorVehicleType === 'Light Rail Vehicle'
+                    ? 'Enter the LRV number — its assigned fleet, line and schedule are pulled in automatically.'
+                    : supervisorVehicleType === 'Streetcar'
+                      ? 'Enter the streetcar number — its assigned fleet, line and schedule are pulled in automatically.'
+                      : supervisorVehicleType
+                        ? `Vehicle mode set at intake: ${supervisorVehicleType}. Confirm the vehicle details below.`
+                        : 'Confirm the DART vehicle details for this event.'
+                }</p>
                 <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
                   <AnimatePresence initial={false} mode="wait">
                     {hasSupervisorVehicleType && (
@@ -2027,48 +2092,24 @@ export function Step4ReviewSubmit({
                           </div>
                         ) : supervisorVehicleType === 'Light Rail Vehicle' || supervisorVehicleType === 'Streetcar' ? (
                           <div className="space-y-4">
-                            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${supervisorVehicleType === 'Streetcar' ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
-                              <div>
-                                <div className={FIELD_LABEL_CLASS}>{supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : 'LRV number involved in event'} <span className="text-red-500">*</span></div>
-                                <SearchableCombobox
-                                  options={supervisorRailFleetOptions}
-                                  value={data.supervisor_vehicle_number || ''}
-                                  onChange={updateSupervisorRailVehicleNumber}
-                                  placeholder={supervisorVehicleType === 'Streetcar' ? 'Search streetcar #' : 'Search LRV #'}
-                                  searchPlaceholder={supervisorVehicleType === 'Streetcar' ? 'Type streetcar number...' : 'Type LRV number...'}
-                                  emptyMessage="No linked fleet records found"
-                                />
-                              </div>
-                              <div>
-                                <div className={FIELD_LABEL_CLASS}>{supervisorVehicleType === 'Streetcar' ? 'Streetcar fleet type' : 'LRV fleet type'}</div>
-                                <input
-                                  type="text"
-                                  readOnly
-                                  value={data.supervisor_lrv_fleet_type || ''}
-                                  placeholder={data.supervisor_vehicle_number ? '—' : 'Auto-filled from LRV #'}
-                                  className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-500`}
-                                />
-                              </div>
-                              {supervisorVehicleType === 'Streetcar' && (
-                                <div>
-                                  <div className={FIELD_LABEL_CLASS}>Car number involved in event</div>
-                                  <input
-                                    type="text"
-                                    readOnly
-                                    value={data.supervisor_car_number || ''}
-                                    placeholder={data.supervisor_vehicle_number ? '—' : 'Auto-filled from streetcar #'}
-                                    className={`${INPUT_CLASS} bg-white/70 cursor-not-allowed text-slate-500`}
-                                  />
-                                </div>
-                              )}
-                              <div>
-                                <div className={FIELD_LABEL_CLASS}>LRV pull-out date</div>
-                                <DatePickerInput value={data.supervisor_train_pullout_date || ''} onChange={(value) => onUpdate({ supervisor_train_pullout_date: value })} />
-                              </div>
-                              <div>
-                                <div className={FIELD_LABEL_CLASS}>LRV pull-out time</div>
-                                <TimePickerInput value={data.supervisor_train_pullout_time || ''} onChange={(value) => onUpdate({ supervisor_train_pullout_time: value })} />
-                              </div>
+                            {data.supervisor_vehicle_number && (
+                              <SupervisorTrainRecordCard
+                                data={data}
+                                showConsist={supervisorVehicleType === 'Light Rail Vehicle'}
+                                showCarNumber={supervisorVehicleType === 'Streetcar'}
+                                showRailLine={!!data.supervisor_rail_line}
+                              />
+                            )}
+                            <div className="max-w-xl">
+                              <div className={FIELD_LABEL_CLASS}>{supervisorVehicleType === 'Streetcar' ? 'Streetcar number' : 'LRV number involved in event'} <span className="text-red-500">*</span></div>
+                              <SearchableCombobox
+                                options={supervisorRailFleetOptions}
+                                value={data.supervisor_vehicle_number || ''}
+                                onChange={updateSupervisorRailVehicleNumber}
+                                placeholder={supervisorVehicleType === 'Streetcar' ? 'Search streetcar #' : 'Search LRV #'}
+                                searchPlaceholder={supervisorVehicleType === 'Streetcar' ? 'Type streetcar number...' : 'Type LRV number...'}
+                                emptyMessage={supervisorVehicleType === 'Streetcar' ? 'No streetcars found' : 'No LRVs found'}
+                              />
                             </div>
                             {supervisorVehicleType === 'Light Rail Vehicle' && (
                               <LrvConsistFields
