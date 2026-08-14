@@ -207,6 +207,86 @@ export function VehicleRecordCard({ data }: { data: AccidentReportData }) {
   );
 }
 
+type BusStatusField = 'bus_status_before' | 'bus_status_after' | 'vehicle_status_before' | 'vehicle_status_after';
+
+export function BusVehicleFields({
+  data,
+  onUpdate,
+  showErrors = false,
+  statusBeforeField = 'bus_status_before',
+  statusAfterField = 'bus_status_after',
+  statusOptions = BUS_STATUS_OPTIONS,
+}: {
+  data: AccidentReportData;
+  onUpdate: (data: Partial<AccidentReportData>) => void;
+  showErrors?: boolean;
+  statusBeforeField?: BusStatusField;
+  statusAfterField?: BusStatusField;
+  statusOptions?: { value: string; label: string }[];
+}) {
+  const vehicleOptions: ComboboxOption[] = FLEET.map(bus => ({ value: bus.id, label: bus.id, description: bus.type }));
+  const selectedBus = FLEET.find(bus => bus.id === data.vehicle_number);
+  const busBlocks = (selectedBus?.trips ?? []).flatMap(trip => trip.blocks.map(block => ({ ...block, trip })));
+  const blockOptions = busBlocks
+    .map(block => ({ value: block.block, label: block.block }))
+    .sort((a, b) => a.value.localeCompare(b.value, undefined, { numeric: true }));
+  const hasVehicleRecord = !!(data.vehicle_number && data.trip_id?.trim() && data.block_number?.trim());
+
+  const handleVehicleChange = (value: string) => {
+    const bus = FLEET.find(item => item.id === value);
+    onUpdate({
+      vehicle_number: value,
+      fleet_type: bus?.type,
+      trip_id: undefined,
+      route_number: undefined,
+      end_of_line_destination: undefined,
+      block_number: undefined,
+      employee_pullout_date: undefined,
+      employee_pullout_time: undefined,
+    });
+  };
+  const handleBlockChange = (value: string) => {
+    const match = busBlocks.find(block => block.block === value);
+    onUpdate({
+      block_number: value,
+      trip_id: match?.trip.trip,
+      route_number: match?.trip.route,
+      end_of_line_destination: match?.trip.endOfLine,
+      employee_pullout_date: match?.pulloutDate,
+      employee_pullout_time: match?.pulloutTime,
+    });
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {hasVehicleRecord && (
+          <motion.div {...fade} key="bus-record">
+            <VehicleRecordCard data={data} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div style={{ marginTop: hasVehicleRecord ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <Field label="Status before event" required error={showErrors && !data[statusBeforeField]}>
+          <CustomSelect value={(data[statusBeforeField] as string) || ''} onChange={value => onUpdate({ [statusBeforeField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
+        </Field>
+        <Field label="Status after event" required error={showErrors && !data[statusAfterField]}>
+          <CustomSelect value={(data[statusAfterField] as string) || ''} onChange={value => onUpdate({ [statusAfterField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
+        </Field>
+        <Field label="Bus vehicle number" required error={showErrors && !data.vehicle_number}>
+          <SearchableCombobox options={vehicleOptions} value={data.vehicle_number || ''} onChange={handleVehicleChange} placeholder="Search vehicle #" searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
+        </Field>
+        <Field label="Block ID" required error={showErrors && !data.block_number}>
+          <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
+        </Field>
+        <Field label="Route">
+          <input type="text" readOnly value={data.route_number || ''} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500" />
+        </Field>
+      </div>
+    </>
+  );
+}
+
 export function BusCollisionSection({ data, onUpdate, compactMode = false, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   // Bus → Block → Route cascade: user picks bus + block, route auto-populates from the block's trip.
   const vehicleOptions: ComboboxOption[] = FLEET.map(f => ({
@@ -248,53 +328,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
 
       {/* 1 — The vehicle: bus number + Block ID drive the read-only detail card; route is derived. */}
       <Section title="The vehicle" help="Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically.">
-        <AnimatePresence>
-          {hasVehicleRecord && (
-            <motion.div {...fade} key="vehicle-record">
-              <VehicleRecordCard data={data} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div style={{ marginTop: hasVehicleRecord ? 26 : undefined }} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-[18px]">
-          <div>
-            <label className="dart-field-label">
-              Bus vehicle number <span className="dart-req">*</span>
-            </label>
-            <div className={showErrors && !data.vehicle_number ? 'dart-field-error' : ''}>
-              <SearchableCombobox
-                options={vehicleOptions}
-                value={data.vehicle_number || ''}
-                onChange={handleVehicleChange}
-                placeholder="Search vehicle #"
-                searchPlaceholder="Type vehicle number..."
-                emptyMessage="No vehicles found"
-              />
-            </div>
-            {showErrors && !data.vehicle_number && (
-              <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">Bus vehicle number is required.</p>
-            )}
-          </div>
-
-          <Field label="Block ID" required error={showErrors && !data.block_number}>
-            <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
-          </Field>
-          <Field label="Route" required error={showErrors && !data.route_number}>
-            <input
-              type="text"
-              readOnly
-              value={data.route_number || ''}
-              placeholder={data.block_number ? '—' : 'Auto-filled from block'}
-              className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500"
-            />
-          </Field>
-          <Field label="Status before event" required>
-            <CustomSelect value={data.bus_status_before || ''} onChange={v => onUpdate({ bus_status_before: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
-          </Field>
-          <Field label="Status after event" required>
-            <CustomSelect value={data.bus_status_after || ''} onChange={v => onUpdate({ bus_status_after: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
-          </Field>
-        </div>
+        <BusVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
       </Section>
 
       {/* 2 — What happened: the narrative + mechanics of the collision */}

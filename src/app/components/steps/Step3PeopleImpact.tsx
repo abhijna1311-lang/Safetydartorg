@@ -9,7 +9,8 @@ import { PersonListEditor } from '../PersonListEditor';
 import { OtherVehiclesEditor } from '../OtherVehiclesEditor';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
-import type { AccidentReportData, Person } from '../../types/accident-report';
+import { AssaultPeopleImpactSection } from './sections/AssaultPeopleImpactSection';
+import type { AccidentReportData, AssaultPerpetrator, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
 
@@ -98,6 +99,7 @@ export function Step3PeopleImpact({
   const isPedestrianCollision = /pedestrian/i.test(collisionType);
   const isRevenueMode = ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '');
   const isHiRail = data.mode === 'Hi-Rail';
+  const isAssault = data.event_type === 'Assault (Verbal or Physical)';
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
@@ -158,6 +160,27 @@ export function Step3PeopleImpact({
   );
   const operatorAnswered = isHiRail || (data.operator_injured !== undefined
     && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined)));
+  // Assault: employee injury/response plus the complete per-perpetrator card list.
+  const assaultAnswered = (() => {
+    if (!isAssault) return true;
+    const base = data.operator_injured !== undefined && data.operator_transported !== undefined
+      && data.notified_law_enforcement !== undefined && data.contacted_supervisor !== undefined
+      && (!data.operator_injured || !!data.operator_injured_body_part);
+    if (!base) return false;
+    if (data.assault_involves !== 'customer_assaulted_worker') return true;
+    const perpetrators = data.assault_perpetrators ?? [];
+    const perpetratorComplete = (p: AssaultPerpetrator) => (
+      !!p.who_assaulted
+      && !!p.assault_method
+      && !!p.age
+      && !!p.gender
+      && p.spat_on !== undefined
+      && p.fled_scene !== undefined
+    );
+    if (perpetrators.length === 0 || !perpetrators.every(perpetratorComplete)) return false;
+    const hasMotorist = perpetrators.some((p) => p.who_assaulted === 'motorist');
+    return !hasMotorist || (data.vehicle2_is_dart_vehicle !== undefined && !!data.vehicle2_type);
+  })();
   const peopleAnswered = data.people_involved !== undefined
     && (data.people_involved !== true || (people.length > 0 && people.every(personComplete)));
   const pedestriansAnswered = !isPedestrianCollision || pedestrianCount >= 1;
@@ -165,7 +188,9 @@ export function Step3PeopleImpact({
     || ((data.other_vehicles?.length || 0) > 0 && (data.other_vehicles || []).every(vehicleComplete));
   const canProceed = isInitiationStage || isSupervisorReview
     ? true
-    : (operatorAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
+    : isAssault
+      ? assaultAnswered
+      : (operatorAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
   const [showErrors, setShowErrors] = useState(false);
   const handleNextClick = () => {
     if (canProceed) {
@@ -284,6 +309,8 @@ export function Step3PeopleImpact({
                 </div>
               </Card>
             </>
+          ) : isAssault ? (
+            <AssaultPeopleImpactSection data={data} onUpdate={onUpdate} showErrors={showErrors} />
           ) : (
             <div className="dart-card dart-card--surface overflow-hidden">
 

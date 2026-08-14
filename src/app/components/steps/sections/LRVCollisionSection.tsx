@@ -6,6 +6,7 @@ import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
 import { LrvConsistFields } from './LrvConsistFields';
+import { RailVehicleFields } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -225,41 +226,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
 
       {/* 1 — The train: enter the train number; its assigned details are pulled in automatically */}
       <Section title={isStreetcar ? 'The streetcar' : 'The train'} help={`Enter the ${isStreetcar ? 'streetcar' : 'train'} number — its assigned fleet, line and schedule are pulled in automatically.`}>
-        <AnimatePresence>
-          {hasTrainRecord && (
-            <motion.div {...fade} key="train-record">
-              <TrainRecordCard data={data} showRailLine={showRailLine} showConsist={!isStreetcar} showCarNumber={isStreetcar} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3">
-          <Field label={isStreetcar ? 'Streetcar number' : 'LRV number involved in event'} required error={showErrors && !data.train_number}>
-            <SearchableCombobox
-              options={trainOptions}
-              value={data.train_number || ''}
-              onChange={handleTrainChange}
-              placeholder={isStreetcar ? 'Search streetcar #' : 'Search LRV #'}
-              searchPlaceholder={isStreetcar ? 'Type streetcar number...' : 'Type LRV number...'}
-              emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
-            />
-          </Field>
-          {isStreetcar && (
-            <Field label="Car number involved in event" required error={showErrors && !data.car_number}>
-              <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={data.train_number ? 'Select car' : 'Select streetcar first'} disabled={!data.train_number} />
-            </Field>
-          )}
-          <Field label={isStreetcar ? 'Streetcar status before event' : 'Train status before event'} required>
-            <CustomSelect value={data.train_status_before || ''} onChange={v => onUpdate({ train_status_before: v })} options={TRAIN_STATUS} placeholder="Select status" />
-          </Field>
-          <Field label={isStreetcar ? 'Streetcar status after event' : 'Train status after event'} required>
-            <CustomSelect value={data.train_status_after || ''} onChange={v => onUpdate({ train_status_after: v })} options={TRAIN_STATUS} placeholder="Select status" />
-          </Field>
-        </div>
-
-        {!isStreetcar && (
-          <LrvConsistFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
-        )}
+        <RailVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} showRailLine={showRailLine} />
       </Section>
 
       {/* 2 — What happened: the narrative and mechanics of the collision */}

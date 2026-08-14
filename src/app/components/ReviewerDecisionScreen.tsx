@@ -197,6 +197,7 @@ export function ReviewerDecisionScreen({
         name: record.name,
         division: record.division,
       }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
   ), [data.supervisor_badge_number]);
 
   const commentTouched = note.trim().length > 0;

@@ -1747,6 +1747,143 @@ export function Step4ReviewSubmit({
         </div>
         )}
 
+        {/* Assault summary — replaces the collision-shaped "Incident details" block for assault events,
+            so the review shows what the operator actually answered. */}
+        {showInlineReferenceSummaries && data.event_type === 'Assault (Verbal or Physical)' && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Assault details</h4>
+            <button
+              onClick={() => onJumpToStep(2)}
+              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+            >
+              <Edit className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Operating a DART vehicle</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">{data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assault type</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">{data.assault_type || '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assault trigger</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">{data.assault_trigger || '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assault involves</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">
+                {data.assault_involves === 'customer_assaulted_worker' ? 'Customer/Pedestrian/Motorist assaulted transit worker'
+                  : data.assault_involves === 'worker_assaulted_worker' ? 'Transit worker assaulted transit worker' : '—'}
+              </div>
+            </div>
+            {data.assault_involves === 'customer_assaulted_worker' && (
+              <div className="col-span-2">
+                <div className="text-xs text-slate-500 mb-3 font-['Poppins']">Perpetrators</div>
+                <div className="space-y-3">
+                  {(data.assault_perpetrators ?? []).map((perpetrator, index) => (
+                    <div key={perpetrator.id} className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+                      <div className="mb-3 text-sm font-semibold text-slate-900 font-['Poppins']">Perpetrator {index + 1}</div>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Who assaulted the employee</div>
+                          <div className="text-sm text-slate-900 font-['Poppins']">
+                            {perpetrator.who_assaulted === 'customer_on_board' ? 'Customer on board'
+                              : perpetrator.who_assaulted === 'customer_waiting' ? 'Customer waiting at stop/station'
+                              : perpetrator.who_assaulted === 'motorist' ? 'Motorist'
+                              : perpetrator.who_assaulted === 'pedestrian' ? 'Pedestrian' : 'Not provided'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assault method</div>
+                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.assault_method || 'Not provided'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Age</div>
+                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.age || 'Not provided'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Gender</div>
+                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.gender || 'Not provided'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Spat on</div>
+                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.spat_on === true ? 'Yes' : perpetrator.spat_on === false ? 'No' : 'Not provided'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Fled the scene</div>
+                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.fled_scene === true ? 'Yes' : perpetrator.fled_scene === false ? 'No' : 'Not provided'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(data.assault_perpetrators ?? []).length === 0 && <p className="text-sm text-slate-500 font-['Poppins']">No perpetrators added.</p>}
+                </div>
+              </div>
+            )}
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Where it took place</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">
+                {data.assault_location === 'in_transit_vehicle' ? 'In transit vehicle'
+                  : data.assault_location === 'transit_property_revenue' ? 'On transit property (revenue)'
+                  : data.assault_location === 'transit_property_non_revenue' ? 'On transit property (non-revenue)'
+                  : data.assault_location === 'non_transit_property' ? 'Non-transit property'
+                  : data.assault_location === 'outside_around_transit_vehicle' ? 'Outside around the transit vehicle' : '—'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Location</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">
+                {[data.street_on, data.cross_street, data.city, data.zip].filter(Boolean).join(', ') || '—'}
+              </div>
+            </div>
+            {data.operating_dart_vehicle === true && (
+              <>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Vehicle / status</div>
+                  <div className="text-sm text-slate-900 font-['Poppins']">
+                    {[data.vehicle_number, data.vehicle_status_before && `before: ${data.vehicle_status_before}`, data.vehicle_status_after && `after: ${data.vehicle_status_after}`].filter(Boolean).join(' · ') || '—'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assaulted through driver's window</div>
+                  <div className="text-sm text-slate-900 font-['Poppins']">{data.driver_window_assault === true ? 'Yes' : data.driver_window_assault === false ? 'No' : '—'}</div>
+                </div>
+              </>
+            )}
+            {data.operating_dart_vehicle === false && data.assault_location === 'in_transit_vehicle' && (
+              <div>
+                <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Transit vehicle ridden</div>
+                <div className="text-sm text-slate-900 font-['Poppins']">
+                  {[data.transit_vehicle_on, data.transit_vehicle_number, data.transit_route_or_line].filter(Boolean).join(' · ') || '—'}
+                </div>
+              </div>
+            )}
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Employee injured</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">{data.operator_injured === true ? `Yes${data.operator_injured_body_part ? ` — ${data.operator_injured_body_part}` : ''}` : data.operator_injured === false ? 'No' : '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Law enforcement / supervisor</div>
+              <div className="text-sm text-slate-900 font-['Poppins']">
+                {[
+                  data.notified_law_enforcement !== undefined && `police: ${data.notified_law_enforcement ? 'yes' : 'no'}`,
+                  data.contacted_supervisor !== undefined && `supervisor: ${data.contacted_supervisor ? 'yes' : 'no'}`,
+                ].filter(Boolean).join(' · ') || '—'}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Description of assault</div>
+              <div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{data.assault_description || '—'}</div>
+            </div>
+          </div>
+        </div>
+        )}
+
         {/* People and Impact Summary */}
         {showInlineReferenceSummaries && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -2062,6 +2199,14 @@ export function Step4ReviewSubmit({
                             </AnimatePresence>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
                               <div>
+                                <div className={FIELD_LABEL_CLASS}>Status before event</div>
+                                <CustomSelect value={data.supervisor_bus_status_before || ''} onChange={(v) => onUpdate({ supervisor_bus_status_before: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
+                              </div>
+                              <div>
+                                <div className={FIELD_LABEL_CLASS}>Status after event</div>
+                                <CustomSelect value={data.supervisor_bus_status_after || ''} onChange={(v) => onUpdate({ supervisor_bus_status_after: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
+                              </div>
+                              <div>
                                 <div className={FIELD_LABEL_CLASS}>Bus vehicle number <span className="text-red-500">*</span></div>
                                 <SearchableCombobox
                                   options={supervisorFleetOptions}
@@ -2073,20 +2218,12 @@ export function Step4ReviewSubmit({
                                 />
                               </div>
                               <div>
-                                <div className={FIELD_LABEL_CLASS}>Route <span className="text-red-500">*</span></div>
+                                <div className={FIELD_LABEL_CLASS}>Route</div>
                                 <CustomSelect value={data.supervisor_operating_route_number || ''} onChange={updateSupervisorRouteCascade} options={supervisorRouteOptions} placeholder={data.supervisor_vehicle_number ? 'Select route' : 'Select bus first'} disabled={!data.supervisor_vehicle_number} />
                               </div>
                               <div>
                                 <div className={FIELD_LABEL_CLASS}>Block ID <span className="text-red-500">*</span></div>
                                 <CustomSelect value={data.supervisor_block_number || ''} onChange={updateSupervisorBlockCascade} options={supervisorBlockOptions} placeholder={data.supervisor_operating_route_number ? 'Select block' : 'Select route first'} disabled={!data.supervisor_operating_route_number} />
-                              </div>
-                              <div>
-                                <div className={FIELD_LABEL_CLASS}>Status before event</div>
-                                <CustomSelect value={data.supervisor_bus_status_before || ''} onChange={(v) => onUpdate({ supervisor_bus_status_before: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
-                              </div>
-                              <div>
-                                <div className={FIELD_LABEL_CLASS}>Status after event</div>
-                                <CustomSelect value={data.supervisor_bus_status_after || ''} onChange={(v) => onUpdate({ supervisor_bus_status_after: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
                               </div>
                             </div>
                           </div>

@@ -119,9 +119,12 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const isDerailmentEvent = data.event_type?.trim().toLowerCase() === 'derailment';
   const isSignalViolationEvent = data.event_type?.trim().toLowerCase() === 'signal violation';
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
+  const isAssaultEvent = data.event_type === 'Assault (Verbal or Physical)';
+  // Assault spec: possession = No → the mode picker is disabled and no mode is required.
+  const modeDisabledByPossession = isAssaultEvent && data.operating_dart_vehicle === false;
   const modeIsAllowed = (!isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || ''))
     && (!isSignalViolationEvent || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
-  const hasMode = !!data.mode && modeIsAllowed;
+  const hasMode = modeDisabledByPossession || (!!data.mode && modeIsAllowed);
   const hasIncidentDate = !!data.incident_date;
   const hasIncidentTime = !!data.incident_time;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
@@ -162,7 +165,11 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         lrv_fleet_type: undefined,
       });
     }
-  }, [data.mode, isDerailmentEvent, isSignalViolationEvent, onUpdate]);
+    // Assault + not in possession of a DART vehicle: no mode applies — clear any stale pick.
+    if (modeDisabledByPossession && data.mode) {
+      onUpdate({ mode: undefined });
+    }
+  }, [data.mode, isDerailmentEvent, isSignalViolationEvent, modeDisabledByPossession, onUpdate]);
 
   // ── Auto-fill employee info from logged-in user ────────────────
   // Runs on mount and whenever the role changes (badge changes)
@@ -619,16 +626,20 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
               const unavailableForDerailment = isDerailmentEvent && !DERAILMENT_MODES.includes(m.value);
               const unavailableForSignal = isSignalViolationEvent && !SIGNAL_VIOLATION_MODES.includes(m.value);
               const unavailable = unavailableForDerailment || unavailableForSignal;
-              const disabled = lockEventAndMode || unavailable;
+              const disabled = lockEventAndMode || unavailable || modeDisabledByPossession;
               const guidanceId = unavailableForDerailment
                 ? 'derailment-mode-guidance'
                 : unavailableForSignal
                 ? 'signal-violation-mode-guidance'
+                : modeDisabledByPossession
+                ? 'assault-possession-mode-guidance'
                 : undefined;
               const unavailableTitle = unavailableForDerailment
                 ? 'Not available for Derailment'
                 : unavailableForSignal
                 ? 'Not available for Signal Violation'
+                : modeDisabledByPossession
+                ? 'Not operating a DART vehicle'
                 : undefined;
               return (
                 <button
@@ -638,7 +649,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                   onClick={() => handleModeChange(m.value)}
                   aria-describedby={guidanceId}
                   title={unavailableTitle}
-                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${unavailable ? 'grayscale bg-slate-100/80 border-slate-200' : ''} ${errMode && !selected && !unavailable ? 'dart-mode-card--error' : ''}`}
+                  className={`dart-mode-card ${selected ? 'dart-mode-card--on' : ''} ${unavailable || modeDisabledByPossession ? 'grayscale bg-slate-100/80 border-slate-200' : ''} ${errMode && !selected && !unavailable && !modeDisabledByPossession ? 'dart-mode-card--error' : ''}`}
                 >
                   {selected && (
                     <span className="dart-mode-badge">
@@ -662,6 +673,11 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           {isSignalViolationEvent && (
             <p id="signal-violation-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
               Bus, Non-Revenue Vehicle, and Hi-Rail cannot be selected for this event type.
+            </p>
+          )}
+          {modeDisabledByPossession && (
+            <p id="assault-possession-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+              You answered that you were not operating a DART vehicle, so no vehicle mode is needed.
             </p>
           )}
           {errMode && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Select the vehicle mode involved.</p>}

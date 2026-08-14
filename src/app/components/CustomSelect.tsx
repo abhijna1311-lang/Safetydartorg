@@ -29,7 +29,8 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const sortedOptions = [...options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+  const selectedOption = sortedOptions.find(opt => opt.value === value);
 
   // Calculate portal position from the trigger button rect
   const calcPos = useCallback(() => {
@@ -49,7 +50,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
   const open = () => {
     calcPos();
     setIsOpen(true);
-    setFocusedIndex(selectedOption ? options.findIndex(o => o.value === value) : 0);
+    setFocusedIndex(selectedOption ? sortedOptions.findIndex(o => o.value === value) : 0);
   };
 
   const close = () => {
@@ -95,14 +96,14 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
     }
     switch (e.key) {
       case 'Escape':    e.preventDefault(); close(); buttonRef.current?.focus(); break;
-      case 'ArrowDown': e.preventDefault(); setFocusedIndex(i => Math.min(i + 1, options.length - 1)); break;
+      case 'ArrowDown': e.preventDefault(); setFocusedIndex(i => Math.min(i + 1, sortedOptions.length - 1)); break;
       case 'ArrowUp':   e.preventDefault(); setFocusedIndex(i => Math.max(i - 1, 0)); break;
       case 'Home':      e.preventDefault(); setFocusedIndex(0); break;
-      case 'End':       e.preventDefault(); setFocusedIndex(options.length - 1); break;
+      case 'End':       e.preventDefault(); setFocusedIndex(sortedOptions.length - 1); break;
       case 'Enter':
       case ' ':
         e.preventDefault();
-        if (focusedIndex >= 0) { onChange(options[focusedIndex].value); close(); buttonRef.current?.focus(); }
+        if (focusedIndex >= 0) { onChange(sortedOptions[focusedIndex].value); close(); buttonRef.current?.focus(); }
         break;
     }
   };
@@ -122,7 +123,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
       className="bg-white rounded-xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.10),0_16px_40px_-8px_rgba(0,0,0,0.12)] border border-slate-200 overflow-hidden"
     >
       <div className="max-h-[288px] overflow-y-auto py-1">
-        {options.map((option, index) => {
+        {sortedOptions.map((option, index) => {
           const isSelected = option.value === value;
           const isFocused  = index === focusedIndex;
           return (

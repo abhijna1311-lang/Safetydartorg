@@ -147,6 +147,7 @@ export function PMReviewActionBar({
       .filter((record) => record.division_work?.toLowerCase().includes('supervisor'))
       .filter((record) => record.badge !== data.supervisor_badge_number)
       .map((record) => ({ badge: record.badge, name: record.name, division: record.division }))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
   ), [data.supervisor_badge_number]);
 
   const commentTouched = note.trim().length > 0;

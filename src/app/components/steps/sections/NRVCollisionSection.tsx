@@ -5,6 +5,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
+import { OperatorNonRailVehicleFields } from './OperatorNonRailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -138,26 +139,7 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
       <Section title="The NRV" help="Enter the NRV number — its vehicle type and pull-out details are pulled in automatically.">
-        <AnimatePresence>
-          {selectedVehicle && (
-            <motion.div {...fade} key="nrv-record">
-              <NRVRecordCard data={data} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div style={{ marginTop: selectedVehicle ? 26 : undefined }} className="max-w-xl">
-          <Field label="NRV number" required error={showErrors && !data.vehicle_number}>
-            <SearchableCombobox
-              options={vehicleOptions}
-              value={data.vehicle_number || ''}
-              onChange={handleVehicleChange}
-              placeholder="Search NRV #"
-              searchPlaceholder="Type NRV number..."
-              emptyMessage="No NRVs found"
-            />
-          </Field>
-        </div>
+        <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={NRV_FLEET} label="NRV number" placeholder="Search NRV #" showErrors={showErrors} />
       </Section>
 
       <Section title="What happened" help="Describe the collision, the NRV's movement, and any damage or runaway event.">

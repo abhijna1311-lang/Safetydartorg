@@ -4,11 +4,12 @@ import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobo
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
-import { FLEET, BUS_STATUS_OPTIONS, VehicleRecordCard } from './BusCollisionSection';
+import { BusVehicleFields } from './BusCollisionSection';
 import { NRV_FLEET, NRVRecordCard } from './NRVCollisionSection';
-import { TRAIN_FLEET, STREETCAR_FLEET, TrainRecordCard } from './LRVCollisionSection';
+import { TRAIN_FLEET, STREETCAR_FLEET } from './LRVCollisionSection';
 import { HI_RAIL_FLEET } from './DerailmentSection';
-import { LrvConsistFields } from './LrvConsistFields';
+import { RailVehicleFields } from './RailVehicleFields';
+import { OperatorNonRailVehicleFields } from './OperatorNonRailVehicleFields';
 import { BUS_STOP_OPTIONS } from '../../../data/busStops';
 import type { AccidentReportData } from '../../../types/accident-report';
 
@@ -64,38 +65,6 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
   const isStreetcar = data.mode === 'Streetcar';
   const isHiRail = data.mode === 'Hi-Rail';
   const isRailLike = isLRV || isStreetcar;
-
-  // Bus → Block → Route cascade (identical to BusCollisionSection so the experience feels the same).
-  const busOptions: ComboboxOption[] = FLEET.map(f => ({
-    value: f.id, label: f.id, description: f.type,
-  }));
-  const selectedBus = FLEET.find(f => f.id === data.vehicle_number);
-  const busBlocks = (selectedBus?.trips ?? []).flatMap(t => t.blocks.map(b => ({ ...b, trip: t })));
-  const blockOptions = busBlocks
-    .map(b => ({ value: b.block, label: b.block }))
-    .sort((a, b) => a.value.localeCompare(b.value, undefined, { numeric: true }));
-
-  const handleBusChange = (val: string) => {
-    const f = FLEET.find(x => x.id === val);
-    onUpdate({
-      vehicle_number: val,
-      fleet_type: f?.type,
-      trip_id: undefined, route_number: undefined, end_of_line_destination: undefined,
-      block_number: undefined, employee_pullout_date: undefined, employee_pullout_time: undefined,
-    });
-  };
-  const handleBlockChange = (val: string) => {
-    const match = busBlocks.find(b => b.block === val);
-    onUpdate({
-      block_number: val,
-      trip_id: match?.trip.trip,
-      route_number: match?.trip.route,
-      end_of_line_destination: match?.trip.endOfLine,
-      employee_pullout_date: match?.pulloutDate,
-      employee_pullout_time: match?.pulloutTime,
-    });
-  };
-  const hasBusRecord = !!(data.vehicle_number && data.trip_id?.trim() && data.block_number?.trim());
 
   // NRV — mirrors NRVCollisionSection's "The NRV" section.
   const nrvOptions: ComboboxOption[] = [...NRV_FLEET]
@@ -169,155 +138,25 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
           collision/derailment section captures so the vehicle experience feels the same. */}
       {isBus && (
         <Section title="The vehicle" help="Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically.">
-          <AnimatePresence>
-            {hasBusRecord && (
-              <motion.div {...fade} key="vehicle-record">
-                <VehicleRecordCard data={data} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div style={{ marginTop: hasBusRecord ? 26 : undefined }} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-[18px]">
-            <div>
-              <label className="dart-field-label">
-                Bus vehicle number <span className="dart-req">*</span>
-              </label>
-              <div className={showErrors && !data.vehicle_number ? 'dart-field-error' : ''}>
-                <SearchableCombobox
-                  options={busOptions}
-                  value={data.vehicle_number || ''}
-                  onChange={handleBusChange}
-                  placeholder="Search vehicle #"
-                  searchPlaceholder="Type vehicle number..."
-                  emptyMessage="No vehicles found"
-                />
-              </div>
-              {showErrors && !data.vehicle_number && (
-                <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">Bus vehicle number is required.</p>
-              )}
-            </div>
-
-            <Field label="Block ID" required error={showErrors && !data.block_number}>
-              <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
-            </Field>
-            <Field label="Route" required error={showErrors && !data.route_number}>
-              <input
-                type="text"
-                readOnly
-                value={data.route_number || ''}
-                placeholder={data.block_number ? '—' : 'Auto-filled from block'}
-                className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500"
-              />
-            </Field>
-            <Field label="Status before event" required error={showErrors && !data.bus_status_before}>
-              <CustomSelect value={data.bus_status_before || ''} onChange={v => onUpdate({ bus_status_before: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
-            </Field>
-            <Field label="Status after event" required error={showErrors && !data.bus_status_after}>
-              <CustomSelect value={data.bus_status_after || ''} onChange={v => onUpdate({ bus_status_after: v })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
-            </Field>
-          </div>
+          <BusVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
         </Section>
       )}
 
       {isNRV && (
         <Section title="The NRV" help="Enter the NRV number — its vehicle type and pull-out details are pulled in automatically.">
-          <AnimatePresence>
-            {selectedNRV && (
-              <motion.div {...fade} key="nrv-record">
-                <NRVRecordCard data={data} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div style={{ marginTop: selectedNRV ? 26 : undefined }} className="max-w-xl">
-            <Field label="NRV number" required error={showErrors && !data.vehicle_number}>
-              <SearchableCombobox
-                options={nrvOptions}
-                value={data.vehicle_number || ''}
-                onChange={handleNRVChange}
-                placeholder="Search NRV #"
-                searchPlaceholder="Type NRV number..."
-                emptyMessage="No NRVs found"
-              />
-            </Field>
-          </div>
+          <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={NRV_FLEET} label="NRV number" placeholder="Search NRV #" showErrors={showErrors} />
         </Section>
       )}
 
       {isRailLike && (
         <Section title={isStreetcar ? 'The streetcar' : 'The train'} help={`Enter the ${isStreetcar ? 'streetcar' : 'train'} number — its assigned fleet, line and schedule are pulled in automatically.`}>
-          <AnimatePresence>
-            {hasTrainRecord && (
-              <motion.div {...fade} key="train-record">
-                <TrainRecordCard data={data} showRailLine showConsist={!isStreetcar} showCarNumber={isStreetcar} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={`grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${isStreetcar ? 'xl:grid-cols-2' : 'xl:grid-cols-2'}`}>
-            <Field label={isStreetcar ? 'Streetcar number' : 'LRV number involved in event'} required error={showErrors && !data.train_number}>
-              <SearchableCombobox
-                options={trainOptions}
-                value={data.train_number || ''}
-                onChange={handleTrainChange}
-                placeholder={isStreetcar ? 'Search streetcar #' : 'Search LRV #'}
-                searchPlaceholder={isStreetcar ? 'Type streetcar number...' : 'Type LRV number...'}
-                emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
-              />
-            </Field>
-            {isStreetcar && (
-              <Field label="Car number involved in event" required error={showErrors && !data.car_number}>
-                <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={selectedTrain ? 'Select car' : 'Select streetcar first'} disabled={!selectedTrain} />
-              </Field>
-            )}
-            <Field label="Rail line">
-              <input
-                type="text"
-                readOnly
-                value={data.rail_line || ''}
-                placeholder={data.train_number ? '—' : 'Auto-filled from train'}
-                className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500"
-              />
-            </Field>
-          </div>
-
-          {!isStreetcar && (
-            <LrvConsistFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
-          )}
+          <RailVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} showRailLine />
         </Section>
       )}
 
       {isHiRail && (
         <Section title="The NRV vehicle" help="Enter the NRV number — its fleet type and pull-out details are pulled in automatically.">
-          {selectedHiRail && (
-            <div className="dart-vehicle-strip">
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">local_shipping</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Fleet type</span><span className="dart-vehicle-value">{data.lrv_fleet_type || '\u2014'}</span></div>
-              </div>
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">calendar_month</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Pull-out date</span><span className="dart-vehicle-value dart-tabular">{data.train_pullout_date || '\u2014'}</span></div>
-              </div>
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">schedule</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Pull-out time</span><span className="dart-vehicle-value dart-tabular">{data.train_pullout_time || '\u2014'}</span></div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ marginTop: selectedHiRail ? 26 : undefined }} className="max-w-xl">
-            <Field label="NRV number" required error={showErrors && !data.train_number}>
-              <SearchableCombobox
-                options={hiRailOptions}
-                value={data.train_number || ''}
-                onChange={handleHiRailChange}
-                placeholder="Search NRV #"
-                searchPlaceholder="Type vehicle number..."
-                emptyMessage="No vehicles found"
-              />
-            </Field>
-          </div>
+          <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={HI_RAIL_FLEET} numberField="train_number" label="NRV number" placeholder="Search NRV #" showErrors={showErrors} typeLabel="Fleet type" icon="local_shipping" />
         </Section>
       )}
 

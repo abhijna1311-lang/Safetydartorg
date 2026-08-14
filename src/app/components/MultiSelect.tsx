@@ -28,7 +28,8 @@ export function MultiSelect({ value, onChange, options, placeholder = 'Select…
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const selectedLabels = options.filter(o => value.includes(o.value)).map(o => o.label);
+  const sortedOptions = [...options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+  const selectedLabels = sortedOptions.filter(o => value.includes(o.value)).map(o => o.label);
 
   const calcPos = useCallback(() => {
     if (!buttonRef.current) return;
@@ -95,14 +96,14 @@ export function MultiSelect({ value, onChange, options, placeholder = 'Select…
     }
     switch (e.key) {
       case 'Escape': e.preventDefault(); close(); buttonRef.current?.focus(); break;
-      case 'ArrowDown': e.preventDefault(); setFocusedIndex(i => Math.min(i + 1, options.length - 1)); break;
+      case 'ArrowDown': e.preventDefault(); setFocusedIndex(i => Math.min(i + 1, sortedOptions.length - 1)); break;
       case 'ArrowUp': e.preventDefault(); setFocusedIndex(i => Math.max(i - 1, 0)); break;
       case 'Home': e.preventDefault(); setFocusedIndex(0); break;
-      case 'End': e.preventDefault(); setFocusedIndex(options.length - 1); break;
+      case 'End': e.preventDefault(); setFocusedIndex(sortedOptions.length - 1); break;
       case 'Enter':
       case ' ':
         e.preventDefault();
-        if (focusedIndex >= 0) toggle(options[focusedIndex].value);
+        if (focusedIndex >= 0) toggle(sortedOptions[focusedIndex].value);
         break;
     }
   };
@@ -143,7 +144,7 @@ export function MultiSelect({ value, onChange, options, placeholder = 'Select…
         )}
       </div>
       <div className="max-h-[288px] overflow-y-auto py-1">
-        {options.map((option, index) => {
+            {sortedOptions.map((option, index) => {
           const isSelected = value.includes(option.value);
           const isFocused = index === focusedIndex;
           return (

@@ -4,7 +4,8 @@ import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobo
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
-import { LrvConsistFields } from './LrvConsistFields';
+import { RailVehicleFields } from './RailVehicleFields';
+import { OperatorNonRailVehicleFields } from './OperatorNonRailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -138,47 +139,17 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
       <Section title={isLRV ? 'The train' : 'The NRV vehicle'} help={`Select the ${isLRV ? 'train' : 'NRV'} number to pull its fleet and employee pull-out details.`}>
-        {selectedVehicle && (
-          <div className="dart-vehicle-strip">
-            <div className="dart-vehicle-item">
-              <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">tram</span></span>
-              <div className="dart-vehicle-text"><span className="dart-vehicle-label">Fleet type</span><span className="dart-vehicle-value">{data.lrv_fleet_type || 'Not available'}</span></div>
-            </div>
-            <div className="dart-vehicle-item">
-              <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">calendar_month</span></span>
-              <div className="dart-vehicle-text"><span className="dart-vehicle-label">Employee pull-out date</span><span className="dart-vehicle-value dart-tabular">{fmtDate(data.train_pullout_date)}</span></div>
-            </div>
-            <div className="dart-vehicle-item">
-              <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">schedule</span></span>
-              <div className="dart-vehicle-text"><span className="dart-vehicle-label">Employee pull-out time</span><span className="dart-vehicle-value dart-tabular">{fmtTime(data.train_pullout_time)}</span></div>
-            </div>
-            {isLRV && (
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">train</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">LRV consist</span><span className="dart-vehicle-value dart-tabular">{data.lrv_consist_count || 'Not available'}</span></div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className={`grid grid-cols-1 gap-4 ${isLRV ? 'sm:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-3'}`}>
-          <Field label={isLRV ? 'LRV number involved in event' : `${vehicleLabel} number`} required error={showErrors && !data.train_number}>
-            <SearchableCombobox options={vehicleOptions} value={data.train_number || ''} onChange={handleVehicleChange} placeholder={isLRV ? 'Search LRV #' : 'Search NRV #'} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
-          </Field>
-          {isLRV && (
-            <>
-              <Field label="Train status before event" required>
-                <CustomSelect value={data.train_status_before || ''} onChange={value => onUpdate({ train_status_before: value, ...(!SHOWS_LINE.includes(value) ? { rail_line: undefined } : {}) })} options={TRAIN_STATUS} placeholder="Select status" />
-              </Field>
-              <Field label="Train status after event" required>
-                <CustomSelect value={data.train_status_after || ''} onChange={value => onUpdate({ train_status_after: value })} options={TRAIN_STATUS} placeholder="Select status" />
-              </Field>
-            </>
-          )}
-        </div>
+        {!isLRV && <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={HI_RAIL_FLEET} numberField="train_number" label="NRV number" placeholder="Search NRV #" showErrors={showErrors} typeLabel="Fleet type" icon="local_shipping" />}
 
         {isLRV && (
-          <LrvConsistFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
+          <RailVehicleFields
+            data={data}
+            onUpdate={onUpdate}
+            showErrors={showErrors}
+            statusBeforeOptions={TRAIN_STATUS}
+            statusAfterOptions={TRAIN_STATUS}
+            showRailLine={showLine}
+          />
         )}
 
         <AnimatePresence>

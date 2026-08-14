@@ -1,0 +1,292 @@
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Plus, Pencil, Trash2, Check } from 'lucide-react';
+import { CustomSelect } from '../../CustomSelect';
+import { YesNoToggle } from '../../form/YesNoToggle';
+import { FormField as Field } from '../../form/FormField';
+import { PeopleImpactSummaryCard } from './PeopleImpactSummaryCard';
+import type { AccidentReportData, AssaultPerpetrator } from '../../../types/accident-report';
+import {
+  ASSAULT_METHODS,
+  INJURED_BODY_PARTS,
+  PERPETRATOR_AGES,
+  PERPETRATOR_GENDERS,
+  WHO_ASSAULTED,
+  getVehicle2TypeOptions,
+} from './assault/assaultFlow';
+
+interface Props {
+  data: AccidentReportData;
+  onUpdate: (d: Partial<AccidentReportData>) => void;
+  showErrors?: boolean;
+}
+
+const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
+const toOptions = (values: readonly string[]) => values.map((v) => ({ value: v, label: v }));
+const AGE_LABEL: Record<string, string> = { child: 'Child (12 & under)', teen: 'Teen (13–18)', adult: 'Adult (19–60)', senior: 'Senior (61+)' };
+
+function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
+      <div className="mb-6">
+        <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">{title}</h3>
+        {help && <p className="mt-1.5 text-xs leading-relaxed text-slate-500 font-['Poppins']">{help}</p>}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function BoolRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400 font-['Poppins']">{children}</p>;
+}
+
+function Show({ when, children }: { when: boolean; children: React.ReactNode }) {
+  return (
+    <AnimatePresence initial={false}>
+      {when && <motion.div key="f" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>{children}</motion.div>}
+    </AnimatePresence>
+  );
+}
+
+// ── Perpetrator card-list editor — mirrors PersonListEditor's card anatomy ─────
+// Collapsible card per perpetrator: avatar + title + subtitle + delete, an inline
+// editor (Details / Follow-up) and a Done button, with an "Add perpetrator" affordance.
+function PerpetratorListEditor({ list, onChange, showErrors }: {
+  list: AssaultPerpetrator[] | undefined;
+  onChange: (next: AssaultPerpetrator[]) => void;
+  showErrors: boolean;
+}) {
+  const people = list ?? [];
+  const [openId, setOpenId] = useState<string | null>(null);
+  const update = (id: string, patch: Partial<AssaultPerpetrator>) => onChange(people.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  const remove = (id: string) => { onChange(people.filter((p) => p.id !== id)); if (openId === id) setOpenId(null); };
+  const addPerson = () => {
+    const id = `perp-${Date.now()}`;
+    onChange([...people, { id }]);
+    setOpenId(id);
+  };
+
+  const complete = (p: AssaultPerpetrator) => (
+    !!p.who_assaulted
+    && !!p.assault_method
+    && !!p.age
+    && !!p.gender
+    && p.spat_on !== undefined
+    && p.fled_scene !== undefined
+  );
+
+  if (people.length === 0) {
+    return (
+      <button
+        type="button"
+        onClick={addPerson}
+        className={`group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/70 px-6 py-11 text-center transition-colors hover:border-[#007DBA]/40 hover:bg-[#f2f8fc] focus:outline-none focus:ring-2 focus:ring-[#FFCD00] ${showErrors ? 'border-red-300' : 'border-slate-200'}`}
+      >
+        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70 transition-all group-hover:ring-[#007DBA]/30 group-hover:shadow-md">
+          <span className="material-symbols-rounded text-[26px] text-[#007DBA]/70">group_add</span>
+        </span>
+        <p className="mt-4 text-sm font-semibold text-slate-700 font-['Poppins']">No perpetrators added yet <span className="dart-req">*</span></p>
+        <p className="mt-1 text-xs text-slate-400 font-['Poppins']">Click to add each person who assaulted the employee.</p>
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {people.map((p, idx) => {
+        const open = openId === p.id;
+        const details: string[] = [];
+        const whoLabel = WHO_ASSAULTED.find((option) => option.value === p.who_assaulted)?.label;
+        if (whoLabel) details.push(whoLabel);
+        if (p.assault_method) details.push(p.assault_method);
+        if (p.age) details.push(AGE_LABEL[p.age] || p.age);
+        if (p.gender) details.push(p.gender);
+        if (p.spat_on !== undefined) details.push(p.spat_on ? 'Spat on' : 'No spitting');
+        if (p.fled_scene) details.push('Fled scene');
+        const subtitle = details.join(' · ');
+        const displayName = `Perpetrator ${idx + 1}`;
+        return (
+          <div key={p.id} className={`overflow-hidden rounded-xl border bg-white transition-shadow ${showErrors && !complete(p) ? 'border-red-300' : open ? 'border-[#112458]/30 shadow-sm' : 'border-slate-200/70'}`}>
+            {/* Summary row */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#eaf1fb] text-[#1c3570]">
+                <span className="material-symbols-rounded text-[19px]">person</span>
+              </span>
+              <button type="button" onClick={() => setOpenId(open ? null : p.id)} className="min-w-0 flex-1 text-left focus:outline-none">
+                <p className="truncate text-sm font-semibold text-slate-800 font-['Poppins']">{displayName}</p>
+                <p className={`truncate text-xs font-['Poppins'] ${subtitle ? 'text-slate-500' : 'italic text-slate-400'}`}>{subtitle || 'No details added yet'}</p>
+              </button>
+              {p.fled_scene === true && (
+                <span className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold font-['Poppins'] bg-amber-100 text-amber-700">Fled</span>
+              )}
+              <button type="button" onClick={() => setOpenId(open ? null : p.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.2)]" aria-label={open ? `Collapse ${displayName}` : `Edit ${displayName}`}>
+                {open ? <Check className="h-4 w-4 text-emerald-600" /> : <Pencil className="h-3.5 w-3.5" />}
+              </button>
+              <button type="button" onClick={() => remove(p.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-300" aria-label={`Remove ${displayName}`}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Inline editor */}
+            <AnimatePresence initial={false}>
+              {open && (
+                <motion.div
+                  key="editor"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
+                  className="overflow-hidden border-t border-slate-100 bg-slate-50/40"
+                >
+                  <div className="space-y-6 px-4 py-5">
+                    <div>
+                      <GroupLabel>Details</GroupLabel>
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <Field label="Who assaulted the employee" required error={showErrors && !p.who_assaulted}>
+                          <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'] })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                        </Field>
+                        <Field label="Assault method" required error={showErrors && !p.assault_method}>
+                          <CustomSelect value={p.assault_method || ''} onChange={(v) => update(p.id, { assault_method: v })} options={ASSAULT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select" />
+                        </Field>
+                        <Field label="Age" required>
+                          <CustomSelect value={p.age || ''} onChange={(v) => update(p.id, { age: v as AssaultPerpetrator['age'] })} options={PERPETRATOR_AGES.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                        </Field>
+                        <Field label="Gender" required>
+                          <CustomSelect value={p.gender || ''} onChange={(v) => update(p.id, { gender: v as AssaultPerpetrator['gender'] })} options={PERPETRATOR_GENDERS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                        </Field>
+                      </div>
+                    </div>
+                    <div>
+                      <GroupLabel>Assault details</GroupLabel>
+                      <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                        <BoolRow label="Spat on?" required>
+                          <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
+                        </BoolRow>
+                      </div>
+                    </div>
+                    <div>
+                      <GroupLabel>Follow-up</GroupLabel>
+                      <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                        <BoolRow label="Did the perpetrator flee the scene?" required>
+                          <YesNoToggle value={p.fled_scene} onChange={(v) => update(p.id, { fled_scene: v })} />
+                        </BoolRow>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end border-t border-slate-100 px-4 py-3">
+                    <button type="button" onClick={() => setOpenId(null)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#112458] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0c1a42] focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.3)] font-['Poppins']">
+                      <Check className="h-4 w-4" /> Done
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={addPerson}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#007DBA]/40 bg-[#f2f8fc] px-3.5 py-2.5 text-sm font-semibold text-[#007DBA] transition-colors hover:border-[#007DBA] hover:bg-[#e8f3fa] focus:outline-none focus:ring-2 focus:ring-[#FFCD00] font-['Poppins']"
+      >
+        <Plus className="h-4 w-4" /> Add perpetrator
+      </button>
+    </div>
+  );
+}
+
+export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false }: Props) {
+  const allPerps = data.assault_perpetrators ?? [];
+  const totalPerpetrators = allPerps.length;
+  const fledCount = allPerps.filter((p) => p.fled_scene === true).length;
+  const perpetratorParts = WHO_ASSAULTED.map((option) => ({
+    key: option.value,
+    glyph: option.value === 'motorist' ? 'directions_car' : option.value === 'customer_on_board' ? 'event_seat' : 'directions_walk',
+    title: option.label,
+    value: allPerps.filter((p) => p.who_assaulted === option.value).length,
+  }));
+
+  const vehicle2TypeOptions = getVehicle2TypeOptions(data.vehicle2_is_dart_vehicle);
+  const hasMotoristPerpetrator = allPerps.some((p) => p.who_assaulted === 'motorist');
+
+  return (
+    <div className="dart-card dart-card--surface overflow-hidden">
+      {/* Top-line summary */}
+      <div className="px-6 py-6 md:px-7 md:py-7">
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="lg:flex-1">
+            <PeopleImpactSummaryCard glyph="groups" tone="bg-[#eaf1fb] text-[#1c3570]" total={totalPerpetrators} label="Perpetrators" parts={perpetratorParts} />
+          </div>
+          <div className="lg:flex-1">
+            <PeopleImpactSummaryCard glyph="directions_run" tone="bg-red-50 text-red-500" total={fledCount} label="Fled the scene" />
+          </div>
+        </div>
+      </div>
+
+      {/* 1 — Employee injury and response */}
+      <Section title="Employee injury and response" help="The employee's injury status and the immediate response.">
+        <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.operator_injured === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
+          <BoolRow label="Was the employee injured?" required>
+            <YesNoToggle value={data.operator_injured} onChange={(v) => onUpdate({ operator_injured: v, ...(v ? {} : { operator_injured_body_part: undefined }) })} />
+          </BoolRow>
+          <AnimatePresence initial={false}>
+            {data.operator_injured === true && (
+              <motion.div key="inj" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
+                <BoolRow label="Injured body part" required>
+                  <div className="w-full sm:w-60">
+                    <CustomSelect value={data.operator_injured_body_part || ''} onChange={(v) => onUpdate({ operator_injured_body_part: v })} options={toOptions(INJURED_BODY_PARTS)} placeholder="Select" error={showErrors && !data.operator_injured_body_part} />
+                  </div>
+                </BoolRow>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <BoolRow label="Was the employee transported to the hospital?" required>
+            <YesNoToggle value={data.operator_transported} onChange={(v) => onUpdate({ operator_transported: v })} />
+          </BoolRow>
+          <BoolRow label="Did the employee notify law enforcement?" required>
+            <YesNoToggle value={data.notified_law_enforcement} onChange={(v) => onUpdate({ notified_law_enforcement: v })} />
+          </BoolRow>
+          <BoolRow label="Did the employee contact a supervisor?" required>
+            <YesNoToggle value={data.contacted_supervisor} onChange={(v) => onUpdate({ contacted_supervisor: v })} />
+          </BoolRow>
+        </div>
+      </Section>
+
+      {/* 2 — Perpetrators. Every card owns the complete perpetrator answer set. */}
+      <Section title="Perpetrator who assaulted DART employee" help="Who assaulted the employee, how, and each person involved — one card per perpetrator.">
+          {data.assault_involves === 'customer_assaulted_worker' && (
+            <PerpetratorListEditor list={data.assault_perpetrators} onChange={(next) => onUpdate({ assault_perpetrators: next })} showErrors={showErrors} />
+          )}
+          {hasMotoristPerpetrator && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
+                <Field label="Number of occupants in the other vehicle">
+                  <CustomSelect value={data.vehicle2_occupants_count ? String(data.vehicle2_occupants_count) : ''} onChange={(v) => onUpdate({ vehicle2_occupants_count: Number(v) })} options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))} placeholder="Select count" />
+                </Field>
+                <div>
+                  <label className="dart-field-label">Was the other vehicle a DART vehicle? <span className="dart-req ml-1">*</span></label>
+                  <YesNoToggle value={data.vehicle2_is_dart_vehicle} onChange={(v) => onUpdate({ vehicle2_is_dart_vehicle: v, vehicle2_type: undefined })} />
+                </div>
+              </div>
+              <Show when={vehicle2TypeOptions.length > 0}>
+                <Field label="Other vehicle type" required error={showErrors && !data.vehicle2_type}>
+                  <CustomSelect value={data.vehicle2_type || ''} onChange={(v) => onUpdate({ vehicle2_type: v })} options={vehicle2TypeOptions} placeholder="Select" />
+                </Field>
+              </Show>
+            </div>
+          )}
+      </Section>
+    </div>
+  );
+}

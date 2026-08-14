@@ -24,7 +24,8 @@ export function FilterDropdown({ label, value, onChange, options, icon }: Filter
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const selected = options.find(o => o.value === value);
+  const sortedOptions = [...options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+  const selected = sortedOptions.find(o => o.value === value);
   const isFiltered = value !== 'all' && value !== '';
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function FilterDropdown({ label, value, onChange, options, icon }: Filter
       if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
         e.preventDefault();
         setIsOpen(true);
-        setFocusedIndex(options.findIndex(o => o.value === value) ?? 0);
+        setFocusedIndex(sortedOptions.findIndex(o => o.value === value) ?? 0);
       }
       return;
     }
@@ -56,7 +57,7 @@ export function FilterDropdown({ label, value, onChange, options, icon }: Filter
         break;
       case 'ArrowDown':
         e.preventDefault();
-        setFocusedIndex(prev => Math.min(prev + 1, options.length - 1));
+        setFocusedIndex(prev => Math.min(prev + 1, sortedOptions.length - 1));
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -66,7 +67,7 @@ export function FilterDropdown({ label, value, onChange, options, icon }: Filter
       case ' ':
         e.preventDefault();
         if (focusedIndex >= 0) {
-          onChange(options[focusedIndex].value);
+          onChange(sortedOptions[focusedIndex].value);
           setIsOpen(false);
           buttonRef.current?.focus();
         }
@@ -77,7 +78,7 @@ export function FilterDropdown({ label, value, onChange, options, icon }: Filter
         break;
       case 'End':
         e.preventDefault();
-        setFocusedIndex(options.length - 1);
+        setFocusedIndex(sortedOptions.length - 1);
         break;
     }
   };
@@ -145,7 +146,7 @@ export function FilterDropdown({ label, value, onChange, options, icon }: Filter
           className="absolute z-50 top-[calc(100%+6px)] left-0 min-w-[180px] bg-white rounded-2xl border border-slate-200/80 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.10),0_2px_8px_-2px_rgba(0,0,0,0.06)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
         >
           <div className="py-1.5 sleek-scrollbar max-h-[260px] overflow-y-auto">
-            {options.map((option, index) => {
+            {sortedOptions.map((option, index) => {
               const isSelected = option.value === value;
               const isFocused = index === focusedIndex;
 

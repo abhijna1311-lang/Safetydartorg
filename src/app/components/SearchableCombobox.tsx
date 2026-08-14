@@ -46,7 +46,8 @@ export function SearchableCombobox({
 }: SearchableComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
-  const selectedOption = options.find((option) => option.value === value)
+  const sortedOptions = [...options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }))
+  const selectedOption = sortedOptions.find((option) => option.value === value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -76,7 +77,7 @@ export function SearchableCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command filter={(value, search) => {
-           const option = options.find(o => o.value === value);
+           const option = sortedOptions.find(o => o.value === value);
            if (!option) return 0;
            const searchLower = search.toLowerCase();
            const labelMatch = option.label.toLowerCase().includes(searchLower);
@@ -89,7 +90,7 @@ export function SearchableCombobox({
                 {emptyMessage}
             </CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {sortedOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}

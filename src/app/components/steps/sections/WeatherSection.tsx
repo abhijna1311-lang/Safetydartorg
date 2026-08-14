@@ -10,6 +10,8 @@ interface Props {
   bare?: boolean;
   required?: boolean;
   showErrors?: boolean;
+  /** Assault flow: only weather / road / lighting / streetlights (no traffic or roadway). */
+  assaultOnly?: boolean;
 }
 
 const toOptions = (values: string[]) => [...values]
@@ -61,7 +63,7 @@ function Field({ label, required, error, children }: { label: string; required?:
   );
 }
 
-export function WeatherSection({ data, onUpdate, mode, bare = false, required = false, showErrors = false }: Props) {
+export function WeatherSection({ data, onUpdate, mode, bare = false, required = false, showErrors = false, assaultOnly = false }: Props) {
   const isStreetcar = mode === 'Streetcar';
   const isLRV = mode === 'Light Rail Vehicle' || isStreetcar || mode === 'Hi-Rail';
   const trafficControls = isStreetcar ? STREETCAR_TRAFFIC_CONTROLS : isLRV ? LRV_TRAFFIC_CONTROLS : BUS_TRAFFIC_CONTROLS;
@@ -83,6 +85,8 @@ export function WeatherSection({ data, onUpdate, mode, bare = false, required = 
       <Field label="Road / track conditions" required={required} error={required && showErrors && !data.road_conditions}>
         <CustomSelect value={data.road_conditions || ''} onChange={v => onUpdate({ road_conditions: v })} options={ROAD} placeholder="Select" />
       </Field>
+      {!assaultOnly && (
+        <>
       <Field label="Traffic conditions" required={required} error={required && showErrors && !data.traffic_conditions}>
         <CustomSelect value={data.traffic_conditions || ''} onChange={v => onUpdate({ traffic_conditions: v })} options={TRAFFIC_COND} placeholder="Select" />
       </Field>
@@ -92,6 +96,8 @@ export function WeatherSection({ data, onUpdate, mode, bare = false, required = 
       <Field label="Roadway configuration" required={required} error={required && showErrors && !data.roadway_configuration}>
         <CustomSelect value={data.roadway_configuration || ''} onChange={v => onUpdate({ roadway_configuration: v })} options={roadwayConfig} placeholder="Select" />
       </Field>
+        </>
+      )}
     </div>
   );
 

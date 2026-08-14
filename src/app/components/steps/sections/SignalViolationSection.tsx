@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
-import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobox';
 import { DatePickerInput } from '../../DatePickerInput';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
-import { TRAIN_FLEET, STREETCAR_FLEET, TrainRecordCard } from './LRVCollisionSection';
-import { LrvConsistFields } from './LrvConsistFields';
+import { RailVehicleFields } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -75,38 +73,6 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
 export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isStreetcar = data.mode === 'Streetcar';
 
-  // Vehicle identity — reuses the exact auto-cascade pattern from BasicIncidentSection's rail branch.
-  const trainFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
-  const trainOptions: ComboboxOption[] = [...trainFleet]
-    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    .map(t => ({ value: t.id, label: t.id, description: t.fleetType }));
-  const selectedTrain = trainFleet.find(t => t.id === data.train_number);
-  const consistCars = selectedTrain?.cars ?? [];
-  const carOptions = [...consistCars]
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-    .map(c => ({ value: c, label: c }));
-  const hasTrainRecord = !!(selectedTrain && (isStreetcar ? data.car_number : true));
-  const consistCount = data.lrv_consist_count ?? 0;
-
-  const handleTrainChange = (val: string) => {
-    const t = trainFleet.find(x => x.id === val);
-    const cars = t?.cars ?? [];
-    onUpdate({
-      train_number: val,
-      lrv_fleet_type: t?.fleetType,
-      rail_line: t?.railLine,
-      lrv_end_of_line: t?.endOfLine,
-      train_pullout_date: t?.pulloutDate,
-      train_pullout_time: t?.pulloutTime,
-      lrv_consist_count: isStreetcar ? undefined : data.lrv_consist_count,
-      lrv_consist_1: isStreetcar ? undefined : data.lrv_consist_1,
-      lrv_consist_2: isStreetcar ? undefined : data.lrv_consist_2,
-      lrv_consist_3: isStreetcar ? undefined : data.lrv_consist_3,
-      lrv_consist_4: isStreetcar ? undefined : data.lrv_consist_4,
-      car_number: isStreetcar ? cars[0] : undefined,
-    });
-  };
-
   // Territory drives which "before" statuses are selectable — clear the value if it's
   // no longer valid so a stale status doesn't sit hidden in the form.
   const territory = data.signal_territory;
@@ -131,8 +97,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
     });
   };
 
-  const showLine = SHOWS_LINE.includes(data.train_status_before || '');
-
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
@@ -142,44 +106,16 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
         title={isStreetcar ? 'The streetcar' : 'The train'}
         help={`Enter the ${isStreetcar ? 'streetcar' : 'train'} number — its assigned fleet, line and schedule are pulled in automatically.`}
       >
-        <AnimatePresence>
-          {hasTrainRecord && (
-            <motion.div {...fade} key="train-record">
-              <TrainRecordCard data={data} showRailLine showConsist={!isStreetcar} showCarNumber={isStreetcar} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-2">
-          <Field label={isStreetcar ? 'Streetcar number' : 'LRV number involved in event'} required error={showErrors && !data.train_number}>
-            <SearchableCombobox
-              options={trainOptions}
-              value={data.train_number || ''}
-              onChange={handleTrainChange}
-              placeholder={isStreetcar ? 'Search streetcar #' : 'Search LRV #'}
-              searchPlaceholder={isStreetcar ? 'Type streetcar number...' : 'Type LRV number...'}
-              emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
-            />
-          </Field>
-          {isStreetcar && (
-            <Field label="Car number involved in event" required error={showErrors && !data.car_number}>
-              <CustomSelect value={data.car_number || ''} onChange={v => onUpdate({ car_number: v })} options={carOptions} placeholder={selectedTrain ? 'Select car' : 'Select streetcar first'} disabled={!selectedTrain} />
-            </Field>
-          )}
-          <Field label="Rail line">
-            <input
-              type="text"
-              readOnly
-              value={data.rail_line || ''}
-              placeholder={data.train_number ? '—' : 'Auto-filled from train'}
-              className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500"
-            />
-          </Field>
-        </div>
-
-        {!isStreetcar && (
-          <LrvConsistFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
-        )}
+        <RailVehicleFields
+          data={data}
+          onUpdate={onUpdate}
+          showErrors={showErrors}
+          statusBeforeOptions={beforeOptions}
+          statusAfterOptions={afterOptions}
+          statusBeforeDisabled={!territory}
+          statusBeforePlaceholder={territory ? 'Select status' : 'Select territory first'}
+          showRailLine
+        />
       </Section>
 
       {/* 2 — The signal violation */}
@@ -213,43 +149,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
               placeholder="Select territory"
             />
           </Field>
-          <Field
-            label={`${isStreetcar ? 'Streetcar' : 'Train'} status before event`}
-            required
-            error={showErrors && !data.train_status_before}
-            helper={!territory ? 'Select the territory first' : undefined}
-          >
-            <CustomSelect
-              value={data.train_status_before || ''}
-              onChange={v => onUpdate({ train_status_before: v })}
-              options={beforeOptions}
-              placeholder={territory ? 'Select status' : 'Select territory first'}
-              disabled={!territory}
-            />
-          </Field>
-          <Field label={`${isStreetcar ? 'Streetcar' : 'Train'} status after event`} required error={showErrors && !data.train_status_after}>
-            <CustomSelect
-              value={data.train_status_after || ''}
-              onChange={v => onUpdate({ train_status_after: v })}
-              options={afterOptions}
-              placeholder="Select status"
-            />
-          </Field>
-          <AnimatePresence>
-            {showLine && (
-              <motion.div {...fade} key="line-description">
-                <Field label="Line description" helper="Pulled from the selected train's assigned line.">
-                  <input
-                    type="text"
-                    readOnly
-                    value={data.rail_line || ''}
-                    placeholder={data.train_number ? '—' : 'Auto-filled from train'}
-                    className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500"
-                  />
-                </Field>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </Section>
 

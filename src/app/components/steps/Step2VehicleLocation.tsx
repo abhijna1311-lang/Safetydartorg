@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Info, AlertTriangle } from 'lucide-react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
-import { BusCollisionSection } from './sections/BusCollisionSection';
+import { BusCollisionSection, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
 import { LRVCollisionSection } from './sections/LRVCollisionSection';
 import { NRVCollisionSection } from './sections/NRVCollisionSection';
 import { DerailmentSection } from './sections/DerailmentSection';
 import { SignalViolationSection } from './sections/SignalViolationSection';
+import { AssaultSection } from './sections/AssaultSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
@@ -76,15 +77,18 @@ export function Step2VehicleLocation({
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
   // Schedule was moved here from Step 1. Only the operator answers it, and only outside
-  // the leader-started intake phase (which stays lean).
-  const showSchedule = activeSectionKey === 'operator' && !isInitiationStage;
+  // the leader-started intake phase (which stays lean). For assault events it's about the
+  // operator's work assignment, so it's hidden when the employee wasn't operating a vehicle.
+  const showSchedule = activeSectionKey === 'operator' && !isInitiationStage
+    && !(data.event_type === 'Assault (Verbal or Physical)' && data.operating_dart_vehicle === false);
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
 
-  // Check if this is a collision event
+  // Check which event-specific form to render
   const isCollision = data.event_type === 'Collision';
   const isDerailment = data.event_type === 'Derailment';
   const isSignalViolation = data.event_type === 'Signal Violation';
+  const isAssault = data.event_type === 'Assault (Verbal or Physical)';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -165,6 +169,30 @@ export function Step2VehicleLocation({
     && requiredWeatherComplete
   );
 
+  // Assault (Step 2): event details, vehicle, location, weather. Employee injury and the
+  // perpetrator groups live in Step 3 (People & Impact), so they are NOT gated here.
+  const assaultComplete = (() => {
+    if (!isAssault) return true;
+    const inPossession = data.operating_dart_vehicle === true;
+    const base = !!(
+      data.assault_type && data.assault_trigger && data.assault_involves
+      && data.assault_location && data.street_on && data.city && data.zip
+      && data.assault_description?.trim()
+      && data.weather && data.road_conditions && data.lighting_conditions
+    );
+    if (!base) return false;
+    if (inPossession) {
+      if (!(data.vehicle_status_before && data.vehicle_status_after && answered(data.driver_window_assault))) return false;
+      if (data.mode === 'Bus' && !data.vehicle_number) return false;
+      if (isLRV && !data.train_number) return false;
+      if (isNRV && !data.vehicle_number) return false;
+      if (data.mode === 'Streetcar' && data.line_description !== 'Streetcar') return false;
+      if (data.mode === 'Light Rail Vehicle' && !lrvConsistComplete) return false;
+    }
+    if (data.operating_dart_vehicle === false && data.assault_location === 'in_transit_vehicle' && !data.transit_vehicle_on) return false;
+    return true;
+  })();
+
   // Minimum required to proceed
   const hasSchedule = !showSchedule || hasScheduleAnswers(data);
   const canProceed = isInitiationStage
@@ -172,12 +200,15 @@ export function Step2VehicleLocation({
         data.incident_date &&
         data.incident_time &&
         (isBus
-          ? data.vehicle_number && data.street_on && data.cross_street && data.city && data.zip && data.route_number && data.block_number
+          ? data.vehicle_number && data.street_on && data.cross_street && data.city && data.zip && data.block_number
+            && data.bus_status_before && data.bus_status_after
           : isNRV
             ? data.vehicle_number && data.street_on
             : data.train_number && (data.address_of_event || data.station_applicable || data.grade_crossing_applicable))
       )
-    : !!(
+    : isAssault
+      ? !!(hasSchedule && data.incident_date && data.incident_time && assaultComplete)
+      : !!(
         hasSchedule &&
         narrativeRequirementMet &&
         data.incident_date &&
@@ -275,14 +306,20 @@ export function Step2VehicleLocation({
                 </IntakeField>
                 {isBus ? (
                   <>
+                    <IntakeField label="Status before event" required>
+                      <CustomSelect value={data.bus_status_before || ''} onChange={(value) => onUpdate({ bus_status_before: value })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
+                    </IntakeField>
+                    <IntakeField label="Status after event" required>
+                      <CustomSelect value={data.bus_status_after || ''} onChange={(value) => onUpdate({ bus_status_after: value })} options={BUS_STATUS_OPTIONS} placeholder="Select status" />
+                    </IntakeField>
                     <IntakeField label="Vehicle number" required>
                       <input type="text" value={data.vehicle_number || ''} onChange={(e) => onUpdate({ vehicle_number: e.target.value })} placeholder="Enter vehicle number" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="Route" required>
-                      <input type="text" value={data.route_number || ''} onChange={(e) => onUpdate({ route_number: e.target.value })} placeholder="Enter route" className={inputCls} />
-                    </IntakeField>
                     <IntakeField label="Block" required>
                       <input type="text" value={data.block_number || ''} onChange={(e) => onUpdate({ block_number: e.target.value })} placeholder="Enter block number" className={inputCls} />
+                    </IntakeField>
+                    <IntakeField label="Route">
+                      <input type="text" value={data.route_number || ''} onChange={(e) => onUpdate({ route_number: e.target.value })} placeholder="Enter route" className={inputCls} />
                     </IntakeField>
                     <IntakeField label="Street on" required>
                       <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="Enter street" className={inputCls} />
@@ -336,10 +373,11 @@ export function Step2VehicleLocation({
                 if (isSignalViolation && (isLRV || isStreetcar)) {
                   return <SignalViolationSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
                 }
-                // Non-collision / non-derailment (Assault, Near Miss, Fire, Operator/Passenger Events,
-                // Trail a Switch) render under the same unified card as Bus/Rail/NRV via
-                // BasicIncidentSection, with Schedule injected as the header section and Weather
-                // embedded inside as its own subsection.
+                if (isAssault) {
+                  return <AssaultSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                // Non-collision / non-derailment / non-assault (Near Miss, Fire,
+                // Operator/Passenger Events, Trail a Switch) use the generic incident form.
                 return <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
               })()}
             </>

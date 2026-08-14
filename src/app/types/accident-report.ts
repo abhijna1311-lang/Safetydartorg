@@ -72,6 +72,20 @@ export interface PedestrianRecord {
   fled?: boolean;
 }
 
+// One perpetrator entry in an assault report. The count of entries equals the
+// number of perpetrators the employee reported (on board / pedestrian / vehicle #2).
+export interface AssaultPerpetrator {
+  id: string;
+  // Legacy role retained for saved reports; `who_assaulted` is the card-level source of truth.
+  role?: 'Passenger' | 'Pedestrian';
+  who_assaulted?: 'customer_on_board' | 'customer_waiting' | 'motorist' | 'pedestrian';
+  assault_method?: string;
+  age?: 'child' | 'teen' | 'adult' | 'senior';
+  gender?: 'Female' | 'Male';
+  spat_on?: boolean;
+  fled_scene?: boolean;
+}
+
 export interface ThirdVehicleData {
   occupants?: number;
   fatalities?: number;
@@ -258,6 +272,42 @@ export interface AccidentReportData {
 
   // Derailment-only fields
   derailment_type?: 'Mainline' | 'Yard';
+
+  // ── Assault (Verbal or Physical) — event-specific fields ────────
+  // Shared fields reused: operating_dart_vehicle, mode, incident_date/time,
+  // street_on, cross_street, city, zip, vehicle_number, fleet_type, run_number,
+  // car_number, lrv_consist_*, weather, road_conditions, lighting_conditions,
+  // streetlights, employee_pullout_date/time, operator_injured,
+  // operator_injured_body_part, operator_transported.
+  assault_type?: 'Physical Assault' | 'Verbal Assault';
+  assault_spat_on?: boolean;
+  assault_method?: string;
+  assault_description?: string;
+  assault_involves?: 'customer_assaulted_worker' | 'worker_assaulted_worker';
+  who_assaulted?: 'customer_on_board' | 'customer_waiting' | 'motorist' | 'pedestrian';
+  assault_trigger?: string;
+  driver_window_assault?: boolean;
+  vehicle_status_before?: string;
+  vehicle_status_after?: string;
+  line_description?: string;
+  vehicle_equipped_with?: string;
+  assault_location?: 'in_transit_vehicle' | 'transit_property_revenue' | 'transit_property_non_revenue' | 'non_transit_property' | 'outside_around_transit_vehicle';
+  // When not in possession of a DART vehicle but assaulted while riding one.
+  transit_vehicle_on?: string;
+  transit_vehicle_number?: string;
+  transit_route_or_line?: string;
+  // Perpetrators — repeating groups, one entry per reported perpetrator.
+  assault_perpetrators?: AssaultPerpetrator[];
+  onboard_perpetrators?: AssaultPerpetrator[];
+  pedestrian_perpetrators?: AssaultPerpetrator[];
+  // Other vehicle #2 (motorist assault) — perpetrators + vehicle context.
+  vehicle2_perpetrators?: AssaultPerpetrator[];
+  vehicle2_occupants_count?: number;
+  vehicle2_is_dart_vehicle?: boolean;
+  vehicle2_type?: string;
+  // Employee response
+  notified_law_enforcement?: boolean;
+  contacted_supervisor?: boolean;
 
   // Weather (shared – option sets differ by mode)
   weather?: string;
