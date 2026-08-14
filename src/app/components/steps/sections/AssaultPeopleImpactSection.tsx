@@ -90,7 +90,7 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
 
   const complete = (p: AssaultPerpetrator) => (
     !!p.who_assaulted
-    && !!p.assault_method
+    && (assaultType === 'Verbal Assault' || !!p.assault_method)
     && !!p.age
     && !!p.gender
     && p.spat_on !== undefined
@@ -185,9 +185,11 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                         <Field label="Who assaulted the employee" required error={showErrors && !p.who_assaulted}>
                           <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'] })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
                         </Field>
-                        <Field label="Assault method" required error={showErrors && !p.assault_method}>
-                          <CustomSelect value={p.assault_method || ''} onChange={(v) => update(p.id, { assault_method: v })} options={ASSAULT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select" />
-                        </Field>
+                        {assaultType !== 'Verbal Assault' && (
+                          <Field label="Assault method" required error={showErrors && !p.assault_method}>
+                            <CustomSelect value={p.assault_method || ''} onChange={(v) => update(p.id, { assault_method: v })} options={ASSAULT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select" />
+                          </Field>
+                        )}
                         <Field label="Age" required>
                           <CustomSelect value={p.age || ''} onChange={(v) => update(p.id, { age: v as AssaultPerpetrator['age'] })} options={PERPETRATOR_AGES.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
                         </Field>
@@ -317,7 +319,16 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
               assaultType={data.assault_type}
               assaultTrigger={data.assault_trigger}
               assaultInvolves={data.assault_involves}
-              onAssaultChange={onUpdate}
+              onAssaultChange={(patch) => {
+                if (patch.assault_type === 'Verbal Assault') {
+                  onUpdate({
+                    ...patch,
+                    assault_perpetrators: (data.assault_perpetrators || []).map((person) => ({ ...person, assault_method: undefined })),
+                  });
+                  return;
+                }
+                onUpdate(patch);
+              }}
             />
           )}
           {hasMotoristPerpetrator && (

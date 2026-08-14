@@ -174,7 +174,7 @@ export function Step3PeopleImpact({
     const perpetrators = data.assault_perpetrators ?? [];
     const perpetratorComplete = (p: AssaultPerpetrator) => (
       !!p.who_assaulted
-      && !!p.assault_method
+      && (data.assault_type === 'Verbal Assault' || !!p.assault_method)
       && !!p.age
       && !!p.gender
       && p.spat_on !== undefined
