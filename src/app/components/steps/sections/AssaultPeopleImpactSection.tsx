@@ -50,6 +50,10 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
   );
 }
 
+function FollowUpControl({ children }: { children: React.ReactNode }) {
+  return <div className="w-full sm:w-72 [&_.dart-seg]:grid [&_.dart-seg]:w-full">{children}</div>;
+}
+
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400 font-['Poppins']">{children}</p>;
 }
@@ -196,7 +200,9 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                       <GroupLabel>Assault behavior</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Spat on?" required>
-                          <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
+                          <FollowUpControl>
+                            <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
+                          </FollowUpControl>
                         </BoolRow>
                       </div>
                     </div>
@@ -204,17 +210,19 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                       <GroupLabel>Follow-up</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Did the perpetrator flee the scene?" required>
-                          <YesNoToggle value={p.fled_scene} onChange={(v) => update(p.id, { fled_scene: v })} />
+                          <FollowUpControl>
+                            <YesNoToggle value={p.fled_scene} onChange={(v) => update(p.id, { fled_scene: v })} />
+                          </FollowUpControl>
                         </BoolRow>
                         <BoolRow label="Was the perpetrator arrested?" required>
-                          <div className="w-full sm:w-44">
+                          <FollowUpControl>
                             <CustomSelect value={p.perpetrator_arrested || ''} onChange={(v) => update(p.id, { perpetrator_arrested: v as AssaultPerpetrator['perpetrator_arrested'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_arrested} />
-                          </div>
+                          </FollowUpControl>
                         </BoolRow>
                         <BoolRow label="Was the perpetrator removed from the DART vehicle?" required>
-                          <div className="w-full sm:w-44">
+                          <FollowUpControl>
                             <CustomSelect value={p.perpetrator_removed_from_dart_vehicle || ''} onChange={(v) => update(p.id, { perpetrator_removed_from_dart_vehicle: v as AssaultPerpetrator['perpetrator_removed_from_dart_vehicle'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_removed_from_dart_vehicle} />
-                          </div>
+                          </FollowUpControl>
                         </BoolRow>
                       </div>
                     </div>
