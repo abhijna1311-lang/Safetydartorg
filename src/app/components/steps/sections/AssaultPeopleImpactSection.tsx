@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
+import { OtherVehiclesEditor } from '../../OtherVehiclesEditor';
 import { PeopleImpactSummaryCard } from './PeopleImpactSummaryCard';
 import type { AccidentReportData, AssaultPerpetrator } from '../../../types/accident-report';
 import {
@@ -15,7 +16,6 @@ import {
   PERPETRATOR_AGES,
   PERPETRATOR_GENDERS,
   WHO_ASSAULTED,
-  getVehicle2TypeOptions,
 } from './assault/assaultFlow';
 
 interface Props {
@@ -87,7 +87,6 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
     onChange([...people, { id }]);
     setOpenId(id);
   };
-
   const complete = (p: AssaultPerpetrator) => (
     !!p.who_assaulted
     && (assaultType === 'Verbal Assault' || !!p.assault_method)
@@ -165,36 +164,12 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                   <div className="space-y-6 px-4 py-5">
                     <div>
                       <GroupLabel>Assault information</GroupLabel>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
                         <Field label="Assault type" required error={showErrors && !assaultType}>
                           <CustomSelect value={assaultType || ''} onChange={(v) => onAssaultChange({ assault_type: v as AccidentReportData['assault_type'], assault_trigger: v === 'Verbal Assault' ? undefined : assaultTrigger })} options={ASSAULT_TYPES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
                         </Field>
-                        {assaultType !== 'Verbal Assault' && (
-                          <Field label="Assault trigger" required error={showErrors && !assaultTrigger}>
-                            <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" />
-                          </Field>
-                        )}
                         <Field label="Assault involves" required error={showErrors && !assaultInvolves}>
                           <CustomSelect value={assaultInvolves || ''} onChange={(v) => onAssaultChange({ assault_involves: v as AccidentReportData['assault_involves'], who_assaulted: undefined })} options={ASSAULT_INVOLVES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
-                        </Field>
-                      </div>
-                    </div>
-                    <div>
-                      <GroupLabel>Person details</GroupLabel>
-                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <Field label="Who assaulted the employee" required error={showErrors && !p.who_assaulted}>
-                          <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'], ...(v === 'motorist' ? { perpetrator_removed_from_dart_vehicle: undefined } : {}) })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
-                        </Field>
-                        {assaultType !== 'Verbal Assault' && (
-                          <Field label="Assault method" required error={showErrors && !p.assault_method}>
-                            <CustomSelect value={p.assault_method || ''} onChange={(v) => update(p.id, { assault_method: v })} options={ASSAULT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select" />
-                          </Field>
-                        )}
-                        <Field label="Age" required>
-                          <CustomSelect value={p.age || ''} onChange={(v) => update(p.id, { age: v as AssaultPerpetrator['age'] })} options={PERPETRATOR_AGES.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
-                        </Field>
-                        <Field label="Gender" required>
-                          <CustomSelect value={p.gender || ''} onChange={(v) => update(p.id, { gender: v as AssaultPerpetrator['gender'] })} options={PERPETRATOR_GENDERS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
                         </Field>
                       </div>
                     </div>
@@ -202,6 +177,16 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                       <div>
                         <GroupLabel>Assault behavior</GroupLabel>
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                          <BoolRow label="Assault trigger" required>
+                            <FollowUpControl>
+                              <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" error={showErrors && !assaultTrigger} />
+                            </FollowUpControl>
+                          </BoolRow>
+                          <BoolRow label="Assault method" required>
+                            <FollowUpControl>
+                              <CustomSelect value={p.assault_method || ''} onChange={(v) => update(p.id, { assault_method: v })} options={ASSAULT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select" error={showErrors && !p.assault_method} />
+                            </FollowUpControl>
+                          </BoolRow>
                           <BoolRow label="Spat on?" required>
                             <FollowUpControl>
                               <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
@@ -210,6 +195,20 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                         </div>
                       </div>
                     )}
+                    <div>
+                      <GroupLabel>Person details</GroupLabel>
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <Field label="Who assaulted the employee" required error={showErrors && !p.who_assaulted}>
+                          <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'], ...(v === 'motorist' ? { perpetrator_removed_from_dart_vehicle: undefined } : {}) })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                        </Field>
+                        <Field label="Age" required>
+                          <CustomSelect value={p.age || ''} onChange={(v) => update(p.id, { age: v as AssaultPerpetrator['age'] })} options={PERPETRATOR_AGES.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                        </Field>
+                        <Field label="Gender" required>
+                          <CustomSelect value={p.gender || ''} onChange={(v) => update(p.id, { gender: v as AssaultPerpetrator['gender'] })} options={PERPETRATOR_GENDERS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                        </Field>
+                      </div>
+                    </div>
                     <div>
                       <GroupLabel>Follow-up</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -267,8 +266,17 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
     value: allPerps.filter((p) => p.who_assaulted === option.value).length,
   }));
 
-  const vehicle2TypeOptions = getVehicle2TypeOptions(data.vehicle2_is_dart_vehicle);
   const hasMotoristPerpetrator = allPerps.some((p) => p.who_assaulted === 'motorist');
+  const assaultOtherVehicles = data.other_vehicles?.length
+    ? data.other_vehicles
+    : data.vehicle2_is_dart_vehicle !== undefined || data.vehicle2_type || data.vehicle2_occupants_count !== undefined
+      ? [{
+          id: 'assault-vehicle-2',
+          occupants: data.vehicle2_occupants_count,
+          dart_dart: data.vehicle2_is_dart_vehicle,
+          vehicle_type: data.vehicle2_type,
+        }]
+      : [];
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
@@ -336,21 +344,20 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
             />
           )}
           {hasMotoristPerpetrator && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
-                <Field label="Number of occupants in the other vehicle">
-                  <CustomSelect value={data.vehicle2_occupants_count ? String(data.vehicle2_occupants_count) : ''} onChange={(v) => onUpdate({ vehicle2_occupants_count: Number(v) })} options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))} placeholder="Select count" />
-                </Field>
-                <div>
-                  <label className="dart-field-label">Was the other vehicle a DART vehicle? <span className="dart-req ml-1">*</span></label>
-                  <YesNoToggle value={data.vehicle2_is_dart_vehicle} onChange={(v) => onUpdate({ vehicle2_is_dart_vehicle: v, vehicle2_type: undefined })} />
-                </div>
-              </div>
-              <Show when={vehicle2TypeOptions.length > 0}>
-                <Field label="Other vehicle type" required error={showErrors && !data.vehicle2_type}>
-                  <CustomSelect value={data.vehicle2_type || ''} onChange={(v) => onUpdate({ vehicle2_type: v })} options={vehicle2TypeOptions} placeholder="Select" />
-                </Field>
-              </Show>
+            <div>
+              <OtherVehiclesEditor
+                variant="assault"
+                vehicles={assaultOtherVehicles}
+                onChange={(vehicles) => onUpdate({
+                  other_vehicles: vehicles,
+                  vehicle2_occupants_count: vehicles[0]?.occupants,
+                  vehicle2_is_dart_vehicle: vehicles[0]?.dart_dart,
+                  vehicle2_type: vehicles[0]?.vehicle_type,
+                })}
+                showErrors={showErrors}
+                assaultPerpetrators={data.vehicle2_perpetrators}
+                onAssaultPerpetratorsChange={(perpetrators) => onUpdate({ vehicle2_perpetrators: perpetrators })}
+              />
             </div>
           )}
       </Section>

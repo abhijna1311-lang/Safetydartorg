@@ -4,7 +4,7 @@ import { CustomSelect } from './CustomSelect';
 import { MultiSelect } from './MultiSelect';
 import { YesNoToggle } from './form/YesNoToggle';
 import { DamageAreaChips } from './steps/sections/DamageAreaChips';
-import type { OtherVehicle, OtherVehicleFatalOccupant, OtherVehicleOccupantInjury, PMInjuryBodyPart, PMInjurySeverity } from '../types/accident-report';
+import type { AssaultPerpetrator, OtherVehicle, OtherVehicleFatalOccupant, OtherVehicleOccupantInjury, PMInjuryBodyPart, PMInjurySeverity } from '../types/accident-report';
 
 const opt = (arr: string[]) => [...arr].sort((a, b) => a.localeCompare(b)).map(v => ({ value: v, label: v }));
 
@@ -85,10 +85,12 @@ interface Props {
   onChange: (vehicles: OtherVehicle[]) => void;
   showErrors?: boolean;
   injuryDetailsRequired?: boolean;
+  assaultPerpetrators?: AssaultPerpetrator[];
+  onAssaultPerpetratorsChange?: (perpetrators: AssaultPerpetrator[]) => void;
   // 'operator' drops "Occupant fatalities" and captures gender + transported per injured occupant.
   // 'supervisor' matches operator's per-occupant capture and also asks age group.
   // 'pm' keeps fatalities count and captures severity + body part + age + gender + transported per injured occupant.
-  variant?: 'operator' | 'supervisor' | 'pm' | 'full';
+  variant?: 'operator' | 'supervisor' | 'pm' | 'full' | 'assault';
 }
 
 const GENDER_OPTS = [
@@ -148,10 +150,25 @@ const syncFatalOccupants = (existing: OtherVehicleFatalOccupant[] | undefined, t
   return list.slice(0, targetCount);
 };
 
-export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, variant = 'full' }: Props) {
+const makeAssaultPerpetrator = (): AssaultPerpetrator => ({
+  id: `vehicle-perp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+});
+
+const syncAssaultPerpetrators = (existing: AssaultPerpetrator[] | undefined, targetCount: number): AssaultPerpetrator[] => {
+  const list = existing ?? [];
+  if (list.length === targetCount) return list;
+  if (list.length < targetCount) {
+    const add = Array.from({ length: targetCount - list.length }, makeAssaultPerpetrator);
+    return [...list, ...add];
+  }
+  return list.slice(0, targetCount);
+};
+
+export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, injuryDetailsRequired = true, assaultPerpetrators = [], onAssaultPerpetratorsChange, variant = 'full' }: Props) {
   const isOperator = variant === 'operator';
   const isSupervisor = variant === 'supervisor';
   const isPM = variant === 'pm';
+  const isAssault = variant === 'assault';
   // Operator, Supervisor and PM collect per-injured-occupant rows instead of aggregate 'transported' counts.
   const perOccupant = isOperator || isSupervisor || isPM;
   const [openId, setOpenId] = useState<string | null>(null);
@@ -174,6 +191,9 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
   const setOccupants = (id: string, n: number | undefined) => {
     if (!n || n < 1) update(id, { occupants: n, fatalities: undefined, injuries: undefined, fled: undefined, transported: undefined, injured_occupants: [], fatal_occupants: [] });
     else update(id, { occupants: n });
+    if (isAssault && id === vehicles[0]?.id && onAssaultPerpetratorsChange && n !== undefined) {
+      onAssaultPerpetratorsChange(syncAssaultPerpetrators(assaultPerpetrators, Math.min(Math.max(n, 0), assaultPerpetrators.length)));
+    }
   };
   // 0 injuries clears transported + per-injury records (nothing to describe).
   const setInjuries = (id: string, n: number | undefined) => {
@@ -214,6 +234,17 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
     update(vehicleId, { fatal_occupants: next });
   };
 
+  const setAssaultPerpetratorCount = (count: number | undefined) => {
+    if (!onAssaultPerpetratorsChange) return;
+    const maxCount = vehicles[0]?.occupants;
+    const nextCount = count === undefined ? 0 : Math.min(Math.max(count, 0), maxCount ?? count);
+    onAssaultPerpetratorsChange(syncAssaultPerpetrators(assaultPerpetrators, nextCount));
+  };
+
+  const updateAssaultPerpetrator = (id: string, patch: Partial<AssaultPerpetrator>) => {
+    onAssaultPerpetratorsChange?.(assaultPerpetrators.map(perpetrator => perpetrator.id === id ? { ...perpetrator, ...patch } : perpetrator));
+  };
+
   if (vehicles.length === 0) {
     return (
       <button
@@ -238,8 +269,14 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         const hasInjuries = (v.injuries ?? 0) > 0;
         const hasFatalities = (v.fatalities ?? 0) > 0;
         const typeOptions = v.dart_dart ? TYPES_DART : TYPES_NON_DART;
+        const vehicleAssaultPerpetrators = isAssault && idx === 0 ? assaultPerpetrators : [];
         const injuredOccupants = v.injured_occupants ?? [];
         const fatalOccupants = v.fatal_occupants ?? [];
+        const assaultPerpetratorsComplete = !isAssault || idx !== 0 || (
+          vehicleAssaultPerpetrators.length > 0
+          && vehicleAssaultPerpetrators.length <= (v.occupants ?? 0)
+          && vehicleAssaultPerpetrators.every(perpetrator => perpetrator.age !== undefined && perpetrator.gender !== undefined && perpetrator.fled_scene !== undefined)
+        );
         const injuredRowsComplete = !perOccupant || !injuryDetailsRequired || !hasInjuries
           || (injuredOccupants.length === (v.injuries ?? 0)
             && injuredOccupants.every(o =>
@@ -262,10 +299,12 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                 )
               : (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined))))
           );
-        const recordComplete = v.occupants !== undefined
-          && occupantsComplete
-          && v.dart_dart !== undefined && !!v.vehicle_type && (!isPM || !!v.collision_type) && !!v.action && !!v.point_of_impact
-          && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
+        const recordComplete = isAssault
+          ? v.occupants !== undefined && v.dart_dart !== undefined && !!v.vehicle_type && assaultPerpetratorsComplete
+          : v.occupants !== undefined
+            && occupantsComplete
+            && v.dart_dart !== undefined && !!v.vehicle_type && (!isPM || !!v.collision_type) && !!v.action && !!v.point_of_impact
+            && !!v.direction && v.damage !== undefined && (!v.damage || (Array.isArray(v.damage_area) && v.damage_area.length > 0));
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
           v.vehicle_type || 'Type not set',
@@ -337,7 +376,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                   <div className="space-y-6 px-4 py-5">
                     {/* This determines which vehicle-type options apply, so ask it first. */}
                     <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-                      <BoolRow label="Was this a collision between DART vehicles?" required sentenceCase error={showErrors && v.dart_dart === undefined}>
+                      <BoolRow label={isAssault ? `Was the other vehicle #${idx + 2} a DART vehicle?` : 'Was this a collision between DART vehicles?'} required sentenceCase error={showErrors && v.dart_dart === undefined}>
                         <YesNoToggle value={v.dart_dart} onChange={val => update(v.id, { dart_dart: val, vehicle_type: undefined })} />
                       </BoolRow>
                     </div>
@@ -345,21 +384,21 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isPM ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-                        <Field label="Vehicle type" required error={showErrors && !v.vehicle_type}>
+                      <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isAssault ? 'lg:grid-cols-1' : isPM ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+                        <Field label={isAssault ? `Other vehicle #${idx + 2} type` : 'Vehicle type'} required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
-                        {isPM && (
+                        {!isAssault && isPM && (
                           <Field label="Other vehicle collision type" required error={showErrors && !v.collision_type}>
                             <CustomSelect value={v.collision_type || ''} onChange={val => update(v.id, { collision_type: val })} options={COLLISION_TYPES} placeholder="Select collision type" />
                           </Field>
                         )}
-                        <Field label="Vehicle action" required error={showErrors && !v.action}>
+                        {!isAssault && <Field label="Vehicle action" required error={showErrors && !v.action}>
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
-                        </Field>
-                        <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
+                        </Field>}
+                        {!isAssault && <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
-                        </Field>
+                        </Field>}
                       </div>
                     </div>
 
@@ -368,8 +407,9 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                       <GroupLabel>Occupants</GroupLabel>
                       {/* Column count adapts to which follow-ups apply: fatalities and aggregate transport for FS/PM, per-injury rows below for operator/supervisor/pm. */}
                       <div
-                        className={`grid gap-x-5 gap-y-4 ${
-                          hasOccupants
+                        className={`grid gap-x-5 gap-y-4 ${isAssault
+                          ? 'grid-cols-1'
+                          : hasOccupants
                             ? isPM
                               ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4'
                               : perOccupant
@@ -379,11 +419,19 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                                 : hasInjuries
                                   ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-5'
                                   : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4'
-                            : 'grid-cols-1'
-                        }`}
+                            : 'grid-cols-1'}`}
                       >
-                        <NumberField label="Number of occupants in vehicle" required error={showErrors && v.occupants === undefined} value={v.occupants} onChange={n => setOccupants(v.id, n)} />
-                        {hasOccupants && (
+                        <NumberField label={isAssault ? `Number of occupants in other vehicle #${idx + 2}` : 'Number of occupants in vehicle'} required error={showErrors && v.occupants === undefined} value={v.occupants} onChange={n => setOccupants(v.id, n)} />
+                        {isAssault && idx === 0 && (
+                          <NumberField
+                            label="Number of occupants in other vehicle #2 who assaulted the employee"
+                            required
+                            error={showErrors && vehicleAssaultPerpetrators.length === 0}
+                            value={vehicleAssaultPerpetrators.length}
+                            onChange={setAssaultPerpetratorCount}
+                          />
+                        )}
+                        {hasOccupants && !isAssault && (
                           <>
                             {(!perOccupant || isSupervisor || isPM) && (
                               <NumberField label="Occupant fatalities" required error={showErrors && v.fatalities === undefined} value={v.fatalities} onChange={n => setFatalities(v.id, n)} />
@@ -402,6 +450,34 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                           </>
                         )}
                       </div>
+                      {isAssault && idx === 0 && vehicleAssaultPerpetrators.length > 0 && (
+                        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+                          <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Other vehicle #2 occupant perpetrators ({vehicleAssaultPerpetrators.length})</p>
+                            <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture age, gender, and whether each occupant fled the scene.</p>
+                          </div>
+                          <div className="divide-y divide-slate-100">
+                            {vehicleAssaultPerpetrators.map((perpetrator, perpetratorIndex) => (
+                              <div key={perpetrator.id} className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-3">
+                                <Field label={`Age of other vehicle #2 occupant ${perpetratorIndex + 1} perpetrator`} required error={showErrors && !perpetrator.age}>
+                                  <CustomSelect value={perpetrator.age || ''} onChange={value => updateAssaultPerpetrator(perpetrator.id, { age: value as AssaultPerpetrator['age'] })} options={[
+                                    { value: 'child', label: 'Child (12 and under)' },
+                                    { value: 'teen', label: 'Teen (13 to 18)' },
+                                    { value: 'adult', label: 'Adult (19 to 60)' },
+                                    { value: 'senior', label: 'Senior Citizen (61 and up)' },
+                                  ]} placeholder="Select age" />
+                                </Field>
+                                <Field label={`Gender of other vehicle #2 occupant ${perpetratorIndex + 1} perpetrator`} required error={showErrors && !perpetrator.gender}>
+                                  <CustomSelect value={perpetrator.gender || ''} onChange={value => updateAssaultPerpetrator(perpetrator.id, { gender: value as AssaultPerpetrator['gender'] })} options={GENDER_OPTS} placeholder="Select gender" />
+                                </Field>
+                                <Field label={`Did the other vehicle #2 occupant ${perpetratorIndex + 1} flee the scene?`} required error={showErrors && perpetrator.fled_scene === undefined}>
+                                  <YesNoToggle value={perpetrator.fled_scene} onChange={value => updateAssaultPerpetrator(perpetrator.id, { fled_scene: value })} />
+                                </Field>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {perOccupant && hasInjuries && (
                         <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
                           <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
@@ -550,6 +626,8 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                       )}
                     </div>
 
+                    {!isAssault && (
+                      <>
                     {/* Damage */}
                     <div>
                       <GroupLabel>Damage</GroupLabel>
@@ -598,6 +676,8 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         </BoolRow>
                       </div>
                     </div>
+                      </>
+                    )}
                   </div>
                   <div className="flex justify-end border-t border-slate-100 px-4 py-3">
                     <button type="button" onClick={() => setOpenId(null)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#112458] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0c1a42] focus:outline-none focus:ring-2 focus:ring-[rgba(17,36,88,0.3)] font-['Poppins']">
