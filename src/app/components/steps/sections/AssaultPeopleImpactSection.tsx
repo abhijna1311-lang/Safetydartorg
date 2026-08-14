@@ -292,8 +292,8 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
         </div>
       </div>
 
-      {/* 1 — Employee injury and response */}
-      <Section title="Employee injury and response" help="The employee's injury status and the immediate response.">
+      {/* 1 — Employee injury */}
+      <Section title="Employee Injury" help="The employee's injury status and the immediate response.">
         <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.operator_injured === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
           <BoolRow label="Was the employee injured?" required>
             <YesNoToggle value={data.operator_injured} onChange={(v) => onUpdate({ operator_injured: v, ...(v ? {} : { operator_injured_body_part: undefined }) })} />
@@ -301,7 +301,7 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
           <AnimatePresence initial={false}>
             {data.operator_injured === true && (
               <motion.div key="inj" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }} className="overflow-hidden divide-y divide-slate-100 bg-slate-50/50">
-                <BoolRow label="Injured body part" required>
+                <BoolRow label="Injured Body Part of Employee" required>
                   <div className="w-full sm:w-60">
                     <CustomSelect value={data.operator_injured_body_part || ''} onChange={(v) => onUpdate({ operator_injured_body_part: v })} options={toOptions(INJURED_BODY_PARTS)} placeholder="Select" error={showErrors && !data.operator_injured_body_part} />
                   </div>
