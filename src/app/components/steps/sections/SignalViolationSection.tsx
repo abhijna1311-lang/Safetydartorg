@@ -4,7 +4,7 @@ import { DatePickerInput } from '../../DatePickerInput';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
-import { RailVehicleFields } from './RailVehicleFields';
+import { ModeVehicleFields } from './ModeVehicleSection';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -72,6 +72,7 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
 
 export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isStreetcar = data.mode === 'Streetcar';
+  const isHiRail = data.mode === 'Hi-Rail';
 
   // Territory drives which "before" statuses are selectable — clear the value if it's
   // no longer valid so a stale status doesn't sit hidden in the form.
@@ -101,20 +102,20 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
 
-      {/* 1 — The vehicle */}
-      <Section
-        title={isStreetcar ? 'The streetcar' : 'The train'}
-        help={`Enter the ${isStreetcar ? 'streetcar' : 'train'} number — its assigned fleet, line and schedule are pulled in automatically.`}
-      >
-        <RailVehicleFields
+      {/* 1 — The vehicle: the selected mode always gets the canonical vehicle fields. */}
+      <Section title={isStreetcar ? 'The streetcar' : isHiRail ? 'The vehicle' : 'The train'} help="Select the vehicle involved in the event. Its assigned details are pulled in automatically.">
+        <ModeVehicleFields
           data={data}
           onUpdate={onUpdate}
           showErrors={showErrors}
+          statusBeforeField="train_status_before"
+          statusAfterField="train_status_after"
           statusBeforeOptions={beforeOptions}
           statusAfterOptions={afterOptions}
           statusBeforeDisabled={!territory}
           statusBeforePlaceholder={territory ? 'Select status' : 'Select territory first'}
-          showRailLine
+          vehicleNumberField={isHiRail ? 'train_number' : undefined}
+          showRailLine={!isHiRail}
         />
       </Section>
 

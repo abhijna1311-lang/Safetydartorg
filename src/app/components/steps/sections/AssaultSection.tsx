@@ -5,25 +5,13 @@ import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobo
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
-import { BusVehicleFields } from './BusCollisionSection';
-import { RailVehicleFields } from './RailVehicleFields';
-import { OperatorNonRailVehicleFields } from './OperatorNonRailVehicleFields';
-import { NRV_FLEET } from './NRVCollisionSection';
-import type { AccidentReportData, AssaultPerpetrator } from '../../../types/accident-report';
+import { ModeVehicleFields } from './ModeVehicleSection';
+import type { AccidentReportData } from '../../../types/accident-report';
 import {
-  ASSAULT_INVOLVES,
   ASSAULT_LOCATIONS,
-  ASSAULT_METHODS,
-  ASSAULT_TRIGGERS,
-  ASSAULT_TYPES,
-  INJURED_BODY_PARTS,
-  PERPETRATOR_AGES,
-  PERPETRATOR_GENDERS,
-  WHO_ASSAULTED,
   getVehicle2TypeOptions,
   getVehicleStatusOptions,
   getVisibleAssaultFields,
-  resizePerpetrators,
   type AssaultFieldKey,
 } from './assault/assaultFlow';
 
@@ -45,7 +33,6 @@ const fade = {
 
 const inputCls = 'dart-input-base';
 const readonlyCls = 'dart-input-base bg-white/70 cursor-not-allowed text-slate-500';
-const toOptions = (values: readonly string[]) => values.map((v) => ({ value: v, label: v }));
 const VEHICLE_EQUIPMENT_OPTIONS = [
   'Operator Area Protective Barrier Only',
   'Camera Only',
@@ -138,13 +125,6 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
     }
   }, [isStreetcar, data.line_description, show, onUpdate]);
 
-  // NRV / Hi-Rail — vehicle number lookup.
-  const nrvOptions: ComboboxOption[] = [...NRV_FLEET].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).map((v) => ({ value: v.id, label: v.id, description: v.type }));
-  const handleNRVChange = (val: string) => {
-    const v = NRV_FLEET.find((x) => x.id === val);
-    onUpdate({ vehicle_number: val, fleet_type: v?.type, employee_pullout_date: v?.pulloutDate, employee_pullout_time: v?.pulloutTime });
-  };
-
   const vehicleStatusOptions = getVehicleStatusOptions(data.mode).map((s) => ({ value: s.value, label: s.label }));
   const vehicle2TypeOptions = getVehicle2TypeOptions(data.vehicle2_is_dart_vehicle);
 
@@ -155,7 +135,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       {/* ── The vehicle (only when operating a DART vehicle) ──────────── */}
       {!notInPossession && (
         <Section
-          title="The vehicle"
+          title={isStreetcar ? 'The streetcar' : isLRV ? 'The train' : 'The vehicle'}
           help={
             isBus ? 'Enter the bus number and Block ID — the route and pull-out details are pulled in automatically.'
             : isRailLike ? `Pick the ${isStreetcar ? 'streetcar' : 'LRV'} — the line and pull-out details are pulled in automatically.`
@@ -163,37 +143,16 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
             : 'The DART vehicle involved in the event.'
           }
         >
-          {isBus && <BusVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} statusBeforeField="vehicle_status_before" statusAfterField="vehicle_status_after" statusOptions={vehicleStatusOptions} />}
-          {isRailLike && (
-            <RailVehicleFields
-              data={data}
-              onUpdate={onUpdate}
-              showErrors={showErrors}
-              statusBeforeField="vehicle_status_before"
-              statusAfterField="vehicle_status_after"
-              statusBeforeOptions={vehicleStatusOptions}
-              statusAfterOptions={vehicleStatusOptions}
-              showRailLine={show('line_description')}
-            />
-          )}
-          {!isRailLike && !isBus && <>
-            {(isNRV || isHiRail) && (
-              <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={NRV_FLEET} label={isHiRail ? 'Hi-Rail vehicle number' : 'Vehicle number'} placeholder="Search vehicle #" showErrors={showErrors} typeLabel={isHiRail ? 'Fleet type' : 'Vehicle type'} icon={isHiRail ? 'local_shipping' : 'directions_car'} />
-            )}
-
-            <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-                <Show when={show('vehicle_status_before')}>
-                  <Field label="Status before event" required error={showErrors && !data.vehicle_status_before}>
-                    <CustomSelect value={data.vehicle_status_before || ''} onChange={(v) => onUpdate({ vehicle_status_before: v })} options={vehicleStatusOptions} placeholder="Select status" />
-                  </Field>
-                </Show>
-                <Show when={show('vehicle_status_after')}>
-                  <Field label="Status after event" required error={showErrors && !data.vehicle_status_after}>
-                    <CustomSelect value={data.vehicle_status_after || ''} onChange={(v) => onUpdate({ vehicle_status_after: v })} options={vehicleStatusOptions} placeholder="Select status" />
-                  </Field>
-                </Show>
-            </div>
-          </>}
+          <ModeVehicleFields
+            data={data}
+            onUpdate={onUpdate}
+            showErrors={showErrors}
+            statusBeforeField="vehicle_status_before"
+            statusAfterField="vehicle_status_after"
+            statusBeforeOptions={vehicleStatusOptions}
+            statusAfterOptions={vehicleStatusOptions}
+            showRailLine={show('line_description')}
+          />
 
           {(show('vehicle_equipped_with') || show('driver_window_assault')) && (
             <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -269,18 +228,6 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
 
       {/* ── The assault ───────────────────────────────────────────────── */}
       <Section title="The assault" help="What happened, what led to it, and who was involved.">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-[18px]">
-          <Field label="Assault type" required error={showErrors && !data.assault_type}>
-            <CustomSelect value={data.assault_type || ''} onChange={(v) => onUpdate({ assault_type: v as AccidentReportData['assault_type'] })} options={toOptions(ASSAULT_TYPES.map((t) => t.value))} placeholder="Select" />
-          </Field>
-          <Field label="Assault trigger" required error={showErrors && !data.assault_trigger}>
-            <CustomSelect value={data.assault_trigger || ''} onChange={(v) => onUpdate({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" />
-          </Field>
-          <Field label="Assault involves" required error={showErrors && !data.assault_involves}>
-            <CustomSelect value={data.assault_involves || ''} onChange={(v) => onUpdate({ assault_involves: v as AccidentReportData['assault_involves'], who_assaulted: undefined })} options={ASSAULT_INVOLVES.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
-          </Field>
-        </div>
-
         <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
           <textarea
             value={data.assault_description || ''}
@@ -291,6 +238,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
             className={inputCls}
           />
         </Field>
+
       </Section>
 
       {/* ── Weather and conditions (spec: weather/road/lighting/streetlights) ── */}

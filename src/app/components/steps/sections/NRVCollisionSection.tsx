@@ -5,7 +5,8 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
-import { OperatorNonRailVehicleFields } from './OperatorNonRailVehicleFields';
+import { ModeVehicleSection } from './ModeVehicleSection';
+import { NRV_FLEET } from './operatorVehicleFleets';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -43,13 +44,7 @@ const NRV_IMPACT = toOptions([
   'Rear Impact', 'Right Side Impact', 'Right Sideswipe', 'Top', 'Underbody',
 ]);
 
-// Prototype NRV roster. Production values will come from the fleet system.
-export const NRV_FLEET = [
-  { id: 'NRV-104', type: 'Ford Transit Support Van', pulloutDate: '2026-07-24', pulloutTime: '05:20' },
-  { id: 'NRV-218', type: 'Chevrolet Silverado Service Truck', pulloutDate: '2026-07-24', pulloutTime: '05:45' },
-  { id: 'NRV-327', type: 'Ford Explorer Supervisor Vehicle', pulloutDate: '2026-07-24', pulloutTime: '06:10' },
-  { id: 'NRV-442', type: 'Ram ProMaster Maintenance Van', pulloutDate: '2026-07-24', pulloutTime: '04:50' },
-];
+export { NRV_FLEET } from './operatorVehicleFleets';
 
 const fade = {
   initial: { opacity: 0, y: 6 },
@@ -120,27 +115,10 @@ export function NRVRecordCard({ data }: { data: AccidentReportData }) {
 }
 
 export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
-  const vehicleOptions: ComboboxOption[] = [...NRV_FLEET]
-    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    .map(v => ({ value: v.id, label: v.id, description: v.type }));
-  const selectedVehicle = NRV_FLEET.find(v => v.id === data.vehicle_number);
-
-  const handleVehicleChange = (val: string) => {
-    const vehicle = NRV_FLEET.find(v => v.id === val);
-    onUpdate({
-      vehicle_number: val,
-      fleet_type: vehicle?.type,
-      employee_pullout_date: vehicle?.pulloutDate,
-      employee_pullout_time: vehicle?.pulloutTime,
-    });
-  };
-
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
-      <Section title="The NRV" help="Enter the NRV number — its vehicle type and pull-out details are pulled in automatically.">
-        <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={NRV_FLEET} label="NRV number" placeholder="Search NRV #" showErrors={showErrors} />
-      </Section>
+      <ModeVehicleSection data={data} onUpdate={onUpdate} showErrors={showErrors} />
 
       <Section title="What happened" help="Describe the collision, the NRV's movement, and any damage or runaway event.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

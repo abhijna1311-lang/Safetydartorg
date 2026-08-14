@@ -84,7 +84,11 @@ export interface AssaultPerpetrator {
   gender?: 'Female' | 'Male';
   spat_on?: boolean;
   fled_scene?: boolean;
+  perpetrator_arrested?: YesNoUnknown;
+  perpetrator_removed_from_dart_vehicle?: YesNoUnknown;
 }
+
+export type YesNoUnknown = 'Yes' | 'No' | 'Unknown';
 
 export interface ThirdVehicleData {
   occupants?: number;

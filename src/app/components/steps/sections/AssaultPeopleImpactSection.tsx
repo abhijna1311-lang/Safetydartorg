@@ -7,7 +7,10 @@ import { FormField as Field } from '../../form/FormField';
 import { PeopleImpactSummaryCard } from './PeopleImpactSummaryCard';
 import type { AccidentReportData, AssaultPerpetrator } from '../../../types/accident-report';
 import {
+  ASSAULT_INVOLVES,
   ASSAULT_METHODS,
+  ASSAULT_TRIGGERS,
+  ASSAULT_TYPES,
   INJURED_BODY_PARTS,
   PERPETRATOR_AGES,
   PERPETRATOR_GENDERS,
@@ -24,6 +27,7 @@ interface Props {
 const layoutSpring = { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } as const;
 const toOptions = (values: readonly string[]) => values.map((v) => ({ value: v, label: v }));
 const AGE_LABEL: Record<string, string> = { child: 'Child (12 & under)', teen: 'Teen (13–18)', adult: 'Adult (19–60)', senior: 'Senior (61+)' };
+const TRI_STATE_OPTIONS = ['Yes', 'No', 'Unknown'].map((value) => ({ value, label: value }));
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
   return (
@@ -61,10 +65,14 @@ function Show({ when, children }: { when: boolean; children: React.ReactNode }) 
 // ── Perpetrator card-list editor — mirrors PersonListEditor's card anatomy ─────
 // Collapsible card per perpetrator: avatar + title + subtitle + delete, an inline
 // editor (Details / Follow-up) and a Done button, with an "Add perpetrator" affordance.
-function PerpetratorListEditor({ list, onChange, showErrors }: {
+function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaultTrigger, assaultInvolves, onAssaultChange }: {
   list: AssaultPerpetrator[] | undefined;
   onChange: (next: AssaultPerpetrator[]) => void;
   showErrors: boolean;
+  assaultType?: AccidentReportData['assault_type'];
+  assaultTrigger?: string;
+  assaultInvolves?: AccidentReportData['assault_involves'];
+  onAssaultChange: (patch: Partial<AccidentReportData>) => void;
 }) {
   const people = list ?? [];
   const [openId, setOpenId] = useState<string | null>(null);
@@ -83,6 +91,8 @@ function PerpetratorListEditor({ list, onChange, showErrors }: {
     && !!p.gender
     && p.spat_on !== undefined
     && p.fled_scene !== undefined
+    && !!p.perpetrator_arrested
+    && !!p.perpetrator_removed_from_dart_vehicle
   );
 
   if (people.length === 0) {
@@ -150,7 +160,23 @@ function PerpetratorListEditor({ list, onChange, showErrors }: {
                 >
                   <div className="space-y-6 px-4 py-5">
                     <div>
-                      <GroupLabel>Details</GroupLabel>
+                      <GroupLabel>Assault information</GroupLabel>
+                      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-3">
+                        <Field label="Assault type" required error={showErrors && !assaultType}>
+                          <CustomSelect value={assaultType || ''} onChange={(v) => onAssaultChange({ assault_type: v as AccidentReportData['assault_type'], assault_trigger: v === 'Verbal Assault' ? undefined : assaultTrigger })} options={ASSAULT_TYPES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
+                        </Field>
+                        {assaultType !== 'Verbal Assault' && (
+                          <Field label="Assault trigger" required error={showErrors && !assaultTrigger}>
+                            <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" />
+                          </Field>
+                        )}
+                        <Field label="Assault involves" required error={showErrors && !assaultInvolves}>
+                          <CustomSelect value={assaultInvolves || ''} onChange={(v) => onAssaultChange({ assault_involves: v as AccidentReportData['assault_involves'], who_assaulted: undefined })} options={ASSAULT_INVOLVES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
+                        </Field>
+                      </div>
+                    </div>
+                    <div>
+                      <GroupLabel>Person details</GroupLabel>
                       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
                         <Field label="Who assaulted the employee" required error={showErrors && !p.who_assaulted}>
                           <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'] })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
@@ -167,7 +193,7 @@ function PerpetratorListEditor({ list, onChange, showErrors }: {
                       </div>
                     </div>
                     <div>
-                      <GroupLabel>Assault details</GroupLabel>
+                      <GroupLabel>Assault behavior</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Spat on?" required>
                           <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
@@ -179,6 +205,16 @@ function PerpetratorListEditor({ list, onChange, showErrors }: {
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Did the perpetrator flee the scene?" required>
                           <YesNoToggle value={p.fled_scene} onChange={(v) => update(p.id, { fled_scene: v })} />
+                        </BoolRow>
+                        <BoolRow label="Was the perpetrator arrested?" required>
+                          <div className="w-full sm:w-44">
+                            <CustomSelect value={p.perpetrator_arrested || ''} onChange={(v) => update(p.id, { perpetrator_arrested: v as AssaultPerpetrator['perpetrator_arrested'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_arrested} />
+                          </div>
+                        </BoolRow>
+                        <BoolRow label="Was the perpetrator removed from the DART vehicle?" required>
+                          <div className="w-full sm:w-44">
+                            <CustomSelect value={p.perpetrator_removed_from_dart_vehicle || ''} onChange={(v) => update(p.id, { perpetrator_removed_from_dart_vehicle: v as AssaultPerpetrator['perpetrator_removed_from_dart_vehicle'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_removed_from_dart_vehicle} />
+                          </div>
                         </BoolRow>
                       </div>
                     </div>
@@ -265,8 +301,16 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
 
       {/* 2 — Perpetrators. Every card owns the complete perpetrator answer set. */}
       <Section title="Perpetrator who assaulted DART employee" help="Who assaulted the employee, how, and each person involved — one card per perpetrator.">
-          {data.assault_involves === 'customer_assaulted_worker' && (
-            <PerpetratorListEditor list={data.assault_perpetrators} onChange={(next) => onUpdate({ assault_perpetrators: next })} showErrors={showErrors} />
+          {data.assault_involves !== 'worker_assaulted_worker' && (
+            <PerpetratorListEditor
+              list={data.assault_perpetrators}
+              onChange={(next) => onUpdate({ assault_perpetrators: next })}
+              showErrors={showErrors}
+              assaultType={data.assault_type}
+              assaultTrigger={data.assault_trigger}
+              assaultInvolves={data.assault_involves}
+              onAssaultChange={onUpdate}
+            />
           )}
           {hasMotoristPerpetrator && (
             <div className="space-y-4">

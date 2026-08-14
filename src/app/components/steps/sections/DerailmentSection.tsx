@@ -1,11 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
-import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobox';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
-import { RailVehicleFields } from './RailVehicleFields';
-import { OperatorNonRailVehicleFields } from './OperatorNonRailVehicleFields';
+import { ModeVehicleFields } from './ModeVehicleSection';
+import { HI_RAIL_FLEET } from './operatorVehicleFleets';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -46,17 +45,7 @@ const STATIONS = toOptions([
   'Parker Road', 'Pearl/Arts District', 'St. Paul', 'UNT Dallas', 'Victory', 'West End', 'Westmoreland',
 ]);
 
-const LRV_FLEET = [
-  { id: 'T-2045', fleetType: 'KIN – Kinki Sharyo USA 1996', pulloutDate: '2026-07-24', pulloutTime: '05:10', cars: ['2101', '2102'] },
-  { id: 'T-2088', fleetType: 'KIN – Kinki Sharyo USA 2005', pulloutDate: '2026-07-24', pulloutTime: '04:55', cars: ['2140'] },
-  { id: 'T-3120', fleetType: 'KIN – Kinki Sharyo USA 2010', pulloutDate: '2026-07-24', pulloutTime: '06:02', cars: ['2201', '2202', '2203'] },
-  { id: 'T-3345', fleetType: 'KIN – Kinki Sharyo USA 1999', pulloutDate: '2026-07-24', pulloutTime: '05:40', cars: ['2118', '2119'] },
-];
-export const HI_RAIL_FLEET = [
-  { id: 'HR-118', fleetType: 'Ford F-550 Hi-Rail Maintenance Truck', pulloutDate: '2026-07-24', pulloutTime: '05:15', cars: [] as string[] },
-  { id: 'HR-224', fleetType: 'Freightliner Hi-Rail Service Truck', pulloutDate: '2026-07-24', pulloutTime: '05:35', cars: [] as string[] },
-  { id: 'HR-307', fleetType: 'Ram 5500 Hi-Rail Inspection Truck', pulloutDate: '2026-07-24', pulloutTime: '06:05', cars: [] as string[] },
-];
+export { HI_RAIL_FLEET } from './operatorVehicleFleets';
 
 const fade = {
   initial: { opacity: 0, y: 6 },
@@ -104,53 +93,26 @@ function fmtTime(value?: string) {
 
 export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isLRV = data.mode === 'Light Rail Vehicle';
-  const fleet = isLRV ? LRV_FLEET : HI_RAIL_FLEET;
-  const selectedVehicle = fleet.find(vehicle => vehicle.id === data.train_number);
-  const vehicleOptions: ComboboxOption[] = fleet.map(vehicle => ({
-    value: vehicle.id,
-    label: vehicle.id,
-    description: vehicle.fleetType,
-  }));
-  const carOptions = toOptions(selectedVehicle?.cars || []);
   const locationOptions = data.derailment_type === 'Yard' ? YARD_LOCATIONS : MAINLINE_LOCATIONS;
   const showStation = data.location_category === 'Revenue Facility: Transit Station';
   const showGradeCrossing = data.location_category === 'Right-of-Way: Grade Crossing';
   const showLine = isLRV && SHOWS_LINE.includes(data.train_status_before || '');
-  const vehicleLabel = isLRV ? 'LRV' : 'NRV';
-
-  const handleVehicleChange = (value: string) => {
-    const vehicle = fleet.find(item => item.id === value);
-    onUpdate({
-      train_number: value,
-      lrv_fleet_type: vehicle?.fleetType,
-      train_pullout_date: vehicle?.pulloutDate,
-      train_pullout_time: vehicle?.pulloutTime,
-      lrv_consist_count: isLRV ? data.lrv_consist_count : undefined,
-      lrv_consist_1: isLRV ? data.lrv_consist_1 : undefined,
-      lrv_consist_2: isLRV ? data.lrv_consist_2 : undefined,
-      lrv_consist_3: isLRV ? data.lrv_consist_3 : undefined,
-      lrv_consist_4: isLRV ? data.lrv_consist_4 : undefined,
-      car_number: undefined,
-    });
-  };
-  const consistCount = data.lrv_consist_count ?? 0;
-
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
-      <Section title={isLRV ? 'The train' : 'The NRV vehicle'} help={`Select the ${isLRV ? 'train' : 'NRV'} number to pull its fleet and employee pull-out details.`}>
-        {!isLRV && <OperatorNonRailVehicleFields data={data} onUpdate={onUpdate} fleet={HI_RAIL_FLEET} numberField="train_number" label="NRV number" placeholder="Search NRV #" showErrors={showErrors} typeLabel="Fleet type" icon="local_shipping" />}
-
-        {isLRV && (
-          <RailVehicleFields
-            data={data}
-            onUpdate={onUpdate}
-            showErrors={showErrors}
-            statusBeforeOptions={TRAIN_STATUS}
-            statusAfterOptions={TRAIN_STATUS}
-            showRailLine={showLine}
-          />
-        )}
+      <Section title={isLRV ? 'The train' : 'The vehicle'} help="Select the vehicle involved in the derailment. Its assigned details are pulled in automatically.">
+        <ModeVehicleFields
+          data={data}
+          onUpdate={onUpdate}
+          showErrors={showErrors}
+          statusBeforeField={isLRV ? undefined : 'train_status_before'}
+          statusAfterField={isLRV ? undefined : 'train_status_after'}
+          statusBeforeOptions={TRAIN_STATUS}
+          statusAfterOptions={TRAIN_STATUS}
+          vehicleNumberField={isLRV ? undefined : 'train_number'}
+          nonRailFleet={HI_RAIL_FLEET}
+          showRailLine={showLine}
+        />
 
         <AnimatePresence>
           {showLine && (

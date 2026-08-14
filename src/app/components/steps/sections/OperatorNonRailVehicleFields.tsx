@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobox';
+import { CustomSelect } from '../../CustomSelect';
 import { FormField as Field } from '../../form/FormField';
 import type { AccidentReportData } from '../../../types/accident-report';
 
-type FleetVehicle = {
+export type FleetVehicle = {
   id: string;
   type?: string;
   fleetType?: string;
@@ -11,7 +12,14 @@ type FleetVehicle = {
   pulloutTime?: string;
 };
 
-type VehicleNumberField = 'vehicle_number' | 'train_number';
+export type VehicleNumberField = 'vehicle_number' | 'train_number';
+export type StatusFieldConfig = {
+  label: string;
+  value?: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  error?: boolean;
+};
 
 const fade = {
   initial: { opacity: 0, y: 6 },
@@ -44,6 +52,8 @@ export function OperatorNonRailVehicleFields({
   showErrors = false,
   typeLabel = 'Vehicle type',
   icon = 'directions_car',
+  statusBefore,
+  statusAfter,
 }: {
   data: AccidentReportData;
   onUpdate: (data: Partial<AccidentReportData>) => void;
@@ -54,12 +64,16 @@ export function OperatorNonRailVehicleFields({
   showErrors?: boolean;
   typeLabel?: string;
   icon?: string;
+  statusBefore?: StatusFieldConfig;
+  statusAfter?: StatusFieldConfig;
 }) {
   const value = data[numberField] as string | undefined;
   const selected = fleet.find(vehicle => vehicle.id === value);
   const options: ComboboxOption[] = [...fleet]
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
     .map(vehicle => ({ value: vehicle.id, label: vehicle.id, description: vehicle.type || vehicle.fleetType }));
+  const statusFields = [statusBefore, statusAfter].filter(Boolean) as StatusFieldConfig[];
+  const hasStatusFields = statusFields.length > 0;
 
   const handleChange = (nextValue: string) => {
     const vehicle = fleet.find(item => item.id === nextValue);
@@ -97,10 +111,15 @@ export function OperatorNonRailVehicleFields({
           </motion.div>
         )}
       </AnimatePresence>
-      <div style={{ marginTop: selected ? 26 : undefined }} className="max-w-xl">
+      <div style={{ marginTop: selected ? 26 : undefined }} className={hasStatusFields ? 'grid grid-cols-1 gap-[18px] md:grid-cols-3' : 'max-w-xl'}>
         <Field label={label} required error={showErrors && !value}>
           <SearchableCombobox options={options} value={value || ''} onChange={handleChange} placeholder={placeholder} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
         </Field>
+        {statusFields.map(status => (
+          <Field key={status.label} label={status.label} required error={status.error}>
+            <CustomSelect value={status.value || ''} onChange={status.onChange} options={status.options} placeholder="Select status" />
+          </Field>
+        ))}
       </div>
     </>
   );

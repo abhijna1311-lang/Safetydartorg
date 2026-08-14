@@ -5,8 +5,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
-import { LrvConsistFields } from './LrvConsistFields';
-import { RailVehicleFields } from './RailVehicleFields';
+import { ModeVehicleFields } from './ModeVehicleSection';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -180,53 +179,24 @@ function locationShowsTunnel(cat: string) { return cat === 'Tunnel'; }
 
 export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isStreetcar = data.mode === 'Streetcar';
-  const activeFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
+  const isHiRail = data.mode === 'Hi-Rail';
   const locationOptions = isStreetcar ? STREETCAR_LOCATION_CATEGORY : LRV_LOCATION_CATEGORY;
   const stationOptions = isStreetcar ? STREETCAR_STATION_OPTIONS : LRV_STATION_OPTIONS;
-  const showRailLine = SHOWS_RAIL_LINE.includes(data.train_status_before || '');
-
-  // Train number drives the read-only record card — picking a train pulls its assigned details.
-  const trainOptions: ComboboxOption[] = [...activeFleet]
-    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    .map(t => ({ value: t.id, label: t.id, description: t.fleetType }));
-  const selectedTrain = activeFleet.find(t => t.id === data.train_number);
-  // Streetcar still gates the record card on car identification; LRV shows it as soon as a train is picked (consist is entered manually below).
-  const hasTrainRecord = !!(selectedTrain && (isStreetcar ? data.car_number : true));
-
-  // Streetcar keeps its consist-card list for the record card.
-  const streetcarCars = selectedTrain?.cars ?? [];
-  const carOptions = [...streetcarCars]
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-    .map(c => ({ value: c, label: c }));
-  const consistCount = data.lrv_consist_count ?? 0;
-
-  // Selecting a train pulls its fleet, line and schedule. Consist LRV numbers are entered manually by the reporter.
-  const handleTrainChange = (val: string) => {
-    const t = activeFleet.find(x => x.id === val);
-    const cars = t?.cars ?? [];
-    onUpdate({
-      train_number: val,
-      lrv_fleet_type: t?.fleetType,
-      rail_line: t?.railLine,
-      lrv_end_of_line: t?.endOfLine,
-      train_pullout_date: t?.pulloutDate,
-      train_pullout_time: t?.pulloutTime,
-      lrv_consist_count: isStreetcar ? undefined : data.lrv_consist_count,
-      lrv_consist_1: isStreetcar ? undefined : data.lrv_consist_1,
-      lrv_consist_2: isStreetcar ? undefined : data.lrv_consist_2,
-      lrv_consist_3: isStreetcar ? undefined : data.lrv_consist_3,
-      lrv_consist_4: isStreetcar ? undefined : data.lrv_consist_4,
-      car_number: isStreetcar ? cars[0] : undefined,
-    });
-  };
+  const showRailLine = !isHiRail && SHOWS_RAIL_LINE.includes(data.train_status_before || '');
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
 
-      {/* 1 — The train: enter the train number; its assigned details are pulled in automatically */}
-      <Section title={isStreetcar ? 'The streetcar' : 'The train'} help={`Enter the ${isStreetcar ? 'streetcar' : 'train'} number — its assigned fleet, line and schedule are pulled in automatically.`}>
-        <RailVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} showRailLine={showRailLine} />
+      <Section title={isStreetcar ? 'The streetcar' : isHiRail ? 'The vehicle' : 'The train'} help="Select the vehicle involved in the event. Its assigned details are pulled in automatically.">
+        <ModeVehicleFields
+          data={data}
+          onUpdate={onUpdate}
+          showErrors={showErrors}
+          statusBeforeField={isHiRail ? 'vehicle_status_before' : undefined}
+          statusAfterField={isHiRail ? 'vehicle_status_after' : undefined}
+          showRailLine={showRailLine}
+        />
       </Section>
 
       {/* 2 — What happened: the narrative and mechanics of the collision */}

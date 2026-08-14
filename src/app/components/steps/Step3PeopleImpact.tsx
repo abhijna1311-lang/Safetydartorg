@@ -165,7 +165,10 @@ export function Step3PeopleImpact({
     if (!isAssault) return true;
     const base = data.operator_injured !== undefined && data.operator_transported !== undefined
       && data.notified_law_enforcement !== undefined && data.contacted_supervisor !== undefined
-      && (!data.operator_injured || !!data.operator_injured_body_part);
+      && (!data.operator_injured || !!data.operator_injured_body_part)
+      && !!data.assault_type
+      && (data.assault_type === 'Verbal Assault' || !!data.assault_trigger)
+      && !!data.assault_involves;
     if (!base) return false;
     if (data.assault_involves !== 'customer_assaulted_worker') return true;
     const perpetrators = data.assault_perpetrators ?? [];
@@ -176,6 +179,8 @@ export function Step3PeopleImpact({
       && !!p.gender
       && p.spat_on !== undefined
       && p.fled_scene !== undefined
+      && !!p.perpetrator_arrested
+      && !!p.perpetrator_removed_from_dart_vehicle
     );
     if (perpetrators.length === 0 || !perpetrators.every(perpetratorComplete)) return false;
     const hasMotorist = perpetrators.some((p) => p.who_assaulted === 'motorist');
