@@ -1810,10 +1810,12 @@ export function Step4ReviewSubmit({
                           <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Gender</div>
                           <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.gender || 'Not provided'}</div>
                         </div>
-                        <div>
-                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Spat on</div>
-                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.spat_on === true ? 'Yes' : perpetrator.spat_on === false ? 'No' : 'Not provided'}</div>
-                        </div>
+                        {data.assault_type !== 'Verbal Assault' && (
+                          <div>
+                            <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Spat on</div>
+                            <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.spat_on === true ? 'Yes' : perpetrator.spat_on === false ? 'No' : 'Not provided'}</div>
+                          </div>
+                        )}
                         <div>
                           <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Fled the scene</div>
                           <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.fled_scene === true ? 'Yes' : perpetrator.fled_scene === false ? 'No' : 'Not provided'}</div>
@@ -1822,10 +1824,12 @@ export function Step4ReviewSubmit({
                           <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Was the perpetrator arrested?</div>
                           <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.perpetrator_arrested || 'Not provided'}</div>
                         </div>
-                        <div>
-                          <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Was the perpetrator removed from the DART vehicle?</div>
-                          <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.perpetrator_removed_from_dart_vehicle || 'Not provided'}</div>
-                        </div>
+                        {perpetrator.who_assaulted !== 'motorist' && perpetrator.fled_scene !== true && (
+                          <div>
+                            <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Was the perpetrator removed from the DART vehicle?</div>
+                            <div className="text-sm text-slate-900 font-['Poppins']">{perpetrator.perpetrator_removed_from_dart_vehicle || 'Not provided'}</div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

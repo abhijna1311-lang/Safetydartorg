@@ -177,10 +177,10 @@ export function Step3PeopleImpact({
       && (data.assault_type === 'Verbal Assault' || !!p.assault_method)
       && !!p.age
       && !!p.gender
-      && p.spat_on !== undefined
+      && (data.assault_type === 'Verbal Assault' || p.spat_on !== undefined)
       && p.fled_scene !== undefined
       && !!p.perpetrator_arrested
-      && !!p.perpetrator_removed_from_dart_vehicle
+      && (p.who_assaulted === 'motorist' || p.fled_scene === true || !!p.perpetrator_removed_from_dart_vehicle)
     );
     if (perpetrators.length === 0 || !perpetrators.every(perpetratorComplete)) return false;
     const hasMotorist = perpetrators.some((p) => p.who_assaulted === 'motorist');

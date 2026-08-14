@@ -93,10 +93,10 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
     && (assaultType === 'Verbal Assault' || !!p.assault_method)
     && !!p.age
     && !!p.gender
-    && p.spat_on !== undefined
+    && (assaultType === 'Verbal Assault' || p.spat_on !== undefined)
     && p.fled_scene !== undefined
     && !!p.perpetrator_arrested
-    && !!p.perpetrator_removed_from_dart_vehicle
+    && (p.who_assaulted === 'motorist' || p.fled_scene === true || !!p.perpetrator_removed_from_dart_vehicle)
   );
 
   if (people.length === 0) {
@@ -183,7 +183,7 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                       <GroupLabel>Person details</GroupLabel>
                       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
                         <Field label="Who assaulted the employee" required error={showErrors && !p.who_assaulted}>
-                          <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'] })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+                          <CustomSelect value={p.who_assaulted || ''} onChange={(v) => update(p.id, { who_assaulted: v as AssaultPerpetrator['who_assaulted'], ...(v === 'motorist' ? { perpetrator_removed_from_dart_vehicle: undefined } : {}) })} options={WHO_ASSAULTED.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
                         </Field>
                         {assaultType !== 'Verbal Assault' && (
                           <Field label="Assault method" required error={showErrors && !p.assault_method}>
@@ -198,22 +198,24 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                         </Field>
                       </div>
                     </div>
-                    <div>
-                      <GroupLabel>Assault behavior</GroupLabel>
-                      <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                        <BoolRow label="Spat on?" required>
-                          <FollowUpControl>
-                            <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
-                          </FollowUpControl>
-                        </BoolRow>
+                    {assaultType !== 'Verbal Assault' && (
+                      <div>
+                        <GroupLabel>Assault behavior</GroupLabel>
+                        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                          <BoolRow label="Spat on?" required>
+                            <FollowUpControl>
+                              <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
+                            </FollowUpControl>
+                          </BoolRow>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div>
                       <GroupLabel>Follow-up</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Did the perpetrator flee the scene?" required>
                           <FollowUpControl>
-                            <YesNoToggle value={p.fled_scene} onChange={(v) => update(p.id, { fled_scene: v })} />
+                            <YesNoToggle value={p.fled_scene} onChange={(v) => update(p.id, { fled_scene: v, ...(v ? { perpetrator_removed_from_dart_vehicle: undefined } : {}) })} />
                           </FollowUpControl>
                         </BoolRow>
                         <BoolRow label="Was the perpetrator arrested?" required>
@@ -221,11 +223,13 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                             <CustomSelect value={p.perpetrator_arrested || ''} onChange={(v) => update(p.id, { perpetrator_arrested: v as AssaultPerpetrator['perpetrator_arrested'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_arrested} />
                           </FollowUpControl>
                         </BoolRow>
-                        <BoolRow label="Was the perpetrator removed from the DART vehicle?" required>
-                          <FollowUpControl>
-                            <CustomSelect value={p.perpetrator_removed_from_dart_vehicle || ''} onChange={(v) => update(p.id, { perpetrator_removed_from_dart_vehicle: v as AssaultPerpetrator['perpetrator_removed_from_dart_vehicle'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_removed_from_dart_vehicle} />
-                          </FollowUpControl>
-                        </BoolRow>
+                        {p.who_assaulted !== 'motorist' && p.fled_scene !== true && (
+                          <BoolRow label="Was the perpetrator removed from the DART vehicle?" required>
+                            <FollowUpControl>
+                              <CustomSelect value={p.perpetrator_removed_from_dart_vehicle || ''} onChange={(v) => update(p.id, { perpetrator_removed_from_dart_vehicle: v as AssaultPerpetrator['perpetrator_removed_from_dart_vehicle'] })} options={TRI_STATE_OPTIONS} placeholder="Select" error={showErrors && !p.perpetrator_removed_from_dart_vehicle} />
+                            </FollowUpControl>
+                          </BoolRow>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -323,7 +327,7 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
                 if (patch.assault_type === 'Verbal Assault') {
                   onUpdate({
                     ...patch,
-                    assault_perpetrators: (data.assault_perpetrators || []).map((person) => ({ ...person, assault_method: undefined })),
+                    assault_perpetrators: (data.assault_perpetrators || []).map((person) => ({ ...person, assault_method: undefined, spat_on: undefined })),
                   });
                   return;
                 }
