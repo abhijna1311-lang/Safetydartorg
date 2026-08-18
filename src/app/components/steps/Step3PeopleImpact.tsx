@@ -167,7 +167,7 @@ export function Step3PeopleImpact({
       && data.notified_law_enforcement !== undefined && data.contacted_supervisor !== undefined
       && (!data.operator_injured || !!data.operator_injured_body_part)
       && !!data.assault_type
-      && (data.assault_type === 'Verbal Assault' || !!data.assault_trigger)
+      && !!data.assault_trigger
       && !!data.assault_involves;
     if (!base) return false;
     if (data.assault_involves !== 'customer_assaulted_worker') return true;

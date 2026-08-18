@@ -169,22 +169,23 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                       <GroupLabel>Assault information</GroupLabel>
                       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
                         <Field label="Assault type" required error={showErrors && !assaultType}>
-                          <CustomSelect value={assaultType || ''} onChange={(v) => onAssaultChange({ assault_type: v as AccidentReportData['assault_type'], assault_trigger: v === 'Verbal Assault' ? undefined : assaultTrigger })} options={ASSAULT_TYPES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
+                          <CustomSelect value={assaultType || ''} onChange={(v) => onAssaultChange({ assault_type: v as AccidentReportData['assault_type'] })} options={ASSAULT_TYPES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
                         </Field>
                         <Field label="Assault involves" required error={showErrors && !assaultInvolves}>
                           <CustomSelect value={assaultInvolves || ''} onChange={(v) => onAssaultChange({ assault_involves: v as AccidentReportData['assault_involves'], who_assaulted: undefined })} options={ASSAULT_INVOLVES.map((option) => ({ value: option.value, label: option.label }))} placeholder="Select" />
                         </Field>
                       </div>
                     </div>
-                    {assaultType !== 'Verbal Assault' && (
-                      <div>
-                        <GroupLabel>Assault behavior</GroupLabel>
-                        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                          <BoolRow label="Assault trigger" required>
-                            <FollowUpControl>
-                              <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" error={showErrors && !assaultTrigger} />
-                            </FollowUpControl>
-                          </BoolRow>
+                    <div>
+                      <GroupLabel>Assault behavior</GroupLabel>
+                      <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                        <BoolRow label="Assault trigger" required>
+                          <FollowUpControl>
+                            <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" error={showErrors && !assaultTrigger} />
+                          </FollowUpControl>
+                        </BoolRow>
+                        {assaultType !== 'Verbal Assault' && (
+                          <>
                           <BoolRow label="Assault method" required>
                             <FollowUpControl>
                               <CustomSelect value={p.assault_method || ''} onChange={(v) => update(p.id, { assault_method: v })} options={ASSAULT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select" error={showErrors && !p.assault_method} />
@@ -195,9 +196,10 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                               <YesNoToggle value={p.spat_on} onChange={(v) => update(p.id, { spat_on: v })} />
                             </FollowUpControl>
                           </BoolRow>
-                        </div>
+                          </>
+                        )}
                       </div>
-                    )}
+                    </div>
                     <div>
                       <GroupLabel>Person details</GroupLabel>
                       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
