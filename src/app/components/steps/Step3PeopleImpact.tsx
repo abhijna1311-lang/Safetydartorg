@@ -185,25 +185,7 @@ export function Step3PeopleImpact({
     if (perpetrators.length === 0 || !perpetrators.every(perpetratorComplete)) return false;
     const hasMotorist = perpetrators.some((p) => p.who_assaulted === 'motorist');
     if (!hasMotorist) return true;
-    const assaultVehicles = data.other_vehicles?.length
-      ? data.other_vehicles
-      : data.vehicle2_is_dart_vehicle !== undefined || data.vehicle2_type || data.vehicle2_occupants_count !== undefined
-        ? [{
-            id: 'assault-vehicle-2',
-            occupants: data.vehicle2_occupants_count,
-            dart_dart: data.vehicle2_is_dart_vehicle,
-            vehicle_type: data.vehicle2_type,
-          }]
-        : [];
-    const assaultVehicleComplete = (vehicle: NonNullable<AccidentReportData['other_vehicles']>[number]) => (
-      vehicle.occupants !== undefined
-      && vehicle.dart_dart !== undefined
-      && !!vehicle.vehicle_type
-    );
-    return assaultVehicles.length > 0
-      && assaultVehicles.every(assaultVehicleComplete)
-      && (data.vehicle2_perpetrators?.length || 0) > 0
-      && data.vehicle2_perpetrators.every((perpetrator) => perpetrator.age !== undefined && perpetrator.gender !== undefined && perpetrator.fled_scene !== undefined);
+    return data.vehicle2_is_dart_vehicle !== undefined && !!data.vehicle2_type;
   })();
   const peopleAnswered = data.people_involved !== undefined
     && (data.people_involved !== true || (people.length > 0 && people.every(personComplete)));

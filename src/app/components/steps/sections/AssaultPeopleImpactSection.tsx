@@ -4,7 +4,6 @@ import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
-import { OtherVehiclesEditor } from '../../OtherVehiclesEditor';
 import { PeopleImpactSummaryCard } from './PeopleImpactSummaryCard';
 import type { AccidentReportData, AssaultPerpetrator } from '../../../types/accident-report';
 import {
@@ -12,6 +11,7 @@ import {
   ASSAULT_METHODS,
   ASSAULT_TRIGGERS,
   ASSAULT_TYPES,
+  getVehicle2TypeOptions,
   INJURED_BODY_PARTS,
   PERPETRATOR_AGES,
   PERPETRATOR_GENDERS,
@@ -69,7 +69,7 @@ function Show({ when, children }: { when: boolean; children: React.ReactNode }) 
 // ── Perpetrator card-list editor — mirrors PersonListEditor's card anatomy ─────
 // Collapsible card per perpetrator: avatar + title + subtitle + delete, an inline
 // editor (Details / Follow-up) and a Done button, with an "Add perpetrator" affordance.
-function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaultTrigger, assaultInvolves, onAssaultChange }: {
+function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaultTrigger, assaultInvolves, onAssaultChange, vehicle2IsDartVehicle, vehicle2Type, onVehicle2Change }: {
   list: AssaultPerpetrator[] | undefined;
   onChange: (next: AssaultPerpetrator[]) => void;
   showErrors: boolean;
@@ -77,6 +77,9 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
   assaultTrigger?: string;
   assaultInvolves?: AccidentReportData['assault_involves'];
   onAssaultChange: (patch: Partial<AccidentReportData>) => void;
+  vehicle2IsDartVehicle?: boolean;
+  vehicle2Type?: string;
+  onVehicle2Change: (patch: Partial<AccidentReportData>) => void;
 }) {
   const people = list ?? [];
   const [openId, setOpenId] = useState<string | null>(null);
@@ -209,6 +212,23 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                         </Field>
                       </div>
                     </div>
+                    {p.who_assaulted === 'motorist' && (
+                      <div>
+                        <GroupLabel>Vehicle</GroupLabel>
+                        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                          <BoolRow label="Was the other vehicle #2 a DART vehicle?" required>
+                            <FollowUpControl>
+                              <YesNoToggle value={vehicle2IsDartVehicle} onChange={(value) => onVehicle2Change({ vehicle2_is_dart_vehicle: value, vehicle2_type: undefined })} />
+                            </FollowUpControl>
+                          </BoolRow>
+                          <BoolRow label="Other vehicle #2 type" required>
+                            <FollowUpControl>
+                              <CustomSelect value={vehicle2Type || ''} onChange={(value) => onVehicle2Change({ vehicle2_type: value })} options={getVehicle2TypeOptions(vehicle2IsDartVehicle)} placeholder="Select vehicle type" error={showErrors && !vehicle2Type} />
+                            </FollowUpControl>
+                          </BoolRow>
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <GroupLabel>Follow-up</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -266,18 +286,6 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
     value: allPerps.filter((p) => p.who_assaulted === option.value).length,
   }));
 
-  const hasMotoristPerpetrator = allPerps.some((p) => p.who_assaulted === 'motorist');
-  const assaultOtherVehicles = data.other_vehicles?.length
-    ? data.other_vehicles
-    : data.vehicle2_is_dart_vehicle !== undefined || data.vehicle2_type || data.vehicle2_occupants_count !== undefined
-      ? [{
-          id: 'assault-vehicle-2',
-          occupants: data.vehicle2_occupants_count,
-          dart_dart: data.vehicle2_is_dart_vehicle,
-          vehicle_type: data.vehicle2_type,
-        }]
-      : [];
-
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {/* Top-line summary */}
@@ -331,6 +339,9 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
               assaultType={data.assault_type}
               assaultTrigger={data.assault_trigger}
               assaultInvolves={data.assault_involves}
+              vehicle2IsDartVehicle={data.vehicle2_is_dart_vehicle}
+              vehicle2Type={data.vehicle2_type}
+              onVehicle2Change={onUpdate}
               onAssaultChange={(patch) => {
                 if (patch.assault_type === 'Verbal Assault') {
                   onUpdate({
@@ -342,23 +353,6 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
                 onUpdate(patch);
               }}
             />
-          )}
-          {hasMotoristPerpetrator && (
-            <div>
-              <OtherVehiclesEditor
-                variant="assault"
-                vehicles={assaultOtherVehicles}
-                onChange={(vehicles) => onUpdate({
-                  other_vehicles: vehicles,
-                  vehicle2_occupants_count: vehicles[0]?.occupants,
-                  vehicle2_is_dart_vehicle: vehicles[0]?.dart_dart,
-                  vehicle2_type: vehicles[0]?.vehicle_type,
-                })}
-                showErrors={showErrors}
-                assaultPerpetrators={data.vehicle2_perpetrators}
-                onAssaultPerpetratorsChange={(perpetrators) => onUpdate({ vehicle2_perpetrators: perpetrators })}
-              />
-            </div>
           )}
       </Section>
     </div>
