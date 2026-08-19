@@ -100,7 +100,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
-      <Section title={isLRV ? 'The train' : 'The vehicle'} help="Select the vehicle involved in the derailment. Its assigned details are pulled in automatically.">
+      <Section title="The Vehicle" help="Select the vehicle involved in the derailment. Its assigned details are pulled in automatically.">
         <ModeVehicleFields
           data={data}
           onUpdate={onUpdate}
@@ -125,7 +125,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
         </AnimatePresence>
       </Section>
 
-      <Section title="Derailment details" help="Describe the event and capture the train movement immediately before the derailment.">
+      <Section title="What Happened" help="Describe the event and capture the train movement immediately before the derailment.">
         <Field label="Description of derailment" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
           <textarea rows={4} value={data.description_of_event || ''} onChange={narrativeReadOnly ? undefined : event => onUpdate({ description_of_event: event.target.value })} readOnly={narrativeReadOnly} placeholder="Describe how the derailment occurred in your own words..." className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`} />
         </Field>
@@ -159,7 +159,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
         </div>
       </Section>
 
-      <Section title="Where it happened" help="The derailment type limits the location choices to the places that apply.">
+      <Section title="Where It Happened" help="The derailment type limits the location choices to the places that apply.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Field label="Derailment type" required error={showErrors && !data.derailment_type}>
             <CustomSelect value={data.derailment_type || ''} onChange={value => onUpdate({ derailment_type: value as AccidentReportData['derailment_type'], location_category: undefined, station_applicable: undefined, grade_crossing_applicable: undefined })} options={DERAILMENT_TYPES} placeholder="Select derailment type" />
@@ -180,9 +180,24 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
             </motion.div>
           )}
         </AnimatePresence>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Field label="Street On" required>
+            <input type="text" value={data.street_on || data.address_of_event || ''} onChange={e => onUpdate({ street_on: e.target.value, address_of_event: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
+          </Field>
+          <Field label="Cross Street" required>
+            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
+          </Field>
+          <Field label="City" required>
+            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
+          </Field>
+          <Field label="ZIP Code" required>
+            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
+          </Field>
+        </div>
       </Section>
 
-      <Section title="Weather and conditions" help="The environment and track conditions at the time of the derailment.">
+      <Section title="Weather And Conditions" help="The environment and track conditions at the time of the derailment.">
         <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} />
       </Section>
     </div>

@@ -120,7 +120,7 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
       {headerSection}
       <ModeVehicleSection data={data} onUpdate={onUpdate} showErrors={showErrors} />
 
-      <Section title="What happened" help="Describe the collision, the NRV's movement, and any damage or runaway event.">
+      <Section title="What Happened" help="Describe the collision, the NRV's movement, and any damage or runaway event.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Event type with" required>
             <CustomSelect value={data.collision_type || ''} onChange={v => onUpdate({ collision_type: v })} options={EVENT_TYPE_WITH} placeholder="Select collision type" />
@@ -206,23 +206,24 @@ export function NRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
         </AnimatePresence>
       </Section>
 
-      <Section title="Where it happened" help="Record the street address where the NRV collision occurred.">
+      <Section title="Where It Happened" help="Record the street address where the NRV collision occurred.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <Field label="Street address" required error={showErrors && !data.street_on}>
-              <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="Enter street address" className={inputCls} />
-            </Field>
-          </div>
-          <Field label="City" required>
-            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="Enter city" className={inputCls} />
+          <Field label="Street On" required error={showErrors && !data.street_on}>
+            <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
-          <Field label="ZIP code" required>
+          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
+            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
+          </Field>
+          <Field label="City" required>
+            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
+          </Field>
+          <Field label="ZIP Code" required error={showErrors && !data.zip}>
             <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
           </Field>
         </div>
       </Section>
 
-      <Section title="Weather and conditions" help="The environment at the time of the event — visibility, road surface, and traffic conditions.">
+      <Section title="Weather And Conditions" help="The environment at the time of the event — visibility, road surface, and traffic conditions.">
         <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} />
       </Section>
     </div>

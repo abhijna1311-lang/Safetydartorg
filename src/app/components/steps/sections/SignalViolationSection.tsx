@@ -103,7 +103,7 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
       {headerSection}
 
       {/* 1 — The vehicle: the selected mode always gets the canonical vehicle fields. */}
-      <Section title={isStreetcar ? 'The streetcar' : isHiRail ? 'The vehicle' : 'The train'} help="Select the vehicle involved in the event. Its assigned details are pulled in automatically.">
+      <Section title="The Vehicle" help="Select the vehicle involved in the event. Its assigned details are pulled in automatically.">
         <ModeVehicleFields
           data={data}
           onUpdate={onUpdate}
@@ -119,8 +119,8 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
         />
       </Section>
 
-      {/* 2 — The signal violation */}
-      <Section title="The signal violation" help="Details about the signal, where it happened, and the vehicle's status before and after the event.">
+      {/* 2 — What happened */}
+      <Section title="What Happened" help="Capture the signal details and describe what happened in your own words.">
         <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3">
           <Field label="Date of signal violation" required error={showErrors && !data.signal_date}>
             <DatePickerInput value={data.signal_date || ''} onChange={v => onUpdate({ signal_date: v })} maxDate={new Date()} />
@@ -151,10 +151,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
             />
           </Field>
         </div>
-      </Section>
-
-      {/* 3 — What happened */}
-      <Section title="What happened" help="Describe the event in your own words — this narrative anchors the rest of the report.">
         <Field
           label="Description of event"
           required
@@ -178,26 +174,26 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
         </div>
       </Section>
 
-      {/* 4 — Where it happened */}
-      <Section title="Where it happened" help="The location and the conditions there — where the signal violation occurred.">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <Field label="Address of event" required error={showErrors && !data.address_of_event}>
-            <input
-              type="text"
-              value={data.address_of_event || ''}
-              onChange={e => onUpdate({ address_of_event: e.target.value })}
-              placeholder="e.g. Corinth Station platform, near switch S-142"
-              className={inputCls}
-            />
+      {/* 3 — Where it happened */}
+      <Section title="Where It Happened" help="The location and the conditions there — where the signal violation occurred.">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Field label="Street On" required error={showErrors && !(data.street_on || data.address_of_event)}>
+            <input type="text" value={data.street_on || data.address_of_event || ''} onChange={e => onUpdate({ street_on: e.target.value, address_of_event: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
-          <Field label="City">
+          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
+            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
+          </Field>
+          <Field label="City" required error={showErrors && !data.city}>
             <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
+          </Field>
+          <Field label="ZIP Code" required error={showErrors && !data.zip}>
+            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
           </Field>
         </div>
       </Section>
 
       {/* 5 — Weather and conditions */}
-      <Section title="Weather and conditions" help="The environment at the time of the event — visibility, track surface, and traffic controls.">
+      <Section title="Weather And Conditions" help="The environment at the time of the event — visibility, track surface, and traffic controls.">
         <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} />
       </Section>
     </div>

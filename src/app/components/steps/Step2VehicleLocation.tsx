@@ -9,6 +9,7 @@ import { DerailmentSection } from './sections/DerailmentSection';
 import { SignalViolationSection } from './sections/SignalViolationSection';
 import { AssaultSection } from './sections/AssaultSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
+import { FireSection } from './sections/FireSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
@@ -32,6 +33,7 @@ interface Props {
 
 // Modes that follow the LRV form path
 const LRV_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
+const ACTIVE_FIRE_STATUSES = ['In Service', 'Pull In', 'Pull Out', 'Service Protection'];
 const inputCls = 'dart-input-base';
 
 function IntakeCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -89,6 +91,7 @@ export function Step2VehicleLocation({
   const isDerailment = data.event_type === 'Derailment';
   const isSignalViolation = data.event_type === 'Signal Violation';
   const isAssault = data.event_type === 'Assault (Verbal or Physical)';
+  const isFire = data.event_type === 'Fire';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -134,7 +137,7 @@ export function Step2VehicleLocation({
     railVehicleNumber && railVehicleComplete
     && railStatusBefore && railStatusAfter
     && data.lrv_collision_type && data.train_action && data.lrv_point_of_impact && answered(data.train_speed)
-    && data.location_category && data.address_of_event && data.city && data.zip
+    && data.location_category && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
     && (data.location_category !== 'Rail Station' || data.station_applicable)
     && (!['Grade Crossing', 'Bridge'].includes(data.location_category || '') || (data.station_applicable && data.grade_crossing_applicable))
     && (data.location_category !== 'Tunnel' || data.tunnel_location)
@@ -147,7 +150,7 @@ export function Step2VehicleLocation({
   const nrvCollisionComplete = !!(
     data.vehicle_number && data.vehicle_status_before && data.vehicle_status_after
     && data.collision_type && data.bus_action && data.point_of_impact && answered(data.bus_speed)
-    && data.street_on && data.city && data.zip && answered(data.runaway_vehicle)
+    && data.street_on && data.cross_street && data.city && data.zip && answered(data.runaway_vehicle)
     && (data.runaway_vehicle !== true || data.operator_in_vehicle_runaway)
     && answered(data.bus_damage)
     && (data.bus_damage !== true || (answered(data.bus_damage_confirmed) && (data.impact_markers?.length || 0) > 0))
@@ -155,6 +158,7 @@ export function Step2VehicleLocation({
   );
   const derailmentComplete = !!(
     data.train_number && data.derailment_type && data.location_category
+    && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
     && (data.location_category !== 'Revenue Facility: Transit Station' || data.station_applicable)
     && (data.location_category !== 'Right-of-Way: Grade Crossing' || data.grade_crossing_applicable)
     && data.train_status_before && data.train_status_after
@@ -171,7 +175,7 @@ export function Step2VehicleLocation({
     && data.signal_date && data.signal_number
     && data.signal_displaying_properly && data.signal_territory
     && data.train_status_before && data.train_status_after
-    && data.address_of_event
+    && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
     && requiredWeatherComplete
   );
 
@@ -181,9 +185,9 @@ export function Step2VehicleLocation({
     if (!isAssault) return true;
     const inPossession = data.operating_dart_vehicle === true;
     const base = !!(
-      data.assault_location && data.street_on && data.city && data.zip
+      data.assault_location && data.street_on && data.cross_street && data.city && data.zip
       && data.assault_description?.trim()
-      && data.weather && data.road_conditions && data.lighting_conditions
+      && data.weather && data.road_conditions && data.lighting_conditions && data.streetlights
     );
     if (!base) return false;
     if (inPossession) {
@@ -196,6 +200,43 @@ export function Step2VehicleLocation({
       if (data.mode === 'Light Rail Vehicle' && !lrvConsistComplete) return false;
     }
     if (data.operating_dart_vehicle === false && data.assault_location === 'in_transit_vehicle' && !data.transit_vehicle_on) return false;
+    return true;
+  })();
+  const fireComplete = (() => {
+    if (!isFire) return true;
+    const base = !!(
+      data.description_of_event?.trim()
+      && data.fire_station_transit_center
+      && (data.street_on || data.fire_address)
+      && data.cross_street
+      && data.city
+      && data.zip
+      && data.fire_type
+      && data.fire_location
+      && data.fire_started_how
+      && data.fire_suppressed !== undefined
+      && data.evacuation_life_safety !== undefined
+      && data.weather && data.road_conditions && data.lighting_conditions
+    );
+    if (!base) return false;
+    if (data.operating_dart_vehicle === true) {
+      if (data.mode === 'Hi-Rail' || data.mode === 'Non-Revenue Vehicle') {
+        if (!data.vehicle_number) return false;
+      } else if (!(data.mode === 'Bus' ? data.vehicle_number && data.bus_status_before && data.bus_status_after : data.train_number && data.train_status_before && data.train_status_after)) {
+        return false;
+      }
+      if (['Bus', 'Light Rail Vehicle'].includes(data.mode || '') && ACTIVE_FIRE_STATUSES.includes((data.mode === 'Bus' ? data.bus_status_before : data.train_status_before) || '')) {
+        if (data.mode === 'Bus' && (!data.route_number || !data.block_number)) return false;
+        if (data.mode === 'Light Rail Vehicle' && !data.rail_line) return false;
+      }
+    }
+    if (data.fire_started_how === 'Arson' && !data.fire_responsible_for_starting) return false;
+    if (data.fire_suppressed === true && !data.fire_responsible_for_suppressing) return false;
+    if (data.operating_dart_vehicle === false && data.fire_location === 'In or on Transit Vehicle') {
+      if (!data.fire_transit_vehicle_on || !data.fire_transit_vehicle_number) return false;
+      if (['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.fire_transit_vehicle_on) && !data.fire_transit_route_or_line) return false;
+    }
+    if (['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'].includes(data.mode || '') && data.evacuation_life_safety === true && data.fire_evacuation_rail_right_of_way === undefined) return false;
     return true;
   })();
 
@@ -214,6 +255,8 @@ export function Step2VehicleLocation({
       )
     : isAssault
       ? !!(hasSchedule && data.incident_date && data.incident_time && assaultComplete)
+      : isFire
+        ? !!(hasSchedule && data.incident_date && data.incident_time && fireComplete)
       : !!(
         hasSchedule &&
         narrativeRequirementMet &&
@@ -327,17 +370,17 @@ export function Step2VehicleLocation({
                     <IntakeField label="Route">
                       <input type="text" value={data.route_number || ''} onChange={(e) => onUpdate({ route_number: e.target.value })} placeholder="Enter route" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="Street on" required>
-                      <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="Enter street" className={inputCls} />
+                    <IntakeField label="Street On" required>
+                      <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="Cross street" required>
-                      <input type="text" value={data.cross_street || ''} onChange={(e) => onUpdate({ cross_street: e.target.value })} placeholder="Enter cross street" className={inputCls} />
+                    <IntakeField label="Cross Street" required>
+                      <input type="text" value={data.cross_street || ''} onChange={(e) => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
                     </IntakeField>
                     <IntakeField label="City" required>
-                      <input type="text" value={data.city || ''} onChange={(e) => onUpdate({ city: e.target.value })} placeholder="Enter city" className={inputCls} />
+                      <input type="text" value={data.city || ''} onChange={(e) => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="ZIP code" required>
-                      <input type="text" value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value })} placeholder="Enter ZIP code" className={inputCls} />
+                    <IntakeField label="ZIP Code" required>
+                      <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
                     </IntakeField>
                   </>
                 ) : isNRV ? (
@@ -381,6 +424,9 @@ export function Step2VehicleLocation({
                 }
                 if (isAssault) {
                   return <AssaultSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                if (isFire) {
+                  return <FireSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
                 }
                 // Non-collision / non-derailment / non-assault (Near Miss, Fire,
                 // Operator/Passenger Events, Trail a Switch) use the generic incident form.

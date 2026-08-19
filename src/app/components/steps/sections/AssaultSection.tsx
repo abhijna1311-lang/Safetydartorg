@@ -135,7 +135,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       {/* ── The vehicle (only when operating a DART vehicle) ──────────── */}
       {!notInPossession && (
         <Section
-          title={isStreetcar ? 'The streetcar' : isLRV ? 'The train' : 'The vehicle'}
+          title="The Vehicle"
           help={
             isBus ? 'Enter the bus number and Block ID — the route and pull-out details are pulled in automatically.'
             : isRailLike ? `Pick the ${isStreetcar ? 'streetcar' : 'LRV'} — the line and pull-out details are pulled in automatically.`
@@ -175,19 +175,19 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       )}
 
       {/* ── Where it happened ─────────────────────────────────────────── */}
-      <Section title="Where it happened" help="The location of the assault and the conditions there.">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[18px]">
-          <Field label="Street on" required error={showErrors && !data.street_on}>
-            <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="Street the event occurred on" className={inputCls} />
+      <Section title="Where It Happened" help="The location of the assault and the conditions there.">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Field label="Street On" required error={showErrors && !data.street_on}>
+            <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
-          <Field label="Street at">
-            <input type="text" value={data.cross_street || ''} onChange={(e) => onUpdate({ cross_street: e.target.value })} placeholder="Nearest cross street" className={inputCls} />
+          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
+            <input type="text" value={data.cross_street || ''} onChange={(e) => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
           </Field>
           <Field label="City" required error={showErrors && !data.city}>
-            <input type="text" value={data.city || ''} onChange={(e) => onUpdate({ city: e.target.value })} placeholder="City" className={inputCls} />
+            <input type="text" value={data.city || ''} onChange={(e) => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
           </Field>
-          <Field label="ZIP code" required error={showErrors && !data.zip}>
-            <input type="text" value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value })} placeholder="ZIP" className={inputCls} />
+          <Field label="ZIP Code" required error={showErrors && !data.zip}>
+            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
           </Field>
         </div>
 
@@ -227,7 +227,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       </Section>
 
       {/* ── The assault ───────────────────────────────────────────────── */}
-      <Section title="The assault" help="What happened, what led to it, and who was involved.">
+      <Section title="What Happened" help="What happened, what led to it, and who was involved.">
         <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
           <textarea
             value={data.assault_description || ''}
@@ -242,7 +242,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       </Section>
 
       {/* ── Weather and conditions (spec: weather/road/lighting/streetlights) ── */}
-      <Section title="Weather and conditions" help="The environment at the time of the event — visibility and road or track surface.">
+      <Section title="Weather And Conditions" help="The environment at the time of the event — visibility and road or track surface.">
         <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} assaultOnly />
       </Section>
     </div>

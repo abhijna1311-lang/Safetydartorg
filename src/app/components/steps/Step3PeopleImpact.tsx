@@ -10,6 +10,7 @@ import { OtherVehiclesEditor } from '../OtherVehiclesEditor';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
 import { AssaultPeopleImpactSection } from './sections/AssaultPeopleImpactSection';
+import { FirePeopleImpactSection } from './sections/FirePeopleImpactSection';
 import type { AccidentReportData, AssaultPerpetrator, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
@@ -198,6 +199,22 @@ export function Step3PeopleImpact({
       ? assaultAnswered
       : (operatorAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
   const [showErrors, setShowErrors] = useState(false);
+  if (data.event_type === 'Fire') {
+    return (
+      <FirePeopleImpactSection
+        data={data}
+        onUpdate={onUpdate}
+        onNext={onNext}
+        onBack={onBack}
+        onSaveDraft={onSaveDraft}
+        workflowStage={workflowStage}
+        initiatedBy={initiatedBy}
+        activeSectionKey={activeSectionKey}
+        sectionStatuses={sectionStatuses}
+        showErrors={showErrors}
+      />
+    );
+  }
   const handleNextClick = () => {
     if (canProceed) {
       setShowErrors(false);

@@ -75,7 +75,7 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
       />
 
       {/* 2 — What happened */}
-      <Section title="What happened" help="Describe the event in your own words — this narrative anchors the rest of the report.">
+      <Section title="What Happened" help="Describe the event in your own words — this narrative anchors the rest of the report.">
         <Field
           label="Description of event"
           required
@@ -102,18 +102,18 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
       </Section>
 
       {/* 3 — Where it happened: location + the conditions there */}
-      <Section title="Where it happened" help="The location and the conditions there — where it was, and what the environment was like.">
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <Field label="Street on" required error={showErrors && !data.street_on}>
+      <Section title="Where It Happened" help="The location and the conditions there — where it was, and what the environment was like.">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Field label="Street On" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
           </Field>
-          <Field label="Cross street">
+          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
             <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
           </Field>
           <Field label="City" required error={showErrors && !data.city}>
             <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
           </Field>
-          <Field label="ZIP code">
+          <Field label="ZIP Code" required error={showErrors && !data.zip}>
             <input type="text" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value })} placeholder="e.g. 75201" className={inputCls} />
           </Field>
         </div>
@@ -162,7 +162,7 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
 
       {/* 5 — Weather and conditions: the environment at the time of the event */}
       {!compactMode && (
-        <Section title="Weather and conditions" help="The environment at the time of the event — visibility, road surface, and traffic conditions.">
+        <Section title="Weather And Conditions" help="The environment at the time of the event — visibility, road surface, and traffic conditions.">
           <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} />
         </Section>
       )}

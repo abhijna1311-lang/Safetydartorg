@@ -188,7 +188,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
 
-      <Section title={isStreetcar ? 'The streetcar' : isHiRail ? 'The vehicle' : 'The train'} help="Select the vehicle involved in the event. Its assigned details are pulled in automatically.">
+      <Section title="The Vehicle" help="Select the vehicle involved in the event. Its assigned details are pulled in automatically.">
         <ModeVehicleFields
           data={data}
           onUpdate={onUpdate}
@@ -200,7 +200,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
       </Section>
 
       {/* 2 — What happened: the narrative and mechanics of the collision */}
-      <Section title="What happened" help="One continuous account of the collision — the description, mechanics, impact, and any damage, runaway or evacuation.">
+      <Section title="What Happened" help="One continuous account of the collision — the description, mechanics, impact, and any damage, runaway or evacuation.">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <Field label="Event type with" required>
             <CustomSelect value={data.lrv_collision_type || ''} onChange={v => onUpdate({ lrv_collision_type: v })} options={EVENT_TYPE_WITH} placeholder="Select collision type" />
@@ -303,7 +303,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
       </Section>
 
       {/* 3 — Where it happened: location category and address */}
-      <Section title="Where it happened" help="The location of the event — the category tells us which extra details apply.">
+      <Section title="Where It Happened" help="The location of the event — the category tells us which extra details apply.">
         <motion.div
           layout
           transition={layoutSpring}
@@ -359,25 +359,24 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           )}
         </AnimatePresence>
 
-        <div className="pt-1">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <Field label="Street address" required>
-                <input type="text" value={data.address_of_event || ''} onChange={e => onUpdate({ address_of_event: e.target.value })} placeholder="Enter street address" className={inputCls} />
-              </Field>
-            </div>
-            <Field label="City" required>
-              <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="Enter city" className={inputCls} />
-            </Field>
-            <Field label="ZIP code" required>
-              <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
-            </Field>
-          </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Field label="Street On" required error={showErrors && !(data.street_on || data.address_of_event)}>
+            <input type="text" value={data.street_on || data.address_of_event || ''} onChange={e => onUpdate({ street_on: e.target.value, address_of_event: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
+          </Field>
+          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
+            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
+          </Field>
+          <Field label="City" required error={showErrors && !data.city}>
+            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
+          </Field>
+          <Field label="ZIP Code" required error={showErrors && !data.zip}>
+            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
+          </Field>
         </div>
       </Section>
 
       {/* 4 — Weather and conditions: the environment at the time of the event */}
-      <Section title="Weather and conditions" help="The environment at the time of the event — visibility, track surface, and traffic conditions.">
+      <Section title="Weather And Conditions" help="The environment at the time of the event — visibility, track surface, and traffic conditions.">
         <WeatherSection data={data} onUpdate={onUpdate} mode={data.mode} bare required showErrors={showErrors} />
       </Section>
 

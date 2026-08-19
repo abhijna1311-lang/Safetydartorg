@@ -60,7 +60,7 @@ export function ModeVehicleSection({
   const afterOptions = statusAfterOptions || defaultStatusOptions;
   const beforeField = statusBeforeField || (isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before');
   const afterField = statusAfterField || (isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after');
-  const title = isStreetcar ? 'The streetcar' : isLRV ? 'The train' : 'The vehicle';
+  const title = 'The Vehicle';
   const defaultHelp = isBus
     ? 'Enter the bus number and Block ID. The route and assigned vehicle details are pulled in automatically.'
     : isRail

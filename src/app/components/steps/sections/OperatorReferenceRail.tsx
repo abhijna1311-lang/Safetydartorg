@@ -189,13 +189,13 @@ const OPERATOR_TRANSCRIPT_FIELDS: TranscriptFieldDefinition[] = [
   {
     id: 'street_on',
     section: 'Location',
-    label: 'Street on',
+    label: 'Street On',
     path: 'street_on',
   },
   {
     id: 'cross_street',
     section: 'Location',
-    label: 'Cross street',
+    label: 'Cross Street',
     path: 'cross_street',
   },
   {
@@ -207,7 +207,7 @@ const OPERATOR_TRANSCRIPT_FIELDS: TranscriptFieldDefinition[] = [
   {
     id: 'zip',
     section: 'Location',
-    label: 'ZIP code',
+    label: 'ZIP Code',
     path: 'zip',
   },
   {
@@ -981,6 +981,24 @@ const RAIL_ONLY_SECTIONS = new Set<string>([
 // Bus-specific fields that live inside an otherwise shared section (Location).
 const BUS_ONLY_FIELD_IDS = new Set<string>(['event_at_bus_stop', 'bus_stop_name']);
 
+const OPERATOR_SECTION_TITLES: Record<string, string> = {
+  'Vehicle details': 'The Vehicle',
+  'Train vehicle details': 'The Vehicle',
+  'Bus status & route': 'The Vehicle',
+  'Train status & line': 'The Vehicle',
+  Location: 'Where It Happened',
+  'Train location': 'Where It Happened',
+  'Bus collision details': 'What Happened',
+  'Bus runaway & evacuation': 'What Happened',
+  'Train collision details': 'What Happened',
+  'Train runaway & evacuation': 'What Happened',
+  'Weather & road conditions': 'Weather And Conditions',
+};
+
+function getOperatorSectionTitle(section: string) {
+  return OPERATOR_SECTION_TITLES[section] || section;
+}
+
 function isRailMode(mode?: string): boolean {
   return mode === 'Light Rail Vehicle' || mode === 'Streetcar' || mode === 'Hi-Rail';
 }
@@ -998,7 +1016,7 @@ function buildOperatorFieldEntries(data: AccidentReportData): OperatorFieldEntry
     .filter((definition) => fieldMatchesMode(definition, rail))
     .map((definition) => ({
       id: definition.id,
-      section: definition.section,
+      section: getOperatorSectionTitle(definition.section),
       label: definition.label,
       value: formatDisplayValue(
         definition.getValue
@@ -1176,6 +1194,10 @@ const SUB_SECTION_TO_STEP: Record<string, OperatorStepNumber> = {
   'Train collision details': 2,
   'Train runaway & evacuation': 2,
   'Weather & road conditions': 2,
+  'The Vehicle': 2,
+  'What Happened': 2,
+  'Where It Happened': 2,
+  'Weather And Conditions': 2,
   'Operator / other employee injury': 3,
   'Passenger injury section': 3,
   'Pedestrian injury section': 3,

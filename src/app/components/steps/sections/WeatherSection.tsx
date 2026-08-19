@@ -108,7 +108,7 @@ export function WeatherSection({ data, onUpdate, mode, bare = false, required = 
       <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isComplete ? 'bg-emerald-500' : 'bg-slate-300'}`} />
         
-        <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">Weather & road conditions</h3>
+        <h3 className="text-sm font-semibold text-slate-800 font-['Poppins']">Weather And Conditions</h3>
       </div>
 
       <div className="px-6 py-5">

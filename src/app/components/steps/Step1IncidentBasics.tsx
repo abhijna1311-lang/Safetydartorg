@@ -120,8 +120,9 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const isSignalViolationEvent = data.event_type?.trim().toLowerCase() === 'signal violation';
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
   const isAssaultEvent = data.event_type === 'Assault (Verbal or Physical)';
+  const isFireEvent = data.event_type === 'Fire';
   // Assault spec: possession = No → the mode picker is disabled and no mode is required.
-  const modeDisabledByPossession = isAssaultEvent && data.operating_dart_vehicle === false;
+  const modeDisabledByPossession = (isAssaultEvent || isFireEvent) && data.operating_dart_vehicle === false;
   const modeIsAllowed = (!isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || ''))
     && (!isSignalViolationEvent || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
   const hasMode = modeDisabledByPossession || (!!data.mode && modeIsAllowed);
@@ -632,7 +633,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                 : unavailableForSignal
                 ? 'signal-violation-mode-guidance'
                 : modeDisabledByPossession
-                ? 'assault-possession-mode-guidance'
+                ? 'possession-mode-guidance'
                 : undefined;
               const unavailableTitle = unavailableForDerailment
                 ? 'Not available for Derailment'
@@ -676,7 +677,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             </p>
           )}
           {modeDisabledByPossession && (
-            <p id="assault-possession-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+            <p id="possession-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
               You answered that you were not operating a DART vehicle, so no vehicle mode is needed.
             </p>
           )}

@@ -1332,7 +1332,7 @@ export function Step4ReviewSubmit({
   const canSubmit = Boolean(
     isRoleAllowedToAdvance &&
     confirmationChecked &&
-    data.mode &&
+    (data.mode || (data.event_type === 'Fire' && data.operating_dart_vehicle === false)) &&
     data.event_type &&
     data.employee_badge_number &&
     data.employee_name &&
@@ -1896,6 +1896,50 @@ export function Step4ReviewSubmit({
         </div>
         )}
 
+        {showInlineReferenceSummaries && data.event_type === 'Fire' && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Fire details</h4>
+            <button
+              onClick={() => onJumpToStep(2)}
+              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+            >
+              <Edit className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+            {[
+              { label: 'Operating a DART vehicle', value: data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—' },
+              { label: 'Type of event', value: data.fire_type || '—' },
+              { label: 'Location of fire', value: data.fire_location || '—' },
+              { label: 'Stations / transit centers', value: data.fire_station_transit_center || '—' },
+              { label: 'Street On', value: data.street_on || data.fire_address || '—' },
+              { label: 'Cross Street', value: data.cross_street || '—' },
+              { label: 'City', value: data.city || '—' },
+              { label: 'ZIP Code', value: data.zip || '—' },
+              { label: 'Initial fire/smoke cause', value: data.fire_started_how || '—' },
+              ...(data.fire_started_how === 'Arson' ? [{ label: 'Responsible for starting the fire', value: data.fire_responsible_for_starting || '—' }] : []),
+              { label: 'Fire suppressed on scene', value: data.fire_suppressed === true ? 'Yes' : data.fire_suppressed === false ? 'No' : '—' },
+              ...(data.fire_suppressed === true ? [{ label: 'Responsible for suppressing the fire', value: data.fire_responsible_for_suppressing || '—' }] : []),
+              { label: 'Life-safety evacuation', value: data.evacuation_life_safety === true ? 'Yes' : data.evacuation_life_safety === false ? 'No' : '—' },
+              ...(data.fire_evacuation_rail_right_of_way !== undefined ? [{ label: 'Evacuation to rail right of way', value: data.fire_evacuation_rail_right_of_way ? 'Yes' : 'No' }] : []),
+              ...(data.fire_transit_vehicle_on ? [{ label: 'Transit vehicle ridden', value: [data.fire_transit_vehicle_on, data.fire_transit_vehicle_number, data.fire_transit_route_or_line].filter(Boolean).join(' · ') }] : []),
+              { label: 'Weather', value: data.weather || '—' },
+              { label: 'Road / track conditions', value: data.road_conditions || '—' },
+              { label: 'Lighting conditions', value: data.lighting_conditions || '—' },
+              { label: 'Streetlights', value: data.streetlights || '—' },
+              { label: 'Description of fire', value: data.description_of_event || '—' },
+            ].map(item => (
+              <div key={item.label} className={item.label === 'Description of fire' ? 'col-span-2' : undefined}>
+                <div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div>
+                <div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        )}
+
         {/* People and Impact Summary */}
         {showInlineReferenceSummaries && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -1910,12 +1954,29 @@ export function Step4ReviewSubmit({
             </button>
           </div>
           <div className="p-6">
-            <div className="mb-4">
+            {data.event_type === 'Fire' ? (
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+              {[
+                { label: 'Operator injured', value: data.operator_injured === true ? `Yes${data.operator_injured_body_part ? ` — ${data.operator_injured_body_part}` : ''}` : data.operator_injured === false ? 'No' : '—' },
+                ...(data.operator_injured === true ? [{ label: 'Operator transported', value: data.operator_transported === true ? 'Yes' : data.operator_transported === false ? 'No' : '—' }] : []),
+                { label: 'Other employees injured', value: formatReviewValue(data.fire_other_employees_injured) },
+                { label: 'Passengers injured', value: formatReviewValue(data.fire_passengers_injured) },
+                ...(data.fire_passengers_injured && data.fire_passengers_injured > 0 ? [{ label: 'Passengers transported', value: formatReviewValue(data.fire_passengers_transported) }] : []),
+                { label: 'Pedestrians injured', value: formatReviewValue(data.fire_pedestrians_injured) },
+                ...(data.fire_pedestrians_injured && data.fire_pedestrians_injured > 0 ? [{ label: 'Pedestrians transported', value: formatReviewValue(data.fire_pedestrians_transported) }] : []),
+              ].map(item => (
+                <div key={item.label}>
+                  <div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div>
+                  <div className="text-sm text-slate-900 font-['Poppins']">{item.value}</div>
+                </div>
+              ))}
+            </div>
+            ) : <div className="mb-4">
               <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Anyone involved?</div>
               <div className="text-sm text-slate-900 font-['Poppins']">
                 {data.people_involved === true ? 'Yes' : data.people_involved === false ? 'No' : '—'}
               </div>
-            </div>
+            </div>}
             {data.people_involved && data.people && data.people.length > 0 && (
               <div>
                 <div className="text-xs text-slate-500 mb-2 font-['Poppins']">People involved ({data.people.length})</div>

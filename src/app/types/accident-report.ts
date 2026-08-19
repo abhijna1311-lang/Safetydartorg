@@ -322,6 +322,25 @@ export interface AccidentReportData {
   traffic_controls?: string;
   roadway_configuration?: string;
 
+  // Fire event fields
+  fire_type?: 'Fire' | 'Smoke' | 'Fire and Smoke';
+  fire_location?: string;
+  fire_station_transit_center?: string;
+  fire_address?: string;
+  fire_started_how?: 'Arson' | 'Naturally' | 'Unaware';
+  fire_responsible_for_starting?: string;
+  fire_suppressed?: boolean;
+  fire_responsible_for_suppressing?: string;
+  fire_transit_vehicle_on?: string;
+  fire_transit_vehicle_number?: string;
+  fire_transit_route_or_line?: string;
+  fire_evacuation_rail_right_of_way?: boolean;
+  fire_other_employees_injured?: number;
+  fire_passengers_injured?: number;
+  fire_passengers_transported?: number;
+  fire_pedestrians_injured?: number;
+  fire_pedestrians_transported?: number;
+
   // ── STEP 3: People & Impact ────────────────────────────────────
   // Operator / Other Employees
   operator_injured?: boolean;
