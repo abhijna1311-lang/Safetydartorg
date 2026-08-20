@@ -249,7 +249,10 @@ export function Step2VehicleLocation({
       data.near_miss_description?.trim()
       && data.incident_date
       && data.incident_time
-      && data.near_miss_location?.trim()
+      && data.near_miss_street_on?.trim()
+      && data.near_miss_cross_street?.trim()
+      && data.near_miss_city?.trim()
+      && data.near_miss_zip?.trim()
       && data.near_miss_location_category
       && data.near_miss_reason
       && data.near_miss_category

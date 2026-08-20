@@ -352,6 +352,10 @@ export interface AccidentReportData {
   near_miss_time?: string;
   near_miss_location?: string;
   near_miss_location_category?: string;
+  near_miss_street_on?: string;
+  near_miss_cross_street?: string;
+  near_miss_city?: string;
+  near_miss_zip?: string;
   near_miss_reason?: 'Near-Miss Experienced' | 'Near-Miss Observed';
   near_miss_employee_involved?: string;
   near_miss_category?: 'Auto – Near Miss' | 'Pedestrian – Near Miss' | 'Fixed Object – Near Miss' | 'Non-Fixed Object – Near Miss';

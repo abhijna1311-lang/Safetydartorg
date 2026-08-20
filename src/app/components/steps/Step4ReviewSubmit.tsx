@@ -1321,7 +1321,10 @@ export function Step4ReviewSubmit({
       data.near_miss_description?.trim()
       && data.incident_date
       && data.incident_time
-      && data.near_miss_location?.trim()
+      && data.near_miss_street_on?.trim()
+      && data.near_miss_cross_street?.trim()
+      && data.near_miss_city?.trim()
+      && data.near_miss_zip?.trim()
       && data.near_miss_location_category
       && data.near_miss_reason
       && data.near_miss_category
@@ -1799,8 +1802,11 @@ export function Step4ReviewSubmit({
             {[
               { label: 'Description of Near Miss', value: data.near_miss_description || '—', wide: true },
               { label: 'Date / time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : '—' },
-              { label: 'Location', value: data.near_miss_location || '—' },
-              { label: 'Location category', value: data.near_miss_location_category || '—' },
+              { label: 'Street On', value: data.near_miss_street_on || '—' },
+              { label: 'Cross Street', value: data.near_miss_cross_street || '—' },
+              { label: 'City', value: data.near_miss_city || '—' },
+              { label: 'ZIP Code', value: data.near_miss_zip || '—' },
+              { label: 'Location Category', value: data.near_miss_location_category || '—' },
               { label: 'Reason for reporting', value: data.near_miss_reason || '—' },
               ...(data.near_miss_employee_involved ? [{ label: 'Employee involved', value: data.near_miss_employee_involved }] : []),
               { label: 'Near Miss category', value: data.near_miss_category || '—' },

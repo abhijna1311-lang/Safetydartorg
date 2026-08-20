@@ -100,11 +100,11 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
 
       <Section title="Where It Happened" help="Record the fire location and any transit vehicle details when you were not operating one.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Stations / transit centers" required error={showErrors && !data.fire_station_transit_center}>
-            <CustomSelect value={data.fire_station_transit_center || ''} onChange={value => onUpdate({ fire_station_transit_center: value })} options={DART_STATION_OPTIONS} placeholder="Select station or transit center" />
-          </Field>
           <Field label="Location of fire" required error={showErrors && !data.fire_location}>
             <CustomSelect value={data.fire_location || ''} onChange={value => onUpdate({ fire_location: value, fire_transit_vehicle_on: undefined, fire_transit_vehicle_number: undefined, fire_transit_route_or_line: undefined })} options={locationOptions} placeholder="Select location" />
+          </Field>
+          <Field label="Stations / transit centers" required error={showErrors && !data.fire_station_transit_center}>
+            <CustomSelect value={data.fire_station_transit_center || ''} onChange={value => onUpdate({ fire_station_transit_center: value })} options={DART_STATION_OPTIONS} placeholder="Select station or transit center" />
           </Field>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
