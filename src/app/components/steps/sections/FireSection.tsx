@@ -2,9 +2,9 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
+import { ModeVehicleFields } from './ModeVehicleSection';
+import { DART_STATION_OPTIONS } from './DerailmentSection';
 import { WeatherSection } from './WeatherSection';
-import { BUS_STATUS_OPTIONS } from './BusCollisionSection';
-import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -30,8 +30,6 @@ const TRANSIT_VEHICLES = [
   'Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehicle',
   '(Hi-Rail) On-Rail Mounted Maintenance Truck',
 ].map(value => ({ value, label: value }));
-const RAIL_LINES = ['Blue', 'Red', 'Orange', 'Green', 'Streetcar'].map(value => ({ value, label: value }));
-const ACTIVE_STATUSES = ['In Service', 'Pull In', 'Pull Out', 'Service Protection'];
 const HI_RAIL_MODE = 'Hi-Rail';
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
@@ -62,63 +60,6 @@ function fireLocationOptions(mode?: string) {
     .map(value => ({ value, label: value }));
 }
 
-function activeStatus(status?: string) {
-  return ACTIVE_STATUSES.includes(status || '');
-}
-
-function VehicleFields({ data, onUpdate, showErrors }: { data: AccidentReportData; onUpdate: Props['onUpdate']; showErrors: boolean }) {
-  const mode = data.mode;
-  const isBus = mode === 'Bus';
-  const isLRV = mode === 'Light Rail Vehicle';
-  const isStreetcar = mode === 'Streetcar';
-  const isRail = isLRV || isStreetcar;
-  const isHiRail = mode === HI_RAIL_MODE;
-  const isNRV = mode === 'Non-Revenue Vehicle';
-  const before = isBus ? data.bus_status_before : isRail ? data.train_status_before : data.vehicle_status_before;
-  const after = isBus ? data.bus_status_after : isRail ? data.train_status_after : data.vehicle_status_after;
-  const beforeKey = isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before';
-  const afterKey = isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after';
-  const setStatus = (key: string, value: string) => onUpdate({ [key]: value } as Partial<AccidentReportData>);
-  const routeVisible = activeStatus(before);
-
-  if (isHiRail || isNRV) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label={isHiRail ? 'Hi-Rail vehicle number' : 'Vehicle number'} required error={showErrors && !data.vehicle_number}>
-          <input className="dart-input-base" value={data.vehicle_number || ''} onChange={event => onUpdate({ vehicle_number: event.target.value })} placeholder="Enter vehicle number" />
-        </Field>
-        {isHiRail && <Field label="Fleet type"><input className="dart-input-base" value={data.fleet_type || ''} onChange={event => onUpdate({ fleet_type: event.target.value })} placeholder="Enter fleet type" /></Field>}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label={isBus ? 'Vehicle number' : isStreetcar ? 'Streetcar number' : 'LRV number'} required error={showErrors && !(isBus ? data.vehicle_number : data.train_number)}>
-          <input className="dart-input-base" value={(isBus ? data.vehicle_number : data.train_number) || ''} onChange={event => onUpdate(isBus ? { vehicle_number: event.target.value } : { train_number: event.target.value })} placeholder="Enter vehicle number" />
-        </Field>
-        <Field label="DART vehicle status before event" required error={showErrors && !before}>
-          <CustomSelect value={before || ''} onChange={value => setStatus(beforeKey, value)} options={isBus ? BUS_STATUS_OPTIONS : TRAIN_STATUS_OPTIONS} placeholder="Select status" />
-        </Field>
-        <Field label="DART vehicle status after event" required error={showErrors && !after}>
-          <CustomSelect value={after || ''} onChange={value => setStatus(afterKey, value)} options={isBus ? BUS_STATUS_OPTIONS : TRAIN_STATUS_OPTIONS} placeholder="Select status" />
-        </Field>
-      </div>
-      {routeVisible && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {isLRV && <Field label="Rail line"><CustomSelect value={data.rail_line || ''} onChange={value => onUpdate({ rail_line: value })} options={RAIL_LINES} placeholder="Select rail line" /></Field>}
-          {isBus && <Field label="Route"><input className="dart-input-base" value={data.route_number || ''} onChange={event => onUpdate({ route_number: event.target.value })} placeholder="Enter route" /></Field>}
-          {isBus && <Field label="Block"><input className="dart-input-base" value={data.block_number || ''} onChange={event => onUpdate({ block_number: event.target.value })} placeholder="Enter block" /></Field>}
-        </div>
-      )}
-      {isLRV && (
-        <Field label="How many LRVs consist?"><input type="number" min={1} className="dart-input-base" value={data.lrv_consist_count ?? ''} onChange={event => onUpdate({ lrv_consist_count: event.target.value ? Math.max(1, Number(event.target.value)) : undefined })} placeholder="Enter count" /></Field>
-      )}
-    </div>
-  );
-}
-
 export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isPossession = data.operating_dart_vehicle === true;
   const isRailMode = ['Light Rail Vehicle', 'Streetcar', HI_RAIL_MODE].includes(data.mode || '');
@@ -132,20 +73,18 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
       {isPossession && (
-      <Section title="The Vehicle" help="Enter the DART vehicle involved in the fire event.">
-        <VehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
+      <Section title="The Vehicle" help={data.mode === 'Bus' ? "Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically." : undefined}>
+        <ModeVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
       </Section>
       )}
 
       <Section title="What Happened" help="Describe the fire or smoke event and the response at the scene.">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Description of fire" required error={showErrors && !narrativeReadOnly && !data.description_of_event}>
-            <textarea rows={4} className={`dart-input-base resize-none sm:col-span-2 ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`} value={data.description_of_event || ''} onChange={narrativeReadOnly ? undefined : event => onUpdate({ description_of_event: event.target.value })} readOnly={narrativeReadOnly} placeholder="Describe the fire or smoke event" />
-          </Field>
-          <Field label="Type of event" required error={showErrors && !data.fire_type}>
-            <CustomSelect value={data.fire_type || ''} onChange={value => onUpdate({ fire_type: value })} options={FIRE_TYPES} placeholder="Select event type" />
-          </Field>
-        </div>
+        <Field label="Type of event" required error={showErrors && !data.fire_type}>
+          <CustomSelect value={data.fire_type || ''} onChange={value => onUpdate({ fire_type: value })} options={FIRE_TYPES} placeholder="Select event type" />
+        </Field>
+        <Field label="Description of fire" required error={showErrors && !narrativeReadOnly && !data.description_of_event}>
+          <textarea rows={4} className={`dart-input-base resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`} value={data.description_of_event || ''} onChange={narrativeReadOnly ? undefined : event => onUpdate({ description_of_event: event.target.value })} readOnly={narrativeReadOnly} placeholder="Describe the fire or smoke event" />
+        </Field>
 
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
           <BoolRow label="At the time of the event, how did the fire/smoke initially start?" required>
@@ -160,6 +99,14 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
       </Section>
 
       <Section title="Where It Happened" help="Record the fire location and any transit vehicle details when you were not operating one.">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Stations / transit centers" required error={showErrors && !data.fire_station_transit_center}>
+            <CustomSelect value={data.fire_station_transit_center || ''} onChange={value => onUpdate({ fire_station_transit_center: value })} options={DART_STATION_OPTIONS} placeholder="Select station or transit center" />
+          </Field>
+          <Field label="Location of fire" required error={showErrors && !data.fire_location}>
+            <CustomSelect value={data.fire_location || ''} onChange={value => onUpdate({ fire_location: value, fire_transit_vehicle_on: undefined, fire_transit_vehicle_number: undefined, fire_transit_route_or_line: undefined })} options={locationOptions} placeholder="Select location" />
+          </Field>
+        </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Field label="Street On" required error={showErrors && !(data.street_on || data.fire_address)}>
             <input className="dart-input-base" value={data.street_on || data.fire_address || ''} onChange={event => onUpdate({ street_on: event.target.value, fire_address: event.target.value })} placeholder="e.g. Main St" />
@@ -172,14 +119,6 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
           </Field>
           <Field label="ZIP Code" required error={showErrors && !data.zip}>
             <input className="dart-input-base" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={event => onUpdate({ zip: event.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" />
-          </Field>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Stations / transit centers" required error={showErrors && !data.fire_station_transit_center}>
-            <input className="dart-input-base" value={data.fire_station_transit_center || ''} onChange={event => onUpdate({ fire_station_transit_center: event.target.value })} placeholder="Enter station or transit center" />
-          </Field>
-          <Field label="Location of fire" required error={showErrors && !data.fire_location}>
-            <CustomSelect value={data.fire_location || ''} onChange={value => onUpdate({ fire_location: value, fire_transit_vehicle_on: undefined, fire_transit_vehicle_number: undefined, fire_transit_route_or_line: undefined })} options={locationOptions} placeholder="Select location" />
           </Field>
         </div>
 

@@ -72,6 +72,12 @@ export interface PedestrianRecord {
   fled?: boolean;
 }
 
+export interface NearMissPedestrianRecord {
+  id: string;
+  pedestrian_type?: string;
+  pedestrian_action?: string;
+}
+
 // One perpetrator entry in an assault report. The count of entries equals the
 // number of perpetrators the employee reported (on board / pedestrian / vehicle #2).
 export interface AssaultPerpetrator {
@@ -340,6 +346,35 @@ export interface AccidentReportData {
   fire_passengers_transported?: number;
   fire_pedestrians_injured?: number;
   fire_pedestrians_transported?: number;
+
+  near_miss_description?: string;
+  near_miss_date?: string;
+  near_miss_time?: string;
+  near_miss_location?: string;
+  near_miss_location_category?: string;
+  near_miss_reason?: 'Near-Miss Experienced' | 'Near-Miss Observed';
+  near_miss_employee_involved?: string;
+  near_miss_category?: 'Auto – Near Miss' | 'Pedestrian – Near Miss' | 'Fixed Object – Near Miss' | 'Non-Fixed Object – Near Miss';
+  near_miss_vehicle_number?: string;
+  near_miss_fleet_type?: string;
+  near_miss_speed?: string;
+  near_miss_revenue_service?: boolean;
+  near_miss_route?: string;
+  near_miss_run?: string;
+  near_miss_block?: string;
+  near_miss_rail_line?: string;
+  near_miss_weather?: string;
+  near_miss_road_conditions?: string;
+  near_miss_lighting_conditions?: string;
+  near_miss_streetlights?: string;
+  near_miss_traffic_conditions?: string;
+  near_miss_traffic_controls?: string;
+  near_miss_roadway_configuration?: string;
+  near_miss_pedestrian_count?: number;
+  near_miss_pedestrians?: NearMissPedestrianRecord[];
+  near_miss_between_dart_vehicles?: boolean;
+  near_miss_other_vehicle_type?: string;
+  near_miss_other_vehicle_action?: string;
 
   // ── STEP 3: People & Impact ────────────────────────────────────
   // Operator / Other Employees

@@ -39,7 +39,7 @@ const TRAIN_ACTIONS = toOptions([
   'Negotiating a Curve',
   'Proceeding Through a Switch',
 ]);
-const STATIONS = toOptions([
+export const DART_STATION_OPTIONS = toOptions([
   'Akard', 'Baylor', 'Buckner', 'Cityplace/Uptown', 'DFW Airport', 'Downtown Carrollton',
   'Downtown Garland', 'Downtown Plano', 'Downtown Rowlett', 'Inwood/Love Field', 'Mockingbird',
   'Parker Road', 'Pearl/Arts District', 'St. Paul', 'UNT Dallas', 'Victory', 'West End', 'Westmoreland',

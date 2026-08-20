@@ -1313,6 +1313,46 @@ export function Step4ReviewSubmit({
     }
   };
 
+  const isNearMiss = data.event_type === 'Near Miss';
+  const nearMissCanSubmit = (() => {
+    if (!isNearMiss) return true;
+    const observed = data.near_miss_reason === 'Near-Miss Observed';
+    const baseComplete = !!(
+      data.near_miss_description?.trim()
+      && data.near_miss_date
+      && data.near_miss_time
+      && data.near_miss_location?.trim()
+      && data.near_miss_location_category
+      && data.near_miss_reason
+      && data.near_miss_category
+      && data.near_miss_weather
+      && data.near_miss_road_conditions
+      && data.near_miss_lighting_conditions
+      && data.near_miss_traffic_conditions
+      && data.near_miss_traffic_controls
+      && data.near_miss_roadway_configuration
+    );
+    if (!baseComplete) return false;
+    if (!data.near_miss_fleet_type) return false;
+    if (!observed) {
+      if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
+      if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
+      if (data.near_miss_revenue_service === undefined) return false;
+      if (!data.near_miss_revenue_service) return true;
+      if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
+        if (!data.near_miss_rail_line || !data.near_miss_run) return false;
+      } else if (!data.near_miss_route || !data.near_miss_run || !data.near_miss_block) {
+        return false;
+      }
+    }
+    if (data.near_miss_category === 'Pedestrian – Near Miss') {
+      const pedestrians = data.near_miss_pedestrians || [];
+      if (!data.near_miss_pedestrian_count || pedestrians.length !== data.near_miss_pedestrian_count || pedestrians.some((pedestrian) => !pedestrian.pedestrian_type || !pedestrian.pedestrian_action)) return false;
+    }
+    if (data.near_miss_category === 'Auto – Near Miss' && (data.near_miss_between_dart_vehicles === undefined || !data.near_miss_other_vehicle_type || !data.near_miss_other_vehicle_action)) return false;
+    return true;
+  })();
+
   const handleRemoveAttachment = (index: number) => {
     const updated = attachments.filter((_, i) => i !== index);
     onUpdate({ attachments: updated });
@@ -1336,9 +1376,11 @@ export function Step4ReviewSubmit({
     data.event_type &&
     data.employee_badge_number &&
     data.employee_name &&
-    data.incident_date &&
-    data.incident_time &&
-    (data.description_of_event || data.incident_description)
+    (isNearMiss
+      ? nearMissCanSubmit
+      : data.incident_date &&
+        data.incident_time &&
+        (data.description_of_event || data.incident_description))
   );
 
   const reviewCanSubmit = Boolean(
@@ -1690,8 +1732,10 @@ export function Step4ReviewSubmit({
             <div>
               <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Incident date & time</div>
               <div className="text-sm text-slate-900 font-['Poppins']">
-                {data.incident_date && data.incident_time 
-                  ? `${data.incident_date} at ${data.incident_time}`
+                {isNearMiss && data.near_miss_date && data.near_miss_time
+                  ? `${data.near_miss_date} at ${data.near_miss_time}`
+                  : data.incident_date && data.incident_time
+                    ? `${data.incident_date} at ${data.incident_time}`
                   : '—'
                 }
               </div>
@@ -1701,7 +1745,7 @@ export function Step4ReviewSubmit({
         )}
 
         {/* Incident Details Summary */}
-        {showInlineReferenceSummaries && (
+        {showInlineReferenceSummaries && data.event_type !== 'Near Miss' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Incident details</h4>
@@ -1743,6 +1787,39 @@ export function Step4ReviewSubmit({
                 }
               </div>
             </div>
+          </div>
+        </div>
+        )}
+
+        {showInlineReferenceSummaries && isNearMiss && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Near Miss details</h4>
+            <button onClick={() => onJumpToStep(2)} className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"><Edit className="w-3 h-3" />Edit</button>
+          </div>
+          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+            {[
+              { label: 'Description of Near Miss', value: data.near_miss_description || '—', wide: true },
+              { label: 'Date / time', value: data.near_miss_date && data.near_miss_time ? `${data.near_miss_date} at ${data.near_miss_time}` : '—' },
+              { label: 'Location', value: data.near_miss_location || '—' },
+              { label: 'Location category', value: data.near_miss_location_category || '—' },
+              { label: 'Reason for reporting', value: data.near_miss_reason || '—' },
+              ...(data.near_miss_employee_involved ? [{ label: 'Employee involved', value: data.near_miss_employee_involved }] : []),
+              { label: 'Near Miss category', value: data.near_miss_category || '—' },
+              { label: 'Vehicle number', value: data.near_miss_vehicle_number || '—' },
+              { label: 'Fleet type', value: data.near_miss_fleet_type || '—' },
+              ...(data.near_miss_speed ? [{ label: 'Speed', value: data.near_miss_speed }] : []),
+              ...(data.near_miss_route ? [{ label: 'Route', value: data.near_miss_route }] : []),
+              ...(data.near_miss_rail_line ? [{ label: 'Rail line', value: data.near_miss_rail_line }] : []),
+              ...(data.near_miss_run ? [{ label: 'Run', value: data.near_miss_run }] : []),
+              ...(data.near_miss_block ? [{ label: 'Block', value: data.near_miss_block }] : []),
+              { label: 'Weather', value: data.near_miss_weather || '—' },
+              { label: 'Road / track conditions', value: data.near_miss_road_conditions || '—' },
+              { label: 'Lighting conditions', value: data.near_miss_lighting_conditions || '—' },
+              { label: 'Traffic conditions', value: data.near_miss_traffic_conditions || '—' },
+              { label: 'Traffic controls', value: data.near_miss_traffic_controls || '—' },
+              { label: 'Roadway configuration', value: data.near_miss_roadway_configuration || '—' },
+            ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
           </div>
         </div>
         )}
@@ -1954,7 +2031,22 @@ export function Step4ReviewSubmit({
             </button>
           </div>
           <div className="p-6">
-            {data.event_type === 'Fire' ? (
+            {data.event_type === 'Near Miss' ? (
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+              {[
+                ...(data.near_miss_category === 'Auto – Near Miss' ? [
+                  { label: 'Between two DART vehicles', value: formatReviewValue(data.near_miss_between_dart_vehicles) },
+                  { label: 'Other vehicle #2 type', value: data.near_miss_other_vehicle_type || '—' },
+                  { label: 'Other vehicle #2 action', value: data.near_miss_other_vehicle_action || '—' },
+                ] : []),
+                ...(data.near_miss_category === 'Pedestrian – Near Miss' ? [
+                  { label: 'Pedestrians in close calls', value: formatReviewValue(data.near_miss_pedestrian_count) },
+                ] : []),
+              ].map(item => <div key={item.label}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins']">{item.value}</div></div>)}
+              {data.near_miss_category === 'Pedestrian – Near Miss' && data.near_miss_pedestrians && data.near_miss_pedestrians.length > 0 && <div className="col-span-2 space-y-2"><div className="text-xs text-slate-500 mb-1 font-['Poppins']">Pedestrian close-call details</div>{data.near_miss_pedestrians.map((pedestrian, index) => <div key={pedestrian.id} className="rounded-lg bg-slate-50 p-3 text-sm text-slate-900 font-['Poppins']">Pedestrian {index + 1}: {[pedestrian.pedestrian_type, pedestrian.pedestrian_action].filter(Boolean).join(' · ') || '—'}</div>)}</div>}
+              {!data.near_miss_category || (data.near_miss_category !== 'Auto – Near Miss' && data.near_miss_category !== 'Pedestrian – Near Miss') ? <div className="col-span-2 text-sm text-slate-600 font-['Poppins']">No additional pedestrian or other-vehicle close-call details.</div> : null}
+            </div>
+            ) : data.event_type === 'Fire' ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
               {[
                 { label: 'Operator injured', value: data.operator_injured === true ? `Yes${data.operator_injured_body_part ? ` — ${data.operator_injured_body_part}` : ''}` : data.operator_injured === false ? 'No' : '—' },
@@ -1977,7 +2069,7 @@ export function Step4ReviewSubmit({
                 {data.people_involved === true ? 'Yes' : data.people_involved === false ? 'No' : '—'}
               </div>
             </div>}
-            {data.people_involved && data.people && data.people.length > 0 && (
+            {data.event_type !== 'Near Miss' && data.people_involved && data.people && data.people.length > 0 && (
               <div>
                 <div className="text-xs text-slate-500 mb-2 font-['Poppins']">People involved ({data.people.length})</div>
                 <div className="space-y-2">

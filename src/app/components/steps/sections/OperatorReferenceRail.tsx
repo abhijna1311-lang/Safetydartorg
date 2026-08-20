@@ -993,6 +993,7 @@ const OPERATOR_SECTION_TITLES: Record<string, string> = {
   'Train collision details': 'What Happened',
   'Train runaway & evacuation': 'What Happened',
   'Weather & road conditions': 'Weather And Conditions',
+  'Near Miss Details': 'Near Miss Details',
 };
 
 function getOperatorSectionTitle(section: string) {
@@ -1008,6 +1009,35 @@ function fieldMatchesMode(definition: TranscriptFieldDefinition, rail: boolean):
     return !BUS_ONLY_SECTIONS.has(definition.section) && !BUS_ONLY_FIELD_IDS.has(definition.id);
   }
   return !RAIL_ONLY_SECTIONS.has(definition.section);
+}
+
+function buildNearMissEntries(data: AccidentReportData): OperatorFieldEntry[] {
+  if (data.event_type !== 'Near Miss') return [];
+  const fields: Array<[string, string, unknown]> = [
+    ['near_miss_description', 'Description of Near Miss', data.near_miss_description],
+    ['near_miss_date', 'Date of Near Miss', data.near_miss_date],
+    ['near_miss_time', 'Time of Near Miss', data.near_miss_time],
+    ['near_miss_location', 'Location of Near Miss', data.near_miss_location],
+    ['near_miss_location_category', 'Location category', data.near_miss_location_category],
+    ['near_miss_reason', 'Reason for reporting', data.near_miss_reason],
+    ['near_miss_employee_involved', 'Employee involved', data.near_miss_employee_involved],
+    ['near_miss_category', 'Near Miss category', data.near_miss_category],
+    ['near_miss_vehicle_number', 'Vehicle number', data.near_miss_vehicle_number],
+    ['near_miss_fleet_type', 'Fleet type', data.near_miss_fleet_type],
+    ['near_miss_speed', 'DART vehicle speed', data.near_miss_speed],
+    ['near_miss_revenue_service', 'DART vehicle in revenue service', data.near_miss_revenue_service],
+    ['near_miss_route', 'Route', data.near_miss_route],
+    ['near_miss_run', 'Run', data.near_miss_run],
+    ['near_miss_block', 'Block', data.near_miss_block],
+    ['near_miss_rail_line', 'Rail line', data.near_miss_rail_line],
+    ['near_miss_weather', 'Weather', data.near_miss_weather],
+    ['near_miss_road_conditions', 'Road / track conditions', data.near_miss_road_conditions],
+    ['near_miss_lighting_conditions', 'Lighting conditions', data.near_miss_lighting_conditions],
+    ['near_miss_traffic_conditions', 'Traffic conditions', data.near_miss_traffic_conditions],
+    ['near_miss_traffic_controls', 'Traffic controls', data.near_miss_traffic_controls],
+    ['near_miss_roadway_configuration', 'Roadway configuration', data.near_miss_roadway_configuration],
+  ];
+  return fields.map(([id, label, value]) => ({ id, section: 'Near Miss Details', label, value: formatDisplayValue(value) }));
 }
 
 function buildOperatorFieldEntries(data: AccidentReportData): OperatorFieldEntry[] {
@@ -1027,7 +1057,7 @@ function buildOperatorFieldEntries(data: AccidentReportData): OperatorFieldEntry
       ),
     }));
 
-  return [...fixedEntries, ...buildPedestrianGroupEntries(data)];
+  return [...fixedEntries, ...buildNearMissEntries(data), ...buildPedestrianGroupEntries(data)];
 }
 
 function buildReportSections(entries: OperatorFieldEntry[], attachments: ReportAttachment[]): ReportSectionCard[] {

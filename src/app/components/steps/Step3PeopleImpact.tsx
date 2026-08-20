@@ -11,6 +11,7 @@ import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
 import { AssaultPeopleImpactSection } from './sections/AssaultPeopleImpactSection';
 import { FirePeopleImpactSection } from './sections/FirePeopleImpactSection';
+import { NearMissPeopleImpactSection } from './sections/NearMissSection';
 import type { AccidentReportData, AssaultPerpetrator, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
@@ -101,6 +102,7 @@ export function Step3PeopleImpact({
   const isRevenueMode = ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '');
   const isHiRail = data.mode === 'Hi-Rail';
   const isAssault = data.event_type === 'Assault (Verbal or Physical)';
+  const isNearMiss = data.event_type === 'Near Miss';
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
@@ -199,6 +201,9 @@ export function Step3PeopleImpact({
       ? assaultAnswered
       : (operatorAnswered && peopleAnswered && pedestriansAnswered && vehiclesAnswered);
   const [showErrors, setShowErrors] = useState(false);
+  if (isNearMiss) {
+    return <NearMissPeopleImpactSection data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} showErrors={showErrors} />;
+  }
   if (data.event_type === 'Fire') {
     return (
       <FirePeopleImpactSection

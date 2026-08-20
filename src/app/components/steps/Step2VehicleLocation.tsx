@@ -10,6 +10,7 @@ import { SignalViolationSection } from './sections/SignalViolationSection';
 import { AssaultSection } from './sections/AssaultSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
 import { FireSection } from './sections/FireSection';
+import { NearMissSection } from './sections/NearMissSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
@@ -92,6 +93,7 @@ export function Step2VehicleLocation({
   const isSignalViolation = data.event_type === 'Signal Violation';
   const isAssault = data.event_type === 'Assault (Verbal or Physical)';
   const isFire = data.event_type === 'Fire';
+  const isNearMiss = data.event_type === 'Near Miss';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -239,6 +241,33 @@ export function Step2VehicleLocation({
     if (['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'].includes(data.mode || '') && data.evacuation_life_safety === true && data.fire_evacuation_rail_right_of_way === undefined) return false;
     return true;
   })();
+  const nearMissComplete = (() => {
+    if (!isNearMiss) return true;
+    const experienced = data.near_miss_reason === 'Near-Miss Experienced';
+    const base = !!(
+      data.near_miss_description?.trim()
+      && data.near_miss_date
+      && data.near_miss_time
+      && data.near_miss_location?.trim()
+      && data.near_miss_location_category
+      && data.near_miss_reason
+      && data.near_miss_category
+      && data.near_miss_fleet_type
+      && data.near_miss_weather
+      && data.near_miss_road_conditions
+      && data.near_miss_lighting_conditions
+      && data.near_miss_traffic_conditions
+      && data.near_miss_traffic_controls
+      && data.near_miss_roadway_configuration
+    );
+    if (!base || !experienced) return base;
+    if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
+    if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
+    if (data.near_miss_revenue_service === undefined) return false;
+    if (!data.near_miss_revenue_service) return true;
+    if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) return !!data.near_miss_rail_line && !!data.near_miss_run;
+    return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
+  })();
 
   // Minimum required to proceed
   const hasSchedule = !showSchedule || hasScheduleAnswers(data);
@@ -257,6 +286,8 @@ export function Step2VehicleLocation({
       ? !!(hasSchedule && data.incident_date && data.incident_time && assaultComplete)
       : isFire
         ? !!(hasSchedule && data.incident_date && data.incident_time && fireComplete)
+      : isNearMiss
+        ? !!(hasSchedule && nearMissComplete)
       : !!(
         hasSchedule &&
         narrativeRequirementMet &&
@@ -427,6 +458,9 @@ export function Step2VehicleLocation({
                 }
                 if (isFire) {
                   return <FireSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                if (isNearMiss) {
+                  return <NearMissSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
                 }
                 // Non-collision / non-derailment / non-assault (Near Miss, Fire,
                 // Operator/Passenger Events, Trail a Switch) use the generic incident form.
