@@ -47,6 +47,10 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
 export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSaveDraft, workflowStage = 'operator-completion', activeSectionKey = 'operator', showErrors = false }: Props) {
   const [hasAttemptedNext, setHasAttemptedNext] = useState(false);
   const operatorInjured = data.operator_injured === true;
+  const isNonOperatingReport = data.operating_dart_vehicle === false;
+  const hasVehicleMode = Boolean(data.mode);
+  const injurySectionTitle = isNonOperatingReport ? 'Employee who submitted the report' : 'Operator injury';
+  const injuryQuestionLabel = isNonOperatingReport ? 'Employee injured' : 'Operator injured';
   const people = data.people ?? [];
   const passengerPeople = people.filter(person => person.role === 'Passenger');
   const pedestrianPeople = people.filter(person => person.role === 'Pedestrian');
@@ -92,9 +96,9 @@ export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSave
   return (
     <StepContainer stepNumber={3} title="People And Impact" description="Record everyone involved in the fire event, including injuries and hospital transport.">
       <div className={`dart-card dart-card--surface overflow-hidden ${isReadOnly ? 'opacity-90' : ''}`}>
-      <Section title="Operator injury" help="Record the operator's injury status and response.">
+      <Section title={injurySectionTitle} help={`Record the ${isNonOperatingReport ? 'employee\'s' : 'operator\'s'} injury status and response.`}>
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-          <BoolRow label="Operator injured" required>
+          <BoolRow label={injuryQuestionLabel} required>
             <YesNoToggle value={data.operator_injured} onChange={value => onUpdate({ operator_injured: value, operator_injured_body_part: value ? data.operator_injured_body_part : undefined, operator_transported: value ? data.operator_transported : undefined })} />
           </BoolRow>
           {operatorInjured && (
@@ -110,9 +114,11 @@ export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSave
 
       <Section title="People involved" help="Record each passenger or pedestrian involved so injury and hospital transport details are captured consistently.">
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-          <BoolRow label="How many passengers were on board?">
-            <input type="number" min={0} inputMode="numeric" value={data.passengers_on_board ?? ''} onChange={event => onUpdate({ passengers_on_board: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base w-full text-center sm:w-24" />
-          </BoolRow>
+          {hasVehicleMode && (
+            <BoolRow label="How many passengers were on board?">
+              <input type="number" min={0} inputMode="numeric" value={data.passengers_on_board ?? ''} onChange={event => onUpdate({ passengers_on_board: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base w-full text-center sm:w-24" />
+            </BoolRow>
+          )}
           <BoolRow label="Was anyone involved in this event?" required>
             <YesNoToggle value={data.people_involved} onChange={value => onUpdate({ people_involved: value, people: value ? people : [], ...(value ? {} : { fire_passengers_injured: 0, fire_passengers_transported: 0, fire_pedestrians_injured: 0, fire_pedestrians_transported: 0 }) })} />
           </BoolRow>
