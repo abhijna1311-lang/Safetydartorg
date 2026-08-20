@@ -1314,6 +1314,7 @@ export function Step4ReviewSubmit({
   };
 
   const isNearMiss = data.event_type === 'Near Miss';
+  const isTrailSwitch = data.event_type === 'Trail a Switch';
   const nearMissCanSubmit = (() => {
     if (!isNearMiss) return true;
     const observed = data.near_miss_reason === 'Near-Miss Observed';
@@ -1355,6 +1356,62 @@ export function Step4ReviewSubmit({
     if (data.near_miss_category === 'Auto – Near Miss' && (data.near_miss_between_dart_vehicles === undefined || !data.near_miss_other_vehicle_type || !data.near_miss_other_vehicle_action)) return false;
     return true;
   })();
+  const trailSwitchCanSubmit = (() => {
+    if (!isTrailSwitch) return true;
+    const isHiRail = data.mode === 'Hi-Rail';
+    const isLRV = data.mode === 'Light Rail Vehicle';
+    const consistCount = data.lrv_consist_count ?? 0;
+    const consistComplete = !isLRV || (
+      consistCount > 0
+      && [data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4]
+        .slice(0, Math.max(0, consistCount - 1))
+        .every(Boolean)
+    );
+    const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
+    const lineComplete = !isLRV || !['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description;
+    const trailPeople = data.people ?? [];
+    const trailPeopleComplete = data.people_involved !== undefined
+      && (data.people_involved === false || (trailPeople.length > 0 && trailPeople.every(person => (
+        !!person.gender
+        && person.is_dart_employee !== undefined
+        && (person.role !== 'Pedestrian' || (!!person.pedestrian_type && !!person.pedestrian_action))
+        && !!person.injured_body_part
+        && person.transported_to_hospital !== undefined
+      ))));
+    return Boolean(
+      (isHiRail ? data.vehicle_number : data.train_number)
+      && consistComplete
+      && statusesComplete
+      && lineComplete
+      && data.trail_description?.trim()
+      && data.incident_date
+      && data.incident_time
+      && data.trail_employee_pullout_date
+      && data.trail_employee_pullout_time
+      && data.street_on?.trim()
+      && data.cross_street?.trim()
+      && data.city?.trim()
+      && data.zip?.trim()
+      && data.trail_location_category
+      && data.trail_switch_configuration
+      && data.trail_switch_number_known !== undefined
+      && (data.trail_switch_number_known !== true || data.trail_switch_number?.trim())
+      && (isHiRail || data.trail_car_number || data.car_number)
+      && data.trail_train_speed?.trim()
+      && data.trail_train_damage !== undefined
+      && data.trail_train_action
+      && data.trail_derailment_confirmed === false
+      && data.weather
+      && data.road_conditions
+      && data.lighting_conditions
+      && data.traffic_conditions
+      && data.traffic_controls
+      && data.roadway_configuration
+      && data.trail_operator_injured !== undefined
+      && (data.trail_operator_injured !== true || (!!data.trail_operator_injured_body_part && data.trail_operator_transported !== undefined))
+      && trailPeopleComplete
+    );
+  })();
 
   const handleRemoveAttachment = (index: number) => {
     const updated = attachments.filter((_, i) => i !== index);
@@ -1379,8 +1436,10 @@ export function Step4ReviewSubmit({
     data.event_type &&
     data.employee_badge_number &&
     data.employee_name &&
-    (isNearMiss
-      ? nearMissCanSubmit
+    (isTrailSwitch
+      ? trailSwitchCanSubmit
+      : isNearMiss
+        ? nearMissCanSubmit
       : data.incident_date &&
         data.incident_time &&
         (data.description_of_event || data.incident_description))
@@ -1746,7 +1805,7 @@ export function Step4ReviewSubmit({
         )}
 
         {/* Incident Details Summary */}
-        {showInlineReferenceSummaries && data.event_type !== 'Near Miss' && (
+        {showInlineReferenceSummaries && data.event_type !== 'Near Miss' && !isTrailSwitch && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Incident details</h4>
@@ -1823,6 +1882,40 @@ export function Step4ReviewSubmit({
               { label: 'Traffic conditions', value: data.near_miss_traffic_conditions || '—' },
               { label: 'Traffic controls', value: data.near_miss_traffic_controls || '—' },
               { label: 'Roadway configuration', value: data.near_miss_roadway_configuration || '—' },
+            ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
+          </div>
+        </div>
+        )}
+
+        {showInlineReferenceSummaries && isTrailSwitch && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Trail a Switch details</h4>
+            <button onClick={() => onJumpToStep(2)} className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"><Edit className="w-3 h-3" />Edit</button>
+          </div>
+          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+            {[
+              { label: 'Description of event', value: data.trail_description || '—', wide: true },
+              { label: 'Date / time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : '—' },
+              { label: 'Mode', value: data.mode || '—' },
+              { label: 'Vehicle number', value: data.vehicle_number || data.train_number || '—' },
+              ...(data.mode === 'Streetcar' ? [{ label: 'Car number', value: data.trail_car_number || data.car_number || '—' }] : []),
+              { label: 'Line description', value: data.trail_line_description || '—' },
+              { label: 'Switch configuration', value: data.trail_switch_configuration || '—' },
+              { label: 'Switch number', value: data.trail_switch_number_known === true ? data.trail_switch_number || '—' : data.trail_switch_number_known === false ? 'Unknown' : '—' },
+              { label: 'Street On', value: data.street_on || '—' },
+              { label: 'Cross Street', value: data.cross_street || '—' },
+              { label: 'City', value: data.city || '—' },
+              { label: 'ZIP Code', value: data.zip || '—' },
+              { label: 'Location', value: data.trail_location_category || '—' },
+              { label: 'Train speed', value: data.trail_train_speed || '—' },
+              { label: 'Train damage', value: data.trail_train_damage === true ? 'Yes' : data.trail_train_damage === false ? 'No' : '—' },
+              { label: 'Action of train', value: data.trail_train_action || '—' },
+              { label: 'Derailment involved', value: data.trail_derailment_confirmed === true ? 'Yes' : data.trail_derailment_confirmed === false ? 'No' : '—' },
+              { label: 'Weather', value: data.weather || '—' },
+              { label: 'Road / track conditions', value: data.road_conditions || '—' },
+              { label: 'Lighting conditions', value: data.lighting_conditions || '—' },
+              { label: 'Traffic controls', value: data.traffic_controls || '—' },
             ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
           </div>
         </div>
@@ -2049,6 +2142,22 @@ export function Step4ReviewSubmit({
               ].map(item => <div key={item.label}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins']">{item.value}</div></div>)}
               {data.near_miss_category === 'Pedestrian – Near Miss' && data.near_miss_pedestrians && data.near_miss_pedestrians.length > 0 && <div className="col-span-2 space-y-2"><div className="text-xs text-slate-500 mb-1 font-['Poppins']">Pedestrian close-call details</div>{data.near_miss_pedestrians.map((pedestrian, index) => <div key={pedestrian.id} className="rounded-lg bg-slate-50 p-3 text-sm text-slate-900 font-['Poppins']">Pedestrian {index + 1}: {[pedestrian.pedestrian_type, pedestrian.pedestrian_action].filter(Boolean).join(' · ') || '—'}</div>)}</div>}
               {!data.near_miss_category || (data.near_miss_category !== 'Auto – Near Miss' && data.near_miss_category !== 'Pedestrian – Near Miss') ? <div className="col-span-2 text-sm text-slate-600 font-['Poppins']">No additional pedestrian or other-vehicle close-call details.</div> : null}
+            </div>
+            ) : data.event_type === 'Trail a Switch' ? (
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+              {[
+                { label: 'Operator injured', value: data.trail_operator_injured === true ? `Yes${data.trail_operator_injured_body_part ? ` - ${data.trail_operator_injured_body_part}` : ''}` : data.trail_operator_injured === false ? 'No' : '—' },
+                ...(data.trail_operator_injured === true ? [{ label: 'Operator transported', value: data.trail_operator_transported === true ? 'Yes' : data.trail_operator_transported === false ? 'No' : '—' }] : []),
+                { label: 'Passengers injured', value: formatReviewValue(data.trail_passengers_injured) },
+                ...(data.trail_passengers_injured && data.trail_passengers_injured > 0 ? [{ label: 'Passengers transported', value: formatReviewValue(data.trail_passengers_transported) }] : []),
+                { label: 'Pedestrians injured', value: formatReviewValue(data.trail_pedestrian_injuries) },
+                ...(data.trail_pedestrian_injuries && data.trail_pedestrian_injuries > 0 ? [{ label: 'Pedestrians transported', value: formatReviewValue(data.trail_pedestrians_transported) }] : []),
+              ].map(item => (
+                <div key={item.label}>
+                  <div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div>
+                  <div className="text-sm text-slate-900 font-['Poppins']">{item.value}</div>
+                </div>
+              ))}
             </div>
             ) : data.event_type === 'Fire' ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">

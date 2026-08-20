@@ -266,25 +266,9 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           </BoolRow>
 
           <BoolRow label="Was there train damage?" required>
-            <YesNoToggle value={data.train_damage} onChange={v => onUpdate({ train_damage: v, disabling_damage: v ? data.disabling_damage : undefined })} />
+            <YesNoToggle value={data.train_damage} onChange={v => onUpdate({ train_damage: v, disabling_damage: undefined })} />
           </BoolRow>
 
-          <AnimatePresence initial={false}>
-            {data.train_damage === true && (
-              <motion.div
-                key="disabling-followup"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ height: layoutSpring, opacity: { duration: 0.2, ease: 'easeInOut' } }}
-                className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100"
-              >
-                <BoolRow label={`Was there any disabling damage to the ${isStreetcar ? 'streetcar' : 'DART vehicle'}?`} required>
-                  <YesNoToggle value={data.disabling_damage} onChange={v => onUpdate({ disabling_damage: v })} />
-                </BoolRow>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Point of impact — mark it on the train when there was damage (mirrors the bus flow) */}

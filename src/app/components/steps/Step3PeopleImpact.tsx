@@ -12,6 +12,7 @@ import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
 import { AssaultPeopleImpactSection } from './sections/AssaultPeopleImpactSection';
 import { FirePeopleImpactSection } from './sections/FirePeopleImpactSection';
 import { NearMissPeopleImpactSection } from './sections/NearMissSection';
+import { TrailSwitchPeopleImpactSection } from './sections/TrailSwitchPeopleImpactSection';
 import type { AccidentReportData, AssaultPerpetrator, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
@@ -103,6 +104,7 @@ export function Step3PeopleImpact({
   const isHiRail = data.mode === 'Hi-Rail';
   const isAssault = data.event_type === 'Assault (Verbal or Physical)';
   const isNearMiss = data.event_type === 'Near Miss';
+  const isTrailSwitch = data.event_type === 'Trail a Switch';
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
@@ -203,6 +205,9 @@ export function Step3PeopleImpact({
   const [showErrors, setShowErrors] = useState(false);
   if (isNearMiss) {
     return <NearMissPeopleImpactSection data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} showErrors={showErrors} />;
+  }
+  if (isTrailSwitch) {
+    return <TrailSwitchPeopleImpactSection data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} workflowStage={workflowStage} activeSectionKey={activeSectionKey} showErrors={showErrors} />;
   }
   if (data.event_type === 'Fire') {
     return (
@@ -358,7 +363,7 @@ export function Step3PeopleImpact({
               </div>
 
               {/* 1 — Employee who submitted the report */}
-              <Section title="Employee who submitted the report" help="Record the employee's injury status and response.">
+              <Section title="Employee Who Submitted The Report" help="Record the employee's injury status and response.">
                 <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && !operatorAnswered ? 'border-red-300' : 'border-slate-200/70'}`}>
                   <BoolRow label="Was the employee injured?" required={!isHiRail}>
                     <YesNoToggle value={data.operator_injured} onChange={v => onUpdate({ operator_injured: v, operator_injured_body_part: v ? data.operator_injured_body_part : undefined, operator_transported: v ? data.operator_transported : undefined })} />

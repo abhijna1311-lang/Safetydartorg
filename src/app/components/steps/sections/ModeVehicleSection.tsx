@@ -62,6 +62,7 @@ export function ModeVehicleSection({
   const isHiRail = data.mode === 'Hi-Rail';
   const isNRV = data.mode === 'Non-Revenue Vehicle';
   const isRail = isLRV || isStreetcar;
+  const shouldShowStatusFields = showStatusFields && !isNRV && !isHiRail;
   const vehicleStatusOptions = getVehicleStatusOptions(data.mode).map(status => ({ value: status.value, label: status.label }));
   const defaultStatusOptions = isBus ? BUS_STATUS_OPTIONS : isHiRail || isNRV ? vehicleStatusOptions : TRAIN_STATUS_OPTIONS;
   const beforeOptions = statusBeforeOptions || defaultStatusOptions;
@@ -91,7 +92,7 @@ export function ModeVehicleSection({
         statusBeforeDisabled={statusBeforeDisabled}
         statusBeforePlaceholder={statusBeforePlaceholder}
         showRailLine={railLine}
-        showStatusFields={showStatusFields}
+        showStatusFields={shouldShowStatusFields}
         showLrvConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
         vehicleNumberField={vehicleNumberField}
@@ -124,6 +125,7 @@ export function ModeVehicleFields({
   const isHiRail = data.mode === 'Hi-Rail';
   const isNRV = data.mode === 'Non-Revenue Vehicle';
   const isRail = isLRV || isStreetcar;
+  const shouldShowStatusFields = showStatusFields && !isNRV && !isHiRail;
   const vehicleStatusOptions = getVehicleStatusOptions(data.mode).map(status => ({ value: status.value, label: status.label }));
   const defaultStatusOptions = isBus ? BUS_STATUS_OPTIONS : isHiRail || isNRV ? vehicleStatusOptions : TRAIN_STATUS_OPTIONS;
   const beforeOptions = statusBeforeOptions || defaultStatusOptions;
@@ -141,7 +143,7 @@ export function ModeVehicleFields({
         statusBeforeField={beforeField as 'bus_status_before' | 'vehicle_status_before'}
         statusAfterField={afterField as 'bus_status_after' | 'vehicle_status_after'}
         statusOptions={beforeOptions}
-        showStatusFields={showStatusFields}
+        showStatusFields={shouldShowStatusFields}
         requiredVehicleNumber={requiredVehicleNumber}
       />
     );
@@ -160,7 +162,7 @@ export function ModeVehicleFields({
         statusBeforeDisabled={statusBeforeDisabled}
         statusBeforePlaceholder={statusBeforePlaceholder}
         showRailLine={railLine}
-        showStatusFields={showStatusFields}
+        showStatusFields={shouldShowStatusFields}
         showConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
       />
@@ -181,8 +183,8 @@ export function ModeVehicleFields({
         showErrors={showErrors}
         typeLabel={isHiRail ? 'Fleet type' : 'Vehicle type'}
         icon={isHiRail ? 'local_shipping' : 'directions_car'}
-        statusBefore={showStatusFields ? statusConfig(data, beforeField, beforeOptions, onUpdate, showErrors) : undefined}
-        statusAfter={showStatusFields ? statusConfig(data, afterField, afterOptions, onUpdate, showErrors) : undefined}
+        statusBefore={shouldShowStatusFields ? statusConfig(data, beforeField, beforeOptions, onUpdate, showErrors) : undefined}
+        statusAfter={shouldShowStatusFields ? statusConfig(data, afterField, afterOptions, onUpdate, showErrors) : undefined}
         requiredVehicleNumber={requiredVehicleNumber}
       />
     );

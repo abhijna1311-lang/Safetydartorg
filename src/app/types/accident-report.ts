@@ -283,6 +283,28 @@ export interface AccidentReportData {
   // Derailment-only fields
   derailment_type?: 'Mainline' | 'Yard';
 
+  // Trail a Switch fields
+  trail_description?: string;
+  trail_employee_pullout_date?: string;
+  trail_employee_pullout_time?: string;
+  trail_switch_configuration?: 'Interlocking' | 'Crossover' | 'Yard Switch';
+  trail_switch_number_known?: boolean;
+  trail_switch_number?: string;
+  trail_derailment_confirmed?: boolean;
+  trail_location_category?: string;
+  trail_car_number?: string;
+  trail_line_description?: string;
+  trail_train_speed?: string;
+  trail_train_damage?: boolean;
+  trail_train_action?: string;
+  trail_operator_injured?: boolean;
+  trail_operator_injured_body_part?: string;
+  trail_operator_transported?: boolean;
+  trail_passengers_injured?: number;
+  trail_passengers_transported?: number;
+  trail_pedestrian_injuries?: number;
+  trail_pedestrians_transported?: number;
+
   // ── Assault (Verbal or Physical) — event-specific fields ────────
   // Shared fields reused: operating_dart_vehicle, mode, incident_date/time,
   // street_on, cross_street, city, zip, vehicle_number, fleet_type, run_number,

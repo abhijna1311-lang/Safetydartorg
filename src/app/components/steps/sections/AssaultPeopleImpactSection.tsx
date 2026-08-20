@@ -303,7 +303,7 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
       </div>
 
       {/* 1 — Employee who submitted the report */}
-      <Section title="Employee who submitted the report" help="Record the employee's injury status and response.">
+      <Section title="Employee Who Submitted The Report" help="Record the employee's injury status and response.">
         <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.operator_injured === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
           <BoolRow label="Was the employee injured?" required>
             <YesNoToggle value={data.operator_injured} onChange={(v) => onUpdate({ operator_injured: v, ...(v ? {} : { operator_injured_body_part: undefined }) })} />

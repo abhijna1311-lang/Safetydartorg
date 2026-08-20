@@ -11,6 +11,7 @@ import { AssaultSection } from './sections/AssaultSection';
 import { BasicIncidentSection } from './sections/BasicIncidentSection';
 import { FireSection } from './sections/FireSection';
 import { NearMissSection } from './sections/NearMissSection';
+import { TrailSwitchSection } from './sections/TrailSwitchSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
@@ -59,7 +60,6 @@ function IntakeField({ label, required, children }: { label: string; required?: 
     </div>
   );
 }
-
 export function Step2VehicleLocation({
   data,
   onUpdate,
@@ -92,9 +92,12 @@ export function Step2VehicleLocation({
   const isCollision = data.event_type === 'Collision';
   const isDerailment = data.event_type === 'Derailment';
   const isSignalViolation = data.event_type === 'Signal Violation';
+  const hideRailStatusFields = data.mode === 'Non-Revenue Vehicle' || data.mode === 'Hi-Rail';
+  const isHiRail = data.mode === 'Hi-Rail';
   const isAssault = data.event_type === 'Assault (Verbal or Physical)';
   const isFire = data.event_type === 'Fire';
   const isNearMiss = data.event_type === 'Near Miss';
+  const isTrailSwitch = data.event_type === 'Trail a Switch';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -138,7 +141,7 @@ export function Step2VehicleLocation({
   );
   const railCollisionComplete = !!(
     railVehicleNumber && railVehicleComplete
-    && railStatusBefore && railStatusAfter
+    && (hideRailStatusFields || (railStatusBefore && railStatusAfter))
     && data.lrv_collision_type && data.train_action && data.lrv_point_of_impact && answered(data.train_speed)
     && data.location_category && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
     && (data.location_category !== 'Rail Station' || data.station_applicable)
@@ -147,11 +150,12 @@ export function Step2VehicleLocation({
     && answered(data.lrv_evacuation) && answered(data.runaway_train)
     && (data.runaway_train !== true || data.operator_in_train_runaway)
     && answered(data.collision_resulted_in_derailment) && answered(data.train_damage)
-    && (data.train_damage !== true || (answered(data.disabling_damage) && (data.impact_markers?.length || 0) > 0))
+    && (data.train_damage !== true || (data.impact_markers?.length || 0) > 0)
     && requiredWeatherComplete
   );
   const nrvCollisionComplete = !!(
-    data.vehicle_number && data.vehicle_status_before && data.vehicle_status_after
+    data.vehicle_number
+    && (hideRailStatusFields || (data.vehicle_status_before && data.vehicle_status_after))
     && data.collision_type && data.bus_action && data.point_of_impact && answered(data.bus_speed)
     && data.street_on && data.cross_street && data.city && data.zip && answered(data.runaway_vehicle)
     && (data.runaway_vehicle !== true || data.operator_in_vehicle_runaway)
@@ -164,7 +168,7 @@ export function Step2VehicleLocation({
     && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
     && (data.location_category !== 'Revenue Facility: Transit Station' || data.station_applicable)
     && (data.location_category !== 'Right-of-Way: Grade Crossing' || data.grade_crossing_applicable)
-    && data.train_status_before && data.train_status_after
+    && (hideRailStatusFields || (data.train_status_before && data.train_status_after))
     && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
     && (!['In Service', 'Pull-In', 'Pull-Out'].includes(data.train_status_before || '') || data.mode !== 'Light Rail Vehicle' || data.rail_line)
     && data.train_action && answered(data.train_speed)
@@ -177,7 +181,7 @@ export function Step2VehicleLocation({
     && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
     && data.signal_date && data.signal_number
     && data.signal_displaying_properly && data.signal_territory
-    && data.train_status_before && data.train_status_after
+    && (hideRailStatusFields || (data.train_status_before && data.train_status_after))
     && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
     && requiredWeatherComplete
   );
@@ -194,7 +198,7 @@ export function Step2VehicleLocation({
     );
     if (!base) return false;
     if (inPossession) {
-      if (!(data.vehicle_status_before && data.vehicle_status_after && answered(data.driver_window_assault))) return false;
+      if (!((hideRailStatusFields || (data.vehicle_status_before && data.vehicle_status_after)) && answered(data.driver_window_assault))) return false;
       if (data.mode === 'Bus' && !data.vehicle_number) return false;
       if (isLRV && data.mode !== 'Hi-Rail' && !data.train_number) return false;
       if (data.mode === 'Hi-Rail' && !data.vehicle_number) return false;
@@ -225,12 +229,15 @@ export function Step2VehicleLocation({
     if (data.operating_dart_vehicle === true) {
       if (data.mode === 'Hi-Rail' || data.mode === 'Non-Revenue Vehicle') {
         if (!data.vehicle_number) return false;
-      } else if (!(data.mode === 'Bus' ? data.vehicle_number && data.bus_status_before && data.bus_status_after : data.train_number && data.train_status_before && data.train_status_after)) {
+      } else if (!(data.mode === 'Bus'
+        ? data.vehicle_number && data.bus_status_before && data.bus_status_after
+        : hideRailStatusFields
+          ? data.train_number
+          : data.train_number && data.train_status_before && data.train_status_after)) {
         return false;
       }
-      if (['Bus', 'Light Rail Vehicle'].includes(data.mode || '') && ACTIVE_FIRE_STATUSES.includes((data.mode === 'Bus' ? data.bus_status_before : data.train_status_before) || '')) {
+      if (data.mode === 'Bus' && ACTIVE_FIRE_STATUSES.includes(data.bus_status_before || '')) {
         if (data.mode === 'Bus' && (!data.route_number || !data.block_number)) return false;
-        if (data.mode === 'Light Rail Vehicle' && !data.rail_line) return false;
       }
     }
     if (data.fire_started_how === 'Arson' && !data.fire_responsible_for_starting) return false;
@@ -272,6 +279,37 @@ export function Step2VehicleLocation({
     if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) return !!data.near_miss_rail_line && !!data.near_miss_run;
     return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
   })();
+  const trailSwitchComplete = (() => {
+    if (!isTrailSwitch) return true;
+    const hasVehicle = isHiRail ? !!data.vehicle_number : !!data.train_number;
+    const consistComplete = data.mode !== 'Light Rail Vehicle' || lrvConsistComplete;
+    const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
+    const lineComplete = !isLRV || !['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description;
+    return !!(
+      hasVehicle
+      && consistComplete
+      && statusesComplete
+      && lineComplete
+      && data.trail_description?.trim()
+      && data.incident_date
+      && data.incident_time
+      && data.trail_employee_pullout_date
+      && data.trail_employee_pullout_time
+      && data.street_on?.trim()
+      && data.cross_street?.trim()
+      && data.city?.trim()
+      && data.zip?.trim()
+      && data.trail_location_category
+      && data.trail_switch_configuration
+      && data.trail_switch_number_known !== undefined
+      && (data.trail_switch_number_known !== true || data.trail_switch_number?.trim())
+      && (!isLRV && !isHiRail ? data.trail_car_number || data.car_number : true)
+      && data.trail_train_speed?.trim()
+      && data.trail_train_damage !== undefined
+      && data.trail_train_action
+      && requiredWeatherComplete
+    );
+  })();
 
   // Minimum required to proceed
   const hasSchedule = !showSchedule || hasScheduleAnswers(data);
@@ -292,6 +330,8 @@ export function Step2VehicleLocation({
         ? !!(hasSchedule && data.incident_date && data.incident_time && fireComplete)
       : isNearMiss
         ? !!(hasSchedule && nearMissComplete)
+      : isTrailSwitch
+        ? !!(hasSchedule && trailSwitchComplete)
       : !!(
         hasSchedule &&
         narrativeRequirementMet &&
@@ -466,8 +506,11 @@ export function Step2VehicleLocation({
                 if (isNearMiss) {
                   return <NearMissSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
                 }
+                if (isTrailSwitch) {
+                  return <TrailSwitchSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
                 // Non-collision / non-derailment / non-assault (Near Miss, Fire,
-                // Operator/Passenger Events, Trail a Switch) use the generic incident form.
+                // Operator/Passenger Events) use the generic incident form.
                 return <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
               })()}
             </>

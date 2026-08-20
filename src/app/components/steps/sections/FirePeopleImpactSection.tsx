@@ -93,7 +93,7 @@ export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSave
   return (
     <StepContainer stepNumber={3} title="People And Impact" description="Record everyone involved in the fire event, including injuries and hospital transport.">
       <div className={`dart-card dart-card--surface overflow-hidden ${isReadOnly ? 'opacity-90' : ''}`}>
-      <Section title="Employee who submitted the report" help="Record the employee's injury status and response.">
+      <Section title="Employee Who Submitted The Report" help="Record the employee's injury status and response.">
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
           <BoolRow label="Was the employee injured?" required>
             <YesNoToggle value={data.operator_injured} onChange={value => onUpdate({ operator_injured: value, operator_injured_body_part: value ? data.operator_injured_body_part : undefined, operator_transported: value ? data.operator_transported : undefined })} />

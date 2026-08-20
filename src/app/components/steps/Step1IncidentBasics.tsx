@@ -49,6 +49,7 @@ const MODES = [
 ] as const;
 
 const DERAILMENT_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
+const TRAIL_SWITCH_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
 // Signal Violation reports are only meaningful for on-rail passenger modes.
 const SIGNAL_VIOLATION_MODES = ['Light Rail Vehicle', 'Streetcar'];
 
@@ -95,7 +96,7 @@ function Section({ title, help, children }: { title: React.ReactNode; help?: str
           {title}
         </h3>
         {help && (
-          <p className="mt-1.5 text-xs leading-relaxed text-slate-500 font-['Poppins']">{help}</p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">{help}</p>
         )}
       </div>
       <div>
@@ -118,16 +119,19 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const hasEventType = !!data.event_type;
   const isDerailmentEvent = data.event_type?.trim().toLowerCase() === 'derailment';
   const isSignalViolationEvent = data.event_type?.trim().toLowerCase() === 'signal violation';
+  const isTrailSwitchEvent = data.event_type === 'Trail a Switch';
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
   const isAssaultEvent = data.event_type === 'Assault (Verbal or Physical)';
   const isFireEvent = data.event_type === 'Fire';
   // Assault spec: possession = No → the mode picker is disabled and no mode is required.
   const modeDisabledByPossession = (isAssaultEvent || isFireEvent) && data.operating_dart_vehicle === false;
   const modeIsAllowed = (!isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || ''))
+    && (!isTrailSwitchEvent || TRAIL_SWITCH_MODES.includes(data.mode || ''))
     && (!isSignalViolationEvent || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
   const hasMode = modeDisabledByPossession || (!!data.mode && modeIsAllowed);
   const hasIncidentDate = !!data.incident_date;
   const hasIncidentTime = !!data.incident_time;
+  const trailDerailmentAnswered = !isTrailSwitchEvent || data.trail_derailment_confirmed !== undefined;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
   // Schedule was moved to Step 2 — Step 1 no longer gates on it.
   const hasFilingChoice = !canFileOnBehalf || data.is_on_behalf !== undefined;
@@ -138,7 +142,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     || data.operator_availability_confirmed === true
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
-  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
+  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && trailDerailmentAnswered && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
 
 
   // Restored drafts can contain a legacy Derailment + non-rail mode combination. Enforce the
@@ -156,6 +160,17 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
       });
     }
     if (isSignalViolationEvent && data.mode && !SIGNAL_VIOLATION_MODES.includes(data.mode)) {
+      onUpdate({
+        mode: undefined,
+        vehicle_number: undefined,
+        fleet_type: undefined,
+        trip_id: undefined,
+        block_number: undefined,
+        train_number: undefined,
+        lrv_fleet_type: undefined,
+      });
+    }
+    if (isTrailSwitchEvent && data.mode && !TRAIL_SWITCH_MODES.includes(data.mode)) {
       onUpdate({
         mode: undefined,
         vehicle_number: undefined,
@@ -297,7 +312,10 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const handleEventTypeChange = (val: string) => {
     const isDerail = val === 'Derailment';
     const isSignal = val === 'Signal Violation';
+    const isTrail = val === 'Trail a Switch';
+    const leavingTrail = data.event_type === 'Trail a Switch' && !isTrail;
     const modeRemainsAllowed = (!isDerail || DERAILMENT_MODES.includes(data.mode || ''))
+      && (!isTrail || TRAIL_SWITCH_MODES.includes(data.mode || ''))
       && (!isSignal || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
     onUpdate({
       event_type: val,
@@ -310,6 +328,28 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         train_number: undefined,
         lrv_fleet_type: undefined,
       } : {}),
+      ...(leavingTrail ? {
+        trail_description: undefined,
+        trail_employee_pullout_date: undefined,
+        trail_employee_pullout_time: undefined,
+        trail_switch_configuration: undefined,
+        trail_switch_number_known: undefined,
+        trail_switch_number: undefined,
+        trail_derailment_confirmed: undefined,
+        trail_location_category: undefined,
+        trail_car_number: undefined,
+        trail_line_description: undefined,
+        trail_train_speed: undefined,
+        trail_train_damage: undefined,
+        trail_train_action: undefined,
+        trail_operator_injured: undefined,
+        trail_operator_injured_body_part: undefined,
+        trail_operator_transported: undefined,
+        trail_passengers_injured: undefined,
+        trail_passengers_transported: undefined,
+        trail_pedestrian_injuries: undefined,
+        trail_pedestrians_transported: undefined,
+      } : {}),
       // Reset driving question when event type changes
       operating_dart_vehicle: SHOW_DRIVING_QUESTION.includes(val) ? data.operating_dart_vehicle : undefined,
     });
@@ -317,6 +357,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
   const handleModeChange = (val: string) => {
     if (isDerailmentEvent && !DERAILMENT_MODES.includes(val)) return;
+    if (isTrailSwitchEvent && !TRAIL_SWITCH_MODES.includes(val)) return;
     if (isSignalViolationEvent && !SIGNAL_VIOLATION_MODES.includes(val)) return;
     if (val !== data.mode) {
       onUpdate({
@@ -324,6 +365,14 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         // Clear mode-specific Step-2 fields when mode changes
         vehicle_number: undefined, fleet_type: undefined, trip_id: undefined, block_number: undefined,
         train_number: undefined, lrv_fleet_type: undefined,
+        ...(isTrailSwitchEvent ? {
+          train_status_before: undefined,
+          train_status_after: undefined,
+          trail_employee_pullout_date: undefined,
+          trail_employee_pullout_time: undefined,
+          trail_car_number: undefined,
+          trail_line_description: undefined,
+        } : {}),
       });
     }
   };
@@ -335,6 +384,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (!hasEventType) missing.push('event type');
   if (!hasIncidentDate) missing.push('incident date');
   if (!hasIncidentTime) missing.push('incident time');
+  if (isTrailSwitchEvent && !trailDerailmentAnswered) missing.push('derailment question');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
 
@@ -344,6 +394,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const errEventType = showErrors && !hasEventType;
   const errIncidentDate = showErrors && !hasIncidentDate;
   const errIncidentTime = showErrors && !hasIncidentTime;
+  const errTrailDerailment = showErrors && isTrailSwitchEvent && hasIncidentDate && hasIncidentTime && !trailDerailmentAnswered;
   const errDriving = showErrors && needsDrivingQ && data.operating_dart_vehicle === undefined;
   const errMode = showErrors && !hasMode;
 
@@ -471,7 +522,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           {showErrors && !data.operator_unavailable_reason?.trim() && (
             <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">A reason is required to waive the operator.</p>
           )}
-          <p className="mt-2 text-xs text-slate-500 font-['Poppins']">
+          <p className="mt-2 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
             The operator section will be waived — this report will not require the operator to file it themselves.
           </p>
         </motion.div>
@@ -562,7 +613,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
               />
               {errEventType && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select the type of event to continue.</p>}
               {lockEventAndMode && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
+                <p className="mt-2 flex items-center gap-1.5 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
                   <Lock className="w-3 h-3" /> Set when the case was opened.
                 </p>
               )}
@@ -597,13 +648,39 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                     <p className="text-sm font-medium text-[#00205B] font-['Poppins']">
                       Were you operating a DART vehicle? <span className="dart-req">*</span>
                     </p>
-                    <p className="mt-1 text-xs text-slate-500 font-['Poppins']">
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
                       Were you driving, operating, or in possession of a DART vehicle at the time of the event?
                     </p>
                     {errDriving && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Answer this question to continue.</p>}
                   </div>
                   <div className="shrink-0">
                     <YesNoToggle value={data.operating_dart_vehicle} onChange={v => onUpdate({ operating_dart_vehicle: v })} />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {isTrailSwitchEvent && hasIncidentDate && hasIncidentTime && (
+              <motion.div {...fade} key="trail-derailment-q" className="mt-5 border-t border-slate-100 pt-5">
+                <div className="rounded-lg border border-[#0078AE]/25 bg-[#F4F8FC] px-4 py-3.5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                  <div className="sm:flex-1">
+                    <p className="text-sm font-medium text-[#00205B] font-['Poppins']">
+                      Did this Trail a Switch event involve a derailment? <span className="dart-req">*</span>
+                    </p>
+                    <p className="mt-1.5 text-[13px] leading-relaxed font-medium text-[#334E68] font-['Poppins']">
+                      Selecting Yes changes the event type to Derailment and opens the derailment form.
+                    </p>
+                    {errTrailDerailment && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Answer this question to continue.</p>}
+                  </div>
+                  <div className="shrink-0">
+                    <YesNoToggle
+                      value={data.trail_derailment_confirmed}
+                      onChange={value => value ? handleEventTypeChange('Derailment') : onUpdate({ trail_derailment_confirmed: false })}
+                    />
+                  </div>
                   </div>
                 </div>
               </motion.div>
@@ -616,6 +693,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           title={<>Vehicle mode <span className="dart-req">*</span></>}
           help={isDerailmentEvent
             ? 'Derailment reports are available only for Light Rail Vehicle, Streetcar, and Hi-Rail.'
+            : isTrailSwitchEvent
+            ? 'Trail a Switch reports are available only for Light Rail Vehicle, Streetcar, and Hi-Rail.'
             : isSignalViolationEvent
             ? 'Signal Violation reports are available only for Light Rail Vehicle and Streetcar.'
             : 'Which DART vehicle mode is involved?'}
@@ -625,11 +704,14 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             {MODES.map(m => {
               const selected = data.mode === m.value;
               const unavailableForDerailment = isDerailmentEvent && !DERAILMENT_MODES.includes(m.value);
+              const unavailableForTrail = isTrailSwitchEvent && !TRAIL_SWITCH_MODES.includes(m.value);
               const unavailableForSignal = isSignalViolationEvent && !SIGNAL_VIOLATION_MODES.includes(m.value);
-              const unavailable = unavailableForDerailment || unavailableForSignal;
+              const unavailable = unavailableForDerailment || unavailableForTrail || unavailableForSignal;
               const disabled = lockEventAndMode || unavailable || modeDisabledByPossession;
               const guidanceId = unavailableForDerailment
                 ? 'derailment-mode-guidance'
+                : unavailableForTrail
+                ? 'trail-mode-guidance'
                 : unavailableForSignal
                 ? 'signal-violation-mode-guidance'
                 : modeDisabledByPossession
@@ -637,6 +719,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                 : undefined;
               const unavailableTitle = unavailableForDerailment
                 ? 'Not available for Derailment'
+                : unavailableForTrail
+                ? 'Not available for Trail a Switch'
                 : unavailableForSignal
                 ? 'Not available for Signal Violation'
                 : modeDisabledByPossession
@@ -667,23 +751,23 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             })}
           </div>
           {isDerailmentEvent && (
-            <p id="derailment-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+            <p id="derailment-mode-guidance" className="mt-3 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
               Bus and Non-Revenue Vehicle cannot be selected for this event type.
             </p>
           )}
           {isSignalViolationEvent && (
-            <p id="signal-violation-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+            <p id="signal-violation-mode-guidance" className="mt-3 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
               Bus, Non-Revenue Vehicle, and Hi-Rail cannot be selected for this event type.
             </p>
           )}
           {modeDisabledByPossession && (
-            <p id="possession-mode-guidance" className="mt-3 text-xs leading-relaxed text-slate-500 font-['Poppins']">
+            <p id="possession-mode-guidance" className="mt-3 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
               You answered that you were not operating a DART vehicle, so no vehicle mode is needed.
             </p>
           )}
           {errMode && <p className="mt-2 text-xs font-medium text-red-600 font-['Poppins']">Select the vehicle mode involved.</p>}
           {lockEventAndMode && (
-            <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-['Poppins']">
+            <p className="mt-3 flex items-center gap-1.5 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">
               <Lock className="w-3 h-3" /> Set when the case was opened.
             </p>
           )}

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { StepContainer } from '../../StepContainer';
+import { GlassButton } from '../../GlassButton';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleSection } from './ModeVehicleSection';
 import type { AccidentReportData } from '../../../types/accident-report';
@@ -232,13 +233,26 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
         <div className="dart-card dart-card--surface overflow-hidden">
           {isPedestrian && <Section title="Pedestrian close calls" help="Enter the number of pedestrians involved. Each pedestrian gets a type and action based on the selected type.">
           <Field label="Number of pedestrians Near Miss (Close Calls)" required error={showErrors && count < 1}><input type="number" min={1} className="dart-input-base sm:w-32" value={count || ''} onChange={event => syncPedestrians(Math.max(0, Number.parseInt(event.target.value, 10) || 0))} placeholder="Enter count" /></Field>
-          {pedestrians.map((pedestrian, index) => {
-            const actions = pedestrian.pedestrian_type === 'Using Micro Mobility' ? MOBILITY_ACTIONS : FOOT_ACTIONS;
-            return <div key={pedestrian.id} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"><p className="mb-3 text-sm font-semibold text-slate-700 font-['Poppins']">Pedestrian {index + 1}</p><div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Pedestrian type" required error={showErrors && !pedestrian.pedestrian_type}><CustomSelect value={pedestrian.pedestrian_type || ''} onChange={value => updatePedestrian(pedestrian.id, { pedestrian_type: value, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select type" /></Field><Field label="Pedestrian action" required error={showErrors && !pedestrian.pedestrian_action}><CustomSelect value={pedestrian.pedestrian_action || ''} onChange={value => updatePedestrian(pedestrian.id, { pedestrian_action: value })} options={actions} placeholder="Select action" /></Field></div></div>;
-          })}
+          {pedestrians.length > 0 && <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Pedestrians ({pedestrians.length})</p>
+              <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture the type and action for each pedestrian involved.</p>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {pedestrians.map((pedestrian, index) => {
+                const actions = pedestrian.pedestrian_type === 'Using Micro Mobility' ? MOBILITY_ACTIONS : FOOT_ACTIONS;
+                return <div key={pedestrian.id} className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-start"><p className="w-28 shrink-0 pt-1 text-[12px] font-semibold text-slate-500 font-['Poppins']">Pedestrian {index + 1}</p><div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Pedestrian type" required error={showErrors && !pedestrian.pedestrian_type}><CustomSelect value={pedestrian.pedestrian_type || ''} onChange={value => updatePedestrian(pedestrian.id, { pedestrian_type: value, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select type" /></Field><Field label="Pedestrian action" required error={showErrors && !pedestrian.pedestrian_action}><CustomSelect value={pedestrian.pedestrian_action || ''} onChange={value => updatePedestrian(pedestrian.id, { pedestrian_action: value })} options={actions} placeholder="Select action" /></Field></div></div>;
+              })}
+            </div>
+          </div>}
         </Section>}
           {isAuto && <Section title="Other vehicles" help="Record the other vehicle involved in this Auto Near Miss.">
-            <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+            <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+              <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Other vehicle</p>
+                <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture the other vehicle involved in this Auto Near Miss.</p>
+              </div>
+              <div className="divide-y divide-slate-100">
               <InlineField label="Was this a Near Miss between two DART vehicles" required error={showErrors && data.near_miss_between_dart_vehicles === undefined}>
                 <YesNoToggle value={data.near_miss_between_dart_vehicles} onChange={value => onUpdate({ near_miss_between_dart_vehicles: value, near_miss_other_vehicle_type: undefined, near_miss_other_vehicle_action: undefined })} />
               </InlineField>
@@ -250,11 +264,12 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
                   <CustomSelect value={data.near_miss_other_vehicle_action || ''} onChange={value => onUpdate({ near_miss_other_vehicle_action: value })} options={VEHICLE_ACTIONS} placeholder="Select action" />
                 </InlineField>
               </>}
+              </div>
             </div>
         </Section>}
           {!isPedestrian && !isAuto && <Section title="No additional close-call details" help="Fixed Object and Non-Fixed Object near misses do not require pedestrian or other-vehicle details." />}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-y-3 border-t border-slate-200 pt-6"><button onClick={onBack} className="dart-action-link min-h-[44px] rounded-lg px-4">← Back</button><div className="flex items-center gap-4"><button onClick={onSaveDraft} className="dart-action-link min-h-[44px] rounded-lg px-4">Save as draft</button><button onClick={onNext} disabled={!canProceed} className="dart-button-primary min-h-[44px] rounded-lg px-5 disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-y-3 border-t border-slate-200 pt-6"><button onClick={onBack} className="dart-action-link min-h-[44px] rounded-lg px-4">← Back</button><div className="flex items-center gap-4"><GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton><GlassButton variant="primary" onClick={onNext} disabled={!canProceed}>Next</GlassButton></div></div>
       </div>
     </StepContainer>
   );

@@ -63,7 +63,7 @@ export function ScheduleSection({ data, onUpdate, showErrors }: ScheduleSectionP
     <section className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
       <div className="mb-6">
         <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Schedule</h3>
-        <p className="mt-1.5 text-xs leading-relaxed text-slate-500 font-['Poppins']">Confirm the operator's schedule details.</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">Confirm the operator's schedule details.</p>
       </div>
 
       <div className="dart-schedule-row">
