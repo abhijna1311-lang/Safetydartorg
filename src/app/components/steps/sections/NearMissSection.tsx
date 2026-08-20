@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
-import { DatePickerInput } from '../../DatePickerInput';
-import { TimePickerInput } from '../../TimePickerInput';
 import { StepContainer } from '../../StepContainer';
 import { WeatherSection } from './WeatherSection';
+import { ModeVehicleSection } from './ModeVehicleSection';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Step2Props {
@@ -20,14 +19,6 @@ const REASONS = toOptions(['Near-Miss Experienced', 'Near-Miss Observed']);
 const CATEGORIES = toOptions(['Auto – Near Miss', 'Pedestrian – Near Miss', 'Fixed Object – Near Miss', 'Non-Fixed Object – Near Miss']);
 const BUS_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Intersection', 'Train Station', 'Bus Stop', 'Street', 'Bridge', 'Tunnel', 'Non-Revenue Facility/Yard', 'Garage']);
 const RAIL_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Right-of-Way Track', 'Train Station', 'Bridge', 'Tunnel', 'Non-Revenue Facility/Yard', 'Garage']);
-const RAIL_LINES = toOptions(['Blue', 'Green', 'Red', 'Orange']);
-const FLEET_TYPES: Record<string, { value: string; label: string }[]> = {
-  Bus: toOptions(['35 ft Standard', '40 ft Hybrid', '40 ft Low Floor', '60 ft Articulated']),
-  'Light Rail Vehicle': toOptions(['Light Rail Vehicle']),
-  Streetcar: toOptions(['Streetcar']),
-  'Non-Revenue Vehicle': toOptions(['Non-Revenue Vehicle']),
-  'Hi-Rail': toOptions(['Hi-Rail']),
-};
 const PEDESTRIAN_TYPES = toOptions(['On Foot/Wheelchair/Walker/Cane/Crutches', 'Using Micro Mobility']);
 const FOOT_ACTIONS = toOptions(['Standing', 'Walking', 'Jogging/Running', 'Mobility Assistance', 'Lying', 'Sitting']);
 const MOBILITY_ACTIONS = toOptions(['Going Straight', 'Making a left turn', 'Making a right turn', 'Going backwards', 'Changing Lanes', 'Stopped', 'Negotiating a curve']);
@@ -57,18 +48,68 @@ function Section({ title, help, children }: { title: string; help?: string; chil
   );
 }
 
+function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: AccidentReportData; onUpdate: (d: Partial<AccidentReportData>) => void; showErrors: boolean }) {
+  const isObserved = data.near_miss_reason === 'Near-Miss Observed';
+  const vehicleData: AccidentReportData = {
+    ...data,
+    vehicle_number: data.near_miss_vehicle_number,
+    fleet_type: data.near_miss_fleet_type,
+    train_number: data.near_miss_vehicle_number,
+    lrv_fleet_type: data.near_miss_fleet_type,
+    rail_line: data.near_miss_rail_line,
+    route_number: data.near_miss_route,
+    trip_id: data.near_miss_run,
+    block_number: data.near_miss_block,
+    end_of_line_destination: data.near_miss_end_of_line_destination,
+    lrv_end_of_line: data.near_miss_end_of_line_destination,
+    employee_pullout_date: data.near_miss_pullout_date,
+    employee_pullout_time: data.near_miss_pullout_time,
+    train_pullout_date: data.near_miss_pullout_date,
+    train_pullout_time: data.near_miss_pullout_time,
+    lrv_consist_count: data.near_miss_consist_count,
+    lrv_consist_1: data.near_miss_consist_1,
+    lrv_consist_2: data.near_miss_consist_2,
+    lrv_consist_3: data.near_miss_consist_3,
+    lrv_consist_4: data.near_miss_consist_4,
+  };
+  const updateVehicle = (patch: Partial<AccidentReportData>) => {
+    const nearMissPatch: Partial<AccidentReportData> = {};
+    if ('vehicle_number' in patch || 'train_number' in patch) nearMissPatch.near_miss_vehicle_number = patch.vehicle_number ?? patch.train_number;
+    if ('fleet_type' in patch || 'lrv_fleet_type' in patch) nearMissPatch.near_miss_fleet_type = patch.fleet_type ?? patch.lrv_fleet_type;
+    if ('rail_line' in patch) nearMissPatch.near_miss_rail_line = patch.rail_line;
+    if ('route_number' in patch) nearMissPatch.near_miss_route = patch.route_number;
+    if ('trip_id' in patch) nearMissPatch.near_miss_run = patch.trip_id;
+    if ('block_number' in patch) nearMissPatch.near_miss_block = patch.block_number;
+    if ('end_of_line_destination' in patch || 'lrv_end_of_line' in patch) nearMissPatch.near_miss_end_of_line_destination = patch.end_of_line_destination ?? patch.lrv_end_of_line;
+    if ('employee_pullout_date' in patch || 'train_pullout_date' in patch) nearMissPatch.near_miss_pullout_date = patch.employee_pullout_date ?? patch.train_pullout_date;
+    if ('employee_pullout_time' in patch || 'train_pullout_time' in patch) nearMissPatch.near_miss_pullout_time = patch.employee_pullout_time ?? patch.train_pullout_time;
+    if ('lrv_consist_count' in patch) nearMissPatch.near_miss_consist_count = patch.lrv_consist_count;
+    if ('lrv_consist_1' in patch) nearMissPatch.near_miss_consist_1 = patch.lrv_consist_1;
+    if ('lrv_consist_2' in patch) nearMissPatch.near_miss_consist_2 = patch.lrv_consist_2;
+    if ('lrv_consist_3' in patch) nearMissPatch.near_miss_consist_3 = patch.lrv_consist_3;
+    if ('lrv_consist_4' in patch) nearMissPatch.near_miss_consist_4 = patch.lrv_consist_4;
+    onUpdate(nearMissPatch);
+  };
+
+  return (
+    <ModeVehicleSection
+      data={vehicleData}
+      onUpdate={updateVehicle}
+      showErrors={showErrors}
+      showStatusFields={false}
+      showLrvConsist={true}
+      requiredVehicleNumber={!isObserved}
+      help={`Select the ${data.mode || 'DART'} vehicle involved in the Near Miss. Assigned vehicle details are pulled in automatically.`}
+    />
+  );
+}
+
 export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly = false, headerSection }: Step2Props) {
   const mode = data.mode || 'Bus';
   const isObserved = data.near_miss_reason === 'Near-Miss Observed';
   const isRail = mode === 'Light Rail Vehicle' || mode === 'Streetcar' || mode === 'Hi-Rail';
-  const isStreetcar = mode === 'Streetcar';
-  const isNRV = mode === 'Non-Revenue Vehicle';
+  const hasRevenueService = mode === 'Bus' || mode === 'Light Rail Vehicle' || mode === 'Streetcar';
   const locationOptions = isRail ? RAIL_LOCATION_CATEGORIES : BUS_LOCATION_CATEGORIES;
-  const fleetOptions = FLEET_TYPES[mode] || [];
-  const showServiceFields = !isObserved && !isNRV && mode !== 'Hi-Rail';
-  const showRailLine = !isObserved && isRail && mode !== 'Hi-Rail';
-  const showObservedRoute = isObserved && mode === 'Bus';
-  const showObservedRailLine = isObserved && isRail && mode !== 'Hi-Rail';
   const resetReasonDependentFields = (reason: string) => onUpdate({
     near_miss_reason: reason as AccidentReportData['near_miss_reason'],
     near_miss_employee_involved: undefined,
@@ -83,18 +124,11 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
+      <NearMissVehicleSection data={data} onUpdate={onUpdate} showErrors={showErrors} />
       <Section title="What happened" help="Describe the near miss and when it occurred.">
         <Field label="Description of Near Miss" required error={showErrors && !narrativeReadOnly && !data.near_miss_description?.trim()}>
           <textarea rows={4} className={`dart-input-base resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`} value={data.near_miss_description || ''} onChange={narrativeReadOnly ? undefined : event => onUpdate({ near_miss_description: event.target.value })} readOnly={narrativeReadOnly} placeholder="Describe what happened" />
         </Field>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Date of Near Miss" required error={showErrors && !data.near_miss_date}>
-            <DatePickerInput value={data.near_miss_date || ''} onChange={value => onUpdate({ near_miss_date: value })} maxDate={new Date()} />
-          </Field>
-          <Field label="Time of Near Miss" required error={showErrors && !data.near_miss_time}>
-            <TimePickerInput value={data.near_miss_time || ''} onChange={value => onUpdate({ near_miss_time: value })} />
-          </Field>
-        </div>
       </Section>
 
       <Section title="Where it happened" help="Record the location and its category.">
@@ -118,25 +152,17 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
         </Field>
       </Section>
 
-      <Section title="DART vehicle" help={`Vehicle details for the ${mode} involved in the near miss.`}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Vehicle number" required={!isObserved} error={showErrors && !isObserved && !data.near_miss_vehicle_number}><input className="dart-input-base" value={data.near_miss_vehicle_number || ''} onChange={event => onUpdate({ near_miss_vehicle_number: event.target.value })} placeholder="Enter vehicle number" /></Field>
-          <Field label="Fleet type" required error={showErrors && !data.near_miss_fleet_type}>{fleetOptions.length > 0 ? <CustomSelect value={data.near_miss_fleet_type || ''} onChange={value => onUpdate({ near_miss_fleet_type: value })} options={fleetOptions} placeholder="Select fleet type" /> : <input className="dart-input-base" value={data.near_miss_fleet_type || ''} onChange={event => onUpdate({ near_miss_fleet_type: event.target.value })} placeholder="Enter fleet type" />}</Field>
-          {!isObserved && <Field label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}><input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" /></Field>}
-        </div>
-        {(showServiceFields || showObservedRoute || showObservedRailLine) && <>
-          {showObservedRoute && <Field label="Route"><input className="dart-input-base" value={data.near_miss_route || ''} onChange={event => onUpdate({ near_miss_route: event.target.value })} placeholder="Enter route (if known)" /></Field>}
-          {showObservedRailLine && <Field label="Rail Line"><CustomSelect value={data.near_miss_rail_line || ''} onChange={value => onUpdate({ near_miss_rail_line: value })} options={isStreetcar ? toOptions(['Streetcar']) : RAIL_LINES} placeholder="Select rail line (if known)" /></Field>}
-          {showServiceFields && <>
-          <Field label="Was DART vehicle in revenue service at the time of the Near Miss" required error={showErrors && data.near_miss_revenue_service === undefined}><YesNoToggle value={data.near_miss_revenue_service} onChange={value => onUpdate({ near_miss_revenue_service: value, near_miss_route: undefined, near_miss_run: undefined, near_miss_block: undefined, near_miss_rail_line: undefined })} /></Field>
-          {data.near_miss_revenue_service === true && <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {showRailLine ? <Field label="Rail Line" required error={showErrors && !data.near_miss_rail_line}><CustomSelect value={data.near_miss_rail_line || ''} onChange={value => onUpdate({ near_miss_rail_line: value })} options={isStreetcar ? toOptions(['Streetcar']) : RAIL_LINES} placeholder="Select rail line" /></Field> : <Field label="Route" required error={showErrors && !data.near_miss_route}><input className="dart-input-base" value={data.near_miss_route || ''} onChange={event => onUpdate({ near_miss_route: event.target.value })} placeholder="Enter route" /></Field>}
-            <Field label="Run" required error={showErrors && !data.near_miss_run}><input className="dart-input-base" value={data.near_miss_run || ''} onChange={event => onUpdate({ near_miss_run: event.target.value })} placeholder="Enter run" /></Field>
-            {!showRailLine && <Field label="Block" required error={showErrors && !data.near_miss_block}><input className="dart-input-base" value={data.near_miss_block || ''} onChange={event => onUpdate({ near_miss_block: event.target.value })} placeholder="Enter block" /></Field>}
-          </div>}
-          </>}
-        </>}
-      </Section>
+      {!isObserved && <Section title="Near Miss operating details" help="Record speed and service context for a Near Miss you experienced.">
+        <Field label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
+          <input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" />
+        </Field>
+        {hasRevenueService && <Field label="Was DART vehicle in revenue service at the time of the Near Miss" required error={showErrors && data.near_miss_revenue_service === undefined}>
+          <YesNoToggle value={data.near_miss_revenue_service} onChange={value => onUpdate({ near_miss_revenue_service: value, near_miss_run: value ? data.near_miss_run : undefined })} />
+        </Field>}
+        {data.near_miss_revenue_service === true && (mode === 'Light Rail Vehicle' || mode === 'Streetcar') && <Field label="Run" required error={showErrors && !data.near_miss_run}>
+          <input className="dart-input-base" value={data.near_miss_run || ''} onChange={event => onUpdate({ near_miss_run: event.target.value })} placeholder="Enter run" />
+        </Field>}
+      </Section>}
 
       <Section title="Weather and conditions" help="Record the environment at the time of the near miss.">
         <WeatherSection data={{ ...data, weather: data.near_miss_weather, road_conditions: data.near_miss_road_conditions, lighting_conditions: data.near_miss_lighting_conditions, streetlights: data.near_miss_streetlights, traffic_conditions: data.near_miss_traffic_conditions, traffic_controls: data.near_miss_traffic_controls, roadway_configuration: data.near_miss_roadway_configuration }} onUpdate={patch => onUpdate({ near_miss_weather: patch.weather, near_miss_road_conditions: patch.road_conditions, near_miss_lighting_conditions: patch.lighting_conditions, near_miss_streetlights: patch.streetlights, near_miss_traffic_conditions: patch.traffic_conditions, near_miss_traffic_controls: patch.traffic_controls, near_miss_roadway_configuration: patch.roadway_configuration })} mode={mode} bare required showErrors={showErrors} />

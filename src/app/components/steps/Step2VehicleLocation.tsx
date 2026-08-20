@@ -80,10 +80,11 @@ export function Step2VehicleLocation({
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
   // Schedule was moved here from Step 1. Only the operator answers it, and only outside
-  // the leader-started intake phase (which stays lean). For assault events it's about the
-  // operator's work assignment, so it's hidden when the employee wasn't operating a vehicle.
+  // the leader-started intake phase (which stays lean). Events that ask whether the user
+  // was operating a DART vehicle show Schedule only after a Yes answer.
+  const asksOperatingQuestion = ['Assault (Verbal or Physical)', 'Fire', 'Operator/Passenger Events (non-collision)'].includes(data.event_type || '');
   const showSchedule = activeSectionKey === 'operator' && !isInitiationStage
-    && !(data.event_type === 'Assault (Verbal or Physical)' && data.operating_dart_vehicle === false);
+    && (!asksOperatingQuestion || data.operating_dart_vehicle === true);
   const [isOperatorReportOpen, setIsOperatorReportOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
 
@@ -246,8 +247,8 @@ export function Step2VehicleLocation({
     const experienced = data.near_miss_reason === 'Near-Miss Experienced';
     const base = !!(
       data.near_miss_description?.trim()
-      && data.near_miss_date
-      && data.near_miss_time
+      && data.incident_date
+      && data.incident_time
       && data.near_miss_location?.trim()
       && data.near_miss_location_category
       && data.near_miss_reason

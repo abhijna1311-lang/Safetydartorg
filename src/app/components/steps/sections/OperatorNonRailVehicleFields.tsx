@@ -54,6 +54,7 @@ export function OperatorNonRailVehicleFields({
   icon = 'directions_car',
   statusBefore,
   statusAfter,
+  requiredVehicleNumber = true,
 }: {
   data: AccidentReportData;
   onUpdate: (data: Partial<AccidentReportData>) => void;
@@ -66,6 +67,7 @@ export function OperatorNonRailVehicleFields({
   icon?: string;
   statusBefore?: StatusFieldConfig;
   statusAfter?: StatusFieldConfig;
+  requiredVehicleNumber?: boolean;
 }) {
   const value = data[numberField] as string | undefined;
   const selected = fleet.find(vehicle => vehicle.id === value);
@@ -112,7 +114,7 @@ export function OperatorNonRailVehicleFields({
         )}
       </AnimatePresence>
       <div style={{ marginTop: selected ? 26 : undefined }} className={hasStatusFields ? 'grid grid-cols-1 gap-[18px] md:grid-cols-3' : 'max-w-xl'}>
-        <Field label={label} required error={showErrors && !value}>
+        <Field label={label} required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !value}>
           <SearchableCombobox options={options} value={value || ''} onChange={handleChange} placeholder={placeholder} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
         </Field>
         {statusFields.map(status => (

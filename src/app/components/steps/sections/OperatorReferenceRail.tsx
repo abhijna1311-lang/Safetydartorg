@@ -1015,8 +1015,8 @@ function buildNearMissEntries(data: AccidentReportData): OperatorFieldEntry[] {
   if (data.event_type !== 'Near Miss') return [];
   const fields: Array<[string, string, unknown]> = [
     ['near_miss_description', 'Description of Near Miss', data.near_miss_description],
-    ['near_miss_date', 'Date of Near Miss', data.near_miss_date],
-    ['near_miss_time', 'Time of Near Miss', data.near_miss_time],
+    ['incident_date', 'Incident date', data.incident_date],
+    ['incident_time', 'Incident time', data.incident_time],
     ['near_miss_location', 'Location of Near Miss', data.near_miss_location],
     ['near_miss_location_category', 'Location category', data.near_miss_location_category],
     ['near_miss_reason', 'Reason for reporting', data.near_miss_reason],

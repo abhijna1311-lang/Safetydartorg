@@ -156,7 +156,7 @@ export function ViewReportModal({ eventId, onClose, report }: ViewReportModalPro
                   </div>
                 </div>
                 <FieldValue label="Operator injured" value={data?.operator_injured} />
-                <FieldValue label="Passenger injuries" value={data?.passengers_injured} />
+                <FieldValue label="Passenger injuries" value={data?.event_type === 'Fire' ? data.fire_passengers_injured : data?.passengers_injured} />
                 <div className="col-span-2">
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-2 font-medium">Operator description</p>
                   <p className="text-sm text-slate-700 leading-relaxed bg-white rounded-lg p-4 border border-slate-200">

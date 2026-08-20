@@ -363,6 +363,14 @@ export interface AccidentReportData {
   near_miss_run?: string;
   near_miss_block?: string;
   near_miss_rail_line?: string;
+  near_miss_end_of_line_destination?: string;
+  near_miss_pullout_date?: string;
+  near_miss_pullout_time?: string;
+  near_miss_consist_count?: number;
+  near_miss_consist_1?: string;
+  near_miss_consist_2?: string;
+  near_miss_consist_3?: string;
+  near_miss_consist_4?: string;
   near_miss_weather?: string;
   near_miss_road_conditions?: string;
   near_miss_lighting_conditions?: string;

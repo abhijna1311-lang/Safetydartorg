@@ -3,7 +3,8 @@ import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { StepContainer } from '../../StepContainer';
 import { GlassButton } from '../../GlassButton';
-import type { AccidentReportData } from '../../../types/accident-report';
+import { PersonListEditor } from '../../PersonListEditor';
+import type { AccidentReportData, Person } from '../../../types/accident-report';
 import type { UserRole } from '../../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../../types/workflow-report';
 
@@ -46,18 +47,37 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
 export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSaveDraft, workflowStage = 'operator-completion', activeSectionKey = 'operator', showErrors = false }: Props) {
   const [hasAttemptedNext, setHasAttemptedNext] = useState(false);
   const operatorInjured = data.operator_injured === true;
-  const passengersInjured = (data.fire_passengers_injured ?? 0) > 0;
-  const pedestriansInjured = (data.fire_pedestrians_injured ?? 0) > 0;
+  const people = data.people ?? [];
+  const passengerPeople = people.filter(person => person.role === 'Passenger');
+  const pedestrianPeople = people.filter(person => person.role === 'Pedestrian');
   const isReadOnly = workflowStage === 'supervisor-review' || activeSectionKey !== 'operator';
   const shouldShowErrors = showErrors || hasAttemptedNext;
+  const personComplete = (person: Person) => {
+    const isPassenger = person.role === 'Passenger';
+    const isPedestrian = person.role === 'Pedestrian';
+    return (
+      (!isPedestrian || (!!person.pedestrian_type && !!person.pedestrian_action))
+      && !!person.gender
+      && person.is_dart_employee !== undefined
+    );
+  };
+  const peopleComplete = data.people_involved !== undefined
+    && (data.people_involved === false || (people.length > 0 && people.every(personComplete)));
+  const updateFirePeople = (nextPeople: Person[]) => {
+    const nextPassengers = nextPeople.filter(person => person.role === 'Passenger');
+    const nextPedestrians = nextPeople.filter(person => person.role === 'Pedestrian');
+    onUpdate({
+      people: nextPeople,
+      fire_passengers_injured: nextPassengers.filter(person => person.injured).length,
+      fire_passengers_transported: nextPassengers.filter(person => person.transported_to_hospital === true).length,
+      fire_pedestrians_injured: nextPedestrians.filter(person => person.injured).length,
+      fire_pedestrians_transported: nextPedestrians.filter(person => person.transported_to_hospital === true).length,
+    });
+  };
   const canProceed = workflowStage === 'initiation' || isReadOnly || (
     data.operator_injured !== undefined
     && (!operatorInjured || (data.operator_injured_body_part && data.operator_transported !== undefined))
-    && data.fire_other_employees_injured !== undefined
-    && data.fire_passengers_injured !== undefined
-    && (!passengersInjured || data.fire_passengers_transported !== undefined)
-    && data.fire_pedestrians_injured !== undefined
-    && (!pedestriansInjured || data.fire_pedestrians_transported !== undefined)
+    && peopleComplete
   );
 
   const handleNext = () => {
@@ -70,10 +90,7 @@ export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSave
   };
 
   return (
-    <StepContainer stepNumber={3} title="People And Impact" description="Record injuries and hospital transport counts for the fire event.">
-      <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-700 font-['Poppins']">
-        Fire reports use counts for other employees, passengers, and pedestrians. Operator injury details remain separate so the totals are unambiguous.
-      </div>
+    <StepContainer stepNumber={3} title="People And Impact" description="Record everyone involved in the fire event, including injuries and hospital transport.">
       <div className={`dart-card dart-card--surface overflow-hidden ${isReadOnly ? 'opacity-90' : ''}`}>
       <Section title="Operator injury" help="Record the operator's injury status and response.">
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -88,28 +105,24 @@ export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSave
               <BoolRow label="Was employee transported to the hospital" required><YesNoToggle value={data.operator_transported} onChange={value => onUpdate({ operator_transported: value })} /></BoolRow>
             </>
           )}
-          <BoolRow label="Number of other employees injured" required>
-            <div className="w-full sm:w-60"><input type="number" min={0} inputMode="numeric" value={data.fire_other_employees_injured ?? ''} onChange={event => onUpdate({ fire_other_employees_injured: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base" /></div>
-          </BoolRow>
         </div>
       </Section>
 
-      <Section title="Passenger injury" help="Passenger transport appears when at least one passenger is injured.">
+      <Section title="People involved" help="Record each passenger or pedestrian involved so injury and hospital transport details are captured consistently.">
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-          <BoolRow label="Number of passengers injured" required>
-            <div className="w-full sm:w-60"><input type="number" min={0} inputMode="numeric" value={data.fire_passengers_injured ?? ''} onChange={event => { const value = event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0); onUpdate({ fire_passengers_injured: value, fire_passengers_transported: value && value > 0 ? data.fire_passengers_transported : undefined }); }} placeholder="Enter count" className="dart-input-base" /></div>
+          <BoolRow label="How many passengers were on board?">
+            <input type="number" min={0} inputMode="numeric" value={data.passengers_on_board ?? ''} onChange={event => onUpdate({ passengers_on_board: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base w-full text-center sm:w-24" />
           </BoolRow>
-          {passengersInjured && <BoolRow label="Number of passengers transported to the hospital" required><div className="w-full sm:w-60"><input type="number" min={0} inputMode="numeric" value={data.fire_passengers_transported ?? ''} onChange={event => onUpdate({ fire_passengers_transported: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base" /></div></BoolRow>}
-        </div>
-      </Section>
-
-      <Section title="Pedestrian injury" help="Pedestrian transport appears when at least one pedestrian is injured.">
-        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-          <BoolRow label="Number of pedestrian injuries" required>
-            <div className="w-full sm:w-60"><input type="number" min={0} inputMode="numeric" value={data.fire_pedestrians_injured ?? ''} onChange={event => { const value = event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0); onUpdate({ fire_pedestrians_injured: value, fire_pedestrians_transported: value && value > 0 ? data.fire_pedestrians_transported : undefined }); }} placeholder="Enter count" className="dart-input-base" /></div>
+          <BoolRow label="Was anyone involved in this event?" required>
+            <YesNoToggle value={data.people_involved} onChange={value => onUpdate({ people_involved: value, people: value ? people : [], ...(value ? {} : { fire_passengers_injured: 0, fire_passengers_transported: 0, fire_pedestrians_injured: 0, fire_pedestrians_transported: 0 }) })} />
           </BoolRow>
-          {pedestriansInjured && <BoolRow label="Number of pedestrians transported to the hospital" required><div className="w-full sm:w-60"><input type="number" min={0} inputMode="numeric" value={data.fire_pedestrians_transported ?? ''} onChange={event => onUpdate({ fire_pedestrians_transported: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base" /></div></BoolRow>}
         </div>
+        {data.people_involved === true && (
+          <div className="pt-1">
+            <PersonListEditor people={people} onChange={updateFirePeople} showErrors={shouldShowErrors} injuryDetailsRequired={false} showFollowUpFields={false} showPassengerAction={false} />
+          </div>
+        )}
+        {shouldShowErrors && data.people_involved === true && people.length === 0 && <p className="text-xs font-medium text-red-600 font-['Poppins']">Add at least one passenger or pedestrian.</p>}
       </Section>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-y-3 mt-8 pt-6 border-t border-slate-200">

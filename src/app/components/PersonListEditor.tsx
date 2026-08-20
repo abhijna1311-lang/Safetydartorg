@@ -50,9 +50,11 @@ interface Props {
   onChange: (people: Person[]) => void;
   showErrors?: boolean;
   injuryDetailsRequired?: boolean;
+  showFollowUpFields?: boolean;
+  showPassengerAction?: boolean;
 }
 
-export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true }: Props) {
+export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const update = (id: string, patch: Partial<Person>) =>
@@ -107,17 +109,17 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
         const role = p.role;
         const isPassenger = role === 'Passenger';
         const isPedestrian = role === 'Pedestrian';
-        const showFled = isPassenger || isPedestrian;
-        const showDoor = isPassenger && (p.passenger_action === 'Boarding Bus' || p.passenger_action === 'Alighting Bus');
+        const showFled = showFollowUpFields && (isPassenger || isPedestrian);
+        const showDoor = showPassengerAction && isPassenger && (p.passenger_action === 'Boarding Bus' || p.passenger_action === 'Alighting Bus');
         const recordComplete = (
-          (!isPassenger || (!!p.passenger_action && (!showDoor || !!p.which_door)))
+          (!isPassenger || !showPassengerAction || (!!p.passenger_action && (!showDoor || !!p.which_door)))
           && (!isPedestrian || (!!p.pedestrian_type && !!p.pedestrian_action))
           && !!p.gender
           && p.is_dart_employee !== undefined
           && (!injuryDetailsRequired || (
             !!p.injured_body_part && p.transported_to_hospital !== undefined
-            && p.fled_scene !== undefined
-            && (!isPassenger || p.courtesy_card !== undefined)
+            && (!showFollowUpFields || p.fled_scene !== undefined)
+            && (!showFollowUpFields || !isPassenger || p.courtesy_card !== undefined)
           ))
         );
         const pedActions = p.pedestrian_type === 'Using Micro Mobility' ? PED_ACTIONS_MICRO : PED_ACTIONS_FOOT;
@@ -129,7 +131,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
             : p.pedestrian_type;
         const details: string[] = [];
         if (p.name) details.push(role); // role only needed when the title is a name
-        if (isPassenger) {
+        if (isPassenger && showPassengerAction) {
           if (p.passenger_action) details.push(p.passenger_action);
           if (p.which_door) details.push(p.which_door);
         }
@@ -138,8 +140,8 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
           if (p.pedestrian_action) details.push(p.pedestrian_action);
         }
         if (p.injured && p.injured_body_part) details.push(p.injured_body_part);
-        if (p.fled_scene) details.push('Fled scene');
-        if (isPassenger && p.courtesy_card) details.push('Courtesy card');
+        if (showFollowUpFields && p.fled_scene) details.push('Fled scene');
+        if (showFollowUpFields && isPassenger && p.courtesy_card) details.push('Courtesy card');
         const subtitle = details.join(' · ');
 
         return (
@@ -186,9 +188,10 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                       <GroupLabel>Details</GroupLabel>
                       {(() => {
                         // Uneven spans on a 12-col grid so the long "At the time of the event" label gets more room; short fields (Role, DART, Which door) shrink to keep everything on one line.
-                        const roleSpan = 'lg:col-span-2';
-                        const dartSpan = 'lg:col-span-2';
-                        const genderSpan = isPassenger && !showDoor ? 'lg:col-span-3' : 'lg:col-span-2';
+                        const equalPassengerLayout = isPassenger && !showPassengerAction;
+                        const roleSpan = equalPassengerLayout ? 'lg:col-span-4' : 'lg:col-span-2';
+                        const dartSpan = equalPassengerLayout ? 'lg:col-span-4' : 'lg:col-span-2';
+                        const genderSpan = equalPassengerLayout ? 'lg:col-span-4' : isPassenger && !showDoor ? 'lg:col-span-3' : 'lg:col-span-2';
                         const actionSpan = isPassenger && !showDoor ? 'lg:col-span-5' : 'lg:col-span-4';
                         const doorSpan = 'lg:col-span-2';
                         const pedTypeSpan = 'lg:col-span-3';
@@ -211,7 +214,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                             <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
                           </Field>
 
-                          {isPassenger && (
+                          {isPassenger && showPassengerAction && (
                             <>
                               <Field label="At the time of the event, the passenger was" required className={actionSpan}>
                                 <CustomSelect value={p.passenger_action || ''} onChange={v => update(p.id, { passenger_action: v, which_door: undefined })} options={PASSENGER_ACTIONS} placeholder="Select" error={showErrors && !p.passenger_action} />
@@ -245,7 +248,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Injured body part" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && !p.injured_body_part}>
                           <div className="w-full sm:w-60">
-                            <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !p.injured_body_part} />
+                            <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && injuryDetailsRequired && !p.injured_body_part} />
                           </div>
                         </BoolRow>
                         <BoolRow label="Transported to hospital?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.transported_to_hospital === undefined}>
@@ -263,7 +266,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                     </div>
 
                     {/* Follow-up */}
-                    {(showFled || isPassenger) && (
+                    {(showFled || (isPassenger && showFollowUpFields)) && (
                       <div>
                         <GroupLabel>Follow-up</GroupLabel>
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -272,7 +275,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                               <YesNoToggle value={p.fled_scene} onChange={v => update(p.id, { fled_scene: v })} />
                             </BoolRow>
                           )}
-                          {isPassenger && (
+                          {isPassenger && showFollowUpFields && (
                             <BoolRow label="Courtesy card obtained?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.courtesy_card === undefined}>
                               <YesNoToggle value={p.courtesy_card} onChange={v => update(p.id, { courtesy_card: v })} />
                             </BoolRow>

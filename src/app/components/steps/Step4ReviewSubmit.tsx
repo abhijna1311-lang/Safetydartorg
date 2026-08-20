@@ -1319,8 +1319,8 @@ export function Step4ReviewSubmit({
     const observed = data.near_miss_reason === 'Near-Miss Observed';
     const baseComplete = !!(
       data.near_miss_description?.trim()
-      && data.near_miss_date
-      && data.near_miss_time
+      && data.incident_date
+      && data.incident_time
       && data.near_miss_location?.trim()
       && data.near_miss_location_category
       && data.near_miss_reason
@@ -1732,9 +1732,7 @@ export function Step4ReviewSubmit({
             <div>
               <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Incident date & time</div>
               <div className="text-sm text-slate-900 font-['Poppins']">
-                {isNearMiss && data.near_miss_date && data.near_miss_time
-                  ? `${data.near_miss_date} at ${data.near_miss_time}`
-                  : data.incident_date && data.incident_time
+                {data.incident_date && data.incident_time
                     ? `${data.incident_date} at ${data.incident_time}`
                   : '—'
                 }
@@ -1800,7 +1798,7 @@ export function Step4ReviewSubmit({
           <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
             {[
               { label: 'Description of Near Miss', value: data.near_miss_description || '—', wide: true },
-              { label: 'Date / time', value: data.near_miss_date && data.near_miss_time ? `${data.near_miss_date} at ${data.near_miss_time}` : '—' },
+              { label: 'Date / time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : '—' },
               { label: 'Location', value: data.near_miss_location || '—' },
               { label: 'Location category', value: data.near_miss_location_category || '—' },
               { label: 'Reason for reporting', value: data.near_miss_reason || '—' },
@@ -2051,7 +2049,8 @@ export function Step4ReviewSubmit({
               {[
                 { label: 'Operator injured', value: data.operator_injured === true ? `Yes${data.operator_injured_body_part ? ` — ${data.operator_injured_body_part}` : ''}` : data.operator_injured === false ? 'No' : '—' },
                 ...(data.operator_injured === true ? [{ label: 'Operator transported', value: data.operator_transported === true ? 'Yes' : data.operator_transported === false ? 'No' : '—' }] : []),
-                { label: 'Other employees injured', value: formatReviewValue(data.fire_other_employees_injured) },
+                { label: 'Passengers on board', value: formatReviewValue(data.passengers_on_board) },
+                { label: 'Anyone involved', value: data.people_involved === true ? 'Yes' : data.people_involved === false ? 'No' : '—' },
                 { label: 'Passengers injured', value: formatReviewValue(data.fire_passengers_injured) },
                 ...(data.fire_passengers_injured && data.fire_passengers_injured > 0 ? [{ label: 'Passengers transported', value: formatReviewValue(data.fire_passengers_transported) }] : []),
                 { label: 'Pedestrians injured', value: formatReviewValue(data.fire_pedestrians_injured) },

@@ -216,6 +216,8 @@ export function BusVehicleFields({
   statusBeforeField = 'bus_status_before',
   statusAfterField = 'bus_status_after',
   statusOptions = BUS_STATUS_OPTIONS,
+  showStatusFields = true,
+  requiredVehicleNumber = true,
 }: {
   data: AccidentReportData;
   onUpdate: (data: Partial<AccidentReportData>) => void;
@@ -223,6 +225,8 @@ export function BusVehicleFields({
   statusBeforeField?: BusStatusField;
   statusAfterField?: BusStatusField;
   statusOptions?: { value: string; label: string }[];
+  showStatusFields?: boolean;
+  requiredVehicleNumber?: boolean;
 }) {
   const vehicleOptions: ComboboxOption[] = FLEET.map(bus => ({ value: bus.id, label: bus.id, description: bus.type }));
   const selectedBus = FLEET.find(bus => bus.id === data.vehicle_number);
@@ -266,14 +270,14 @@ export function BusVehicleFields({
           </motion.div>
         )}
       </AnimatePresence>
-      <div style={{ marginTop: hasVehicleRecord ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-        <Field label="Status before event" required error={showErrors && !data[statusBeforeField]}>
+      <div style={{ marginTop: hasVehicleRecord ? 26 : undefined }} className={showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3'}>
+        {showStatusFields && <Field label="Status before event" required error={showErrors && !data[statusBeforeField]}>
           <CustomSelect value={(data[statusBeforeField] as string) || ''} onChange={value => onUpdate({ [statusBeforeField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
-        </Field>
-        <Field label="Status after event" required error={showErrors && !data[statusAfterField]}>
+        </Field>}
+        {showStatusFields && <Field label="Status after event" required error={showErrors && !data[statusAfterField]}>
           <CustomSelect value={(data[statusAfterField] as string) || ''} onChange={value => onUpdate({ [statusAfterField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
-        </Field>
-        <Field label="Bus vehicle number" required error={showErrors && !data.vehicle_number}>
+        </Field>}
+        <Field label="Bus vehicle number" required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !data.vehicle_number}>
           <SearchableCombobox options={vehicleOptions} value={data.vehicle_number || ''} onChange={handleVehicleChange} placeholder="Search vehicle #" searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
         </Field>
         <Field label="Block ID" required error={showErrors && !data.block_number}>

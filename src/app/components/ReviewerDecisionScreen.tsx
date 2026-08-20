@@ -379,12 +379,12 @@ export function ReviewerDecisionScreen({
               <Field label="Operator injured" value={yesNo(data.operator_injured)} />
               {data.operator_injured && <Field label="Operator injured body part" value={data.operator_injured_body_part} />}
               {data.operator_injured && <Field label="Operator transported to hospital" value={yesNo(data.operator_transported)} />}
-              <Field label="Other employees injured" value={nonEmpty(data.other_employees_injured_count)} />
+              {data.event_type !== 'Fire' && <Field label="Other employees injured" value={nonEmpty(data.other_employees_injured_count)} />}
               <Field label="Passengers on board" value={nonEmpty(data.passengers_on_board)} />
-              <Field label="Passengers injured" value={nonEmpty(data.passengers_injured)} />
-              <Field label="Passengers transported" value={nonEmpty(data.passengers_transported)} />
-              <Field label="Pedestrians involved" value={nonEmpty(data.pedestrians_involved)} />
-              <Field label="Pedestrian injuries" value={nonEmpty(data.pedestrian_injuries)} />
+              <Field label="Passengers injured" value={nonEmpty(data.event_type === 'Fire' ? data.fire_passengers_injured : data.passengers_injured)} />
+              <Field label="Passengers transported" value={nonEmpty(data.event_type === 'Fire' ? data.fire_passengers_transported : data.passengers_transported)} />
+              <Field label="Pedestrians involved" value={nonEmpty(data.event_type === 'Fire' ? data.people?.filter(person => person.role === 'Pedestrian').length : data.pedestrians_involved)} />
+              <Field label="Pedestrian injuries" value={nonEmpty(data.event_type === 'Fire' ? data.fire_pedestrians_injured : data.pedestrian_injuries)} />
             </div>
           </div>
           <div>
