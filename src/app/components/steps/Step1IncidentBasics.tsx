@@ -550,7 +550,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-start">
             <div>
               <label className="dart-field-label">
-                Incident type <span className="dart-req">*</span>
+                Safety Event Type <span className="dart-req">*</span>
               </label>
               <CustomSelect
                 value={data.event_type || ''}
@@ -570,7 +570,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
             <div>
               <label className="dart-field-label">
-                Date of incident <span className="dart-req">*</span>
+                Date of Safety Event <span className="dart-req">*</span>
               </label>
               <div className={errIncidentDate ? 'dart-field-error' : ''}>
                 <DatePickerInput value={data.incident_date || ''} onChange={v => onUpdate({ incident_date: v })} maxDate={new Date()} />
@@ -580,7 +580,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
 
             <div>
               <label className="dart-field-label">
-                Time of incident <span className="dart-req">*</span>
+                Time of Safety Event <span className="dart-req">*</span>
               </label>
               <div className={errIncidentTime ? 'dart-field-error' : ''}>
                 <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />

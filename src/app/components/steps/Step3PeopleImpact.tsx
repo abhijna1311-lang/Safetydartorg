@@ -295,7 +295,7 @@ export function Step3PeopleImpact({
               The starter scenario stops here for people and impact. After handoff, the operator will complete injury, passenger, pedestrian, vehicle, and police details.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {['Operator injury status', 'Other employee injuries', 'Passenger details', 'Pedestrian details', 'Police and investigation details'].map((item) => (
+              {['Employee injury status', 'Other employee injuries', 'Passenger details', 'Pedestrian details', 'Police and investigation details'].map((item) => (
                 <span key={item} className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 font-['Poppins']">
                   {item}
                 </span>
@@ -357,10 +357,10 @@ export function Step3PeopleImpact({
                 </div>
               </div>
 
-              {/* 1 — Operator involved */}
-              <Section title="Operator involved" help="Your injury status is required.">
+              {/* 1 — Employee who submitted the report */}
+              <Section title="Employee who submitted the report" help="Record the employee's injury status and response.">
                 <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && !operatorAnswered ? 'border-red-300' : 'border-slate-200/70'}`}>
-                  <BoolRow label="Were you injured in this event?" required={!isHiRail}>
+                  <BoolRow label="Was the employee injured?" required={!isHiRail}>
                     <YesNoToggle value={data.operator_injured} onChange={v => onUpdate({ operator_injured: v, operator_injured_body_part: v ? data.operator_injured_body_part : undefined, operator_transported: v ? data.operator_transported : undefined })} />
                   </BoolRow>
                   <AnimatePresence initial={false}>
@@ -378,7 +378,7 @@ export function Step3PeopleImpact({
                             <CustomSelect value={data.operator_injured_body_part || ''} onChange={v => onUpdate({ operator_injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && !data.operator_injured_body_part} />
                           </div>
                         </BoolRow>
-                        <BoolRow label="Were you transported to hospital?" required={!isHiRail}>
+                        <BoolRow label="Was the employee transported to hospital?" required={!isHiRail}>
                           <YesNoToggle value={data.operator_transported} onChange={v => onUpdate({ operator_transported: v })} />
                         </BoolRow>
                       </motion.div>
@@ -387,8 +387,8 @@ export function Step3PeopleImpact({
                 </div>
               </Section>
 
-              {/* 2 — People involved */}
-              <Section title="People involved" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
+              {/* 2 — Other people involved in the event */}
+              <Section title="Other People Involved in the Event" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
                 <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.people_involved === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
                   {(
                     <BoolRow label="How many passengers were on board?">
@@ -403,7 +403,7 @@ export function Step3PeopleImpact({
                       />
                     </BoolRow>
                   )}
-                  <BoolRow label="Was anyone involved in this event?" required>
+                  <BoolRow label="Was anyone else involved in this event?" required>
                     <YesNoToggle value={data.people_involved} onChange={v => onUpdate({ people_involved: v, people: v ? (data.people ?? []) : [] })} />
                   </BoolRow>
                 </div>

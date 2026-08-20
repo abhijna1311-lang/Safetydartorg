@@ -2076,7 +2076,7 @@ export function Step4ReviewSubmit({
             </div>}
             {data.event_type !== 'Near Miss' && data.people_involved && data.people && data.people.length > 0 && (
               <div>
-                <div className="text-xs text-slate-500 mb-2 font-['Poppins']">People involved ({data.people.length})</div>
+                <div className="text-xs text-slate-500 mb-2 font-['Poppins']">Other People Involved in the Event ({data.people.length})</div>
                 <div className="space-y-2">
                   {data.people.map((person) => (
                     <div key={person.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
@@ -2819,7 +2819,7 @@ export function Step4ReviewSubmit({
               </div>
 
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
-                <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">People involved</h3>
+                <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Other People Involved in the Event</h3>
                 <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Record every passenger and pedestrian involved so follow-up and care can be handled properly.</p>
                 <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                   <BoolRow label="How many passengers were on board?" required>
@@ -2833,7 +2833,7 @@ export function Step4ReviewSubmit({
                       className="dart-input-base w-full text-center sm:w-24"
                     />
                   </BoolRow>
-                  <BoolRow label="Was anyone involved in this event?">
+                  <BoolRow label="Was anyone else involved in this event?">
                     <YesNoToggle
                       value={data.supervisor_people_involved}
                       onChange={(value) => {
@@ -3814,10 +3814,10 @@ export function Step4ReviewSubmit({
 
               {/* People involved — gate first, then add-person editor mirrors Op/FS pattern. */}
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
-                <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">People involved</h3>
+                <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Other People Involved in the Event</h3>
                 <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Record every passenger or pedestrian affected so follow-up and care can be handled properly.</p>
                 <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                  <BoolRow label="Was anyone involved in this event?">
+                  <BoolRow label="Was anyone else involved in this event?">
                     <YesNoToggle
                       value={data.program_manager_people_involved}
                       onChange={(v) => onUpdate({
