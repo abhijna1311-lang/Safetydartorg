@@ -1341,6 +1341,7 @@ export function Step4ReviewSubmit({
     );
     if (!baseComplete) return false;
     if (!data.near_miss_fleet_type) return false;
+    if (data.mode === 'Light Rail Vehicle' && (!data.train_status_before || !data.train_status_after)) return false;
     if (!observed) {
       if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
       if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
@@ -1879,6 +1880,10 @@ export function Step4ReviewSubmit({
               { label: 'Near Miss category', value: data.near_miss_category || '—' },
               { label: 'Vehicle number', value: data.near_miss_vehicle_number || '—' },
               { label: 'Fleet type', value: data.near_miss_fleet_type || '—' },
+              ...(data.mode === 'Light Rail Vehicle' ? [
+                { label: 'Train status before event', value: data.train_status_before || '—' },
+                { label: 'Train status after event', value: data.train_status_after || '—' },
+              ] : []),
               ...(data.near_miss_speed ? [{ label: 'Speed', value: data.near_miss_speed }] : []),
               ...(data.near_miss_route ? [{ label: 'Route', value: data.near_miss_route }] : []),
               ...(data.near_miss_rail_line ? [{ label: 'Rail line', value: data.near_miss_rail_line }] : []),

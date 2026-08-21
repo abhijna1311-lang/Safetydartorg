@@ -273,6 +273,7 @@ export function Step2VehicleLocation({
       && data.near_miss_traffic_controls
       && data.near_miss_roadway_configuration
     );
+    if (data.mode === 'Light Rail Vehicle' && (!data.train_status_before || !data.train_status_after)) return false;
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;

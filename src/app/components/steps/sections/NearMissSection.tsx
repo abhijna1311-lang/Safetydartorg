@@ -100,6 +100,8 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
     const nearMissPatch: Partial<AccidentReportData> = {};
     if ('vehicle_number' in patch || 'train_number' in patch) nearMissPatch.near_miss_vehicle_number = patch.vehicle_number ?? patch.train_number;
     if ('fleet_type' in patch || 'lrv_fleet_type' in patch) nearMissPatch.near_miss_fleet_type = patch.fleet_type ?? patch.lrv_fleet_type;
+    if ('train_status_before' in patch) nearMissPatch.train_status_before = patch.train_status_before;
+    if ('train_status_after' in patch) nearMissPatch.train_status_after = patch.train_status_after;
     if ('rail_line' in patch) nearMissPatch.near_miss_rail_line = patch.rail_line;
     if ('route_number' in patch) nearMissPatch.near_miss_route = patch.route_number;
     if ('trip_id' in patch) nearMissPatch.near_miss_run = patch.trip_id;
@@ -120,7 +122,7 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
       data={vehicleData}
       onUpdate={updateVehicle}
       showErrors={showErrors}
-      showStatusFields={false}
+      showStatusFields={data.mode === 'Light Rail Vehicle'}
       showLrvConsist={true}
       requiredVehicleNumber={!isObserved}
       help={`Select the ${data.mode || 'DART'} vehicle involved in the Near Miss. Assigned vehicle details are pulled in automatically.`}
