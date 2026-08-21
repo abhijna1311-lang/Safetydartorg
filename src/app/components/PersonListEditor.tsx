@@ -52,9 +52,11 @@ interface Props {
   injuryDetailsRequired?: boolean;
   showFollowUpFields?: boolean;
   showPassengerAction?: boolean;
+  variant?: 'default' | 'nearMiss';
 }
 
-export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true }: Props) {
+export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true, variant = 'default' }: Props) {
+  const isNearMiss = variant === 'nearMiss';
   const [openId, setOpenId] = useState<string | null>(null);
 
   const update = (id: string, patch: Partial<Person>) =>
@@ -63,7 +65,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
   const addPerson = () => {
     const id = `person-${Date.now()}`;
     // The outer question already established injury, so new people default to injured.
-    onChange([...people, { id, role: 'Passenger', name: '', injured: true }]);
+    onChange([...people, { id, role: isNearMiss ? 'Pedestrian' : 'Passenger', name: '', ...(isNearMiss ? {} : { injured: true }) }]);
     setOpenId(id);
   };
 
@@ -111,7 +113,9 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
         const isPedestrian = role === 'Pedestrian';
         const showFled = showFollowUpFields && (isPassenger || isPedestrian);
         const showDoor = showPassengerAction && isPassenger && (p.passenger_action === 'Boarding Bus' || p.passenger_action === 'Alighting Bus');
-        const recordComplete = (
+        const recordComplete = isNearMiss ? (
+          !!p.pedestrian_type && !!p.pedestrian_action
+        ) : (
           (!isPassenger || !showPassengerAction || (!!p.passenger_action && (!showDoor || !!p.which_door)))
           && (!isPedestrian || (!!p.pedestrian_type && !!p.pedestrian_action))
           && !!p.gender
@@ -198,21 +202,23 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                         const pedActionSpan = 'lg:col-span-3';
                         return (
                         <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
-                          <Field label="Role" required className={roleSpan}>
-                            <CustomSelect value={role} onChange={v => changeRole(p.id, v)} options={ROLES} placeholder="Select role" />
-                          </Field>
-                          <Field label="DART employee?" required className={dartSpan}>
-                            <CustomSelect
-                              value={p.is_dart_employee === undefined ? '' : (p.is_dart_employee ? 'yes' : 'no')}
-                              onChange={v => update(p.id, { is_dart_employee: v === 'yes' })}
-                              options={YES_NO}
-                              placeholder="Select"
-                              error={showErrors && p.is_dart_employee === undefined}
-                            />
-                          </Field>
-                          <Field label="Gender" required className={genderSpan}>
-                            <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
-                          </Field>
+                          {!isNearMiss && <>
+                            <Field label="Role" required className={roleSpan}>
+                              <CustomSelect value={role} onChange={v => changeRole(p.id, v)} options={ROLES} placeholder="Select role" />
+                            </Field>
+                            <Field label="DART employee?" required className={dartSpan}>
+                              <CustomSelect
+                                value={p.is_dart_employee === undefined ? '' : (p.is_dart_employee ? 'yes' : 'no')}
+                                onChange={v => update(p.id, { is_dart_employee: v === 'yes' })}
+                                options={YES_NO}
+                                placeholder="Select"
+                                error={showErrors && p.is_dart_employee === undefined}
+                              />
+                            </Field>
+                            <Field label="Gender" required className={genderSpan}>
+                              <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
+                            </Field>
+                          </>}
 
                           {isPassenger && showPassengerAction && (
                             <>
@@ -229,10 +235,10 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
 
                           {isPedestrian && (
                             <>
-                              <Field label="Pedestrian type" required className={pedTypeSpan}>
+                              <Field label="Pedestrian Type" required className={pedTypeSpan}>
                                 <CustomSelect value={p.pedestrian_type || ''} onChange={v => update(p.id, { pedestrian_type: v, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select" error={showErrors && !p.pedestrian_type} />
                               </Field>
-                              <Field label="Pedestrian action" required className={pedActionSpan}>
+                              <Field label="Pedestrian Action" required className={pedActionSpan}>
                                 <CustomSelect value={p.pedestrian_action || ''} onChange={v => update(p.id, { pedestrian_action: v })} options={pedActions} placeholder="Select" error={showErrors && !p.pedestrian_action} />
                               </Field>
                             </>
@@ -243,7 +249,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                     </div>
 
                     {/* Injury */}
-                    <div>
+                    {!isNearMiss && <div>
                       <GroupLabel>Injury</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Injured body part" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && !p.injured_body_part}>
@@ -263,10 +269,10 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                           </div>
                         </BoolRow>
                       </div>
-                    </div>
+                    </div>}
 
                     {/* Follow-up */}
-                    {(showFled || (isPassenger && showFollowUpFields)) && (
+                    {!isNearMiss && (showFled || (isPassenger && showFollowUpFields)) && (
                       <div>
                         <GroupLabel>Follow-up</GroupLabel>
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">

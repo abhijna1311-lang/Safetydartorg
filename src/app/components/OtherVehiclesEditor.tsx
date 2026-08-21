@@ -388,7 +388,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
                       <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isAssault ? 'lg:grid-cols-1' : isNearMiss ? 'lg:grid-cols-2' : isPM ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-                        <Field label={isAssault ? `Other vehicle #${idx + 2} type` : 'Vehicle type'} required error={showErrors && !v.vehicle_type}>
+                        <Field label={isAssault ? `Other vehicle #${idx + 2} type` : isNearMiss ? 'Other Vehicle Type' : 'Vehicle type'} required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
                         {!isAssault && isPM && (
@@ -396,7 +396,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                             <CustomSelect value={v.collision_type || ''} onChange={val => update(v.id, { collision_type: val })} options={COLLISION_TYPES} placeholder="Select collision type" />
                           </Field>
                         )}
-                        {!isAssault && <Field label="Vehicle action" required error={showErrors && !v.action}>
+                        {!isAssault && <Field label={isNearMiss ? 'Other Vehicle Action' : 'Vehicle action'} required error={showErrors && !v.action}>
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
                         </Field>}
                         {!isAssault && !isNearMiss && <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>

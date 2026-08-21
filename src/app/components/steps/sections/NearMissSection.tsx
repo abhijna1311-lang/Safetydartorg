@@ -3,10 +3,11 @@ import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { StepContainer } from '../../StepContainer';
 import { GlassButton } from '../../GlassButton';
+import { PersonListEditor } from '../../PersonListEditor';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleSection } from './ModeVehicleSection';
 import { OtherVehiclesEditor } from '../../OtherVehiclesEditor';
-import type { AccidentReportData, OtherVehicle } from '../../../types/accident-report';
+import type { AccidentReportData, NearMissPedestrianRecord, OtherVehicle, Person } from '../../../types/accident-report';
 
 interface Step2Props {
   data: AccidentReportData;
@@ -21,9 +22,6 @@ const REASONS = toOptions(['Near-Miss Experienced', 'Near-Miss Observed']);
 const CATEGORIES = toOptions(['Auto – Near Miss', 'Pedestrian – Near Miss', 'Fixed Object – Near Miss', 'Non-Fixed Object – Near Miss']);
 const BUS_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Intersection', 'Train Station', 'Bus Stop', 'Street', 'Bridge', 'Tunnel', 'Non-Revenue Facility/Yard', 'Garage']);
 const RAIL_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Right-of-Way Track', 'Train Station', 'Bridge', 'Tunnel', 'Non-Revenue Facility/Yard', 'Garage']);
-const PEDESTRIAN_TYPES = toOptions(['On Foot/Wheelchair/Walker/Cane/Crutches', 'Using Micro Mobility']);
-const FOOT_ACTIONS = toOptions(['Standing', 'Walking', 'Jogging/Running', 'Mobility Assistance', 'Lying', 'Sitting']);
-const MOBILITY_ACTIONS = toOptions(['Going Straight', 'Making a left turn', 'Making a right turn', 'Going backwards', 'Changing Lanes', 'Stopped', 'Negotiating a curve']);
 
 export function getNearMissOtherVehicles(data: AccidentReportData): OtherVehicle[] {
   if (data.near_miss_other_vehicles) return data.near_miss_other_vehicles;
@@ -229,12 +227,6 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
   const pedestrians = data.near_miss_pedestrians || [];
   const otherVehicles = getNearMissOtherVehicles(data);
   const count = data.near_miss_pedestrian_count || 0;
-  const syncPedestrians = (nextCount: number) => {
-    const next = pedestrians.slice(0, nextCount);
-    for (let index = next.length; index < nextCount; index += 1) next.push({ id: `near-miss-ped-${Date.now()}-${index}` });
-    onUpdate({ near_miss_pedestrian_count: nextCount, near_miss_pedestrians: next });
-  };
-  const updatePedestrian = (id: string, patch: { pedestrian_type?: string; pedestrian_action?: string }) => onUpdate({ near_miss_pedestrians: pedestrians.map(pedestrian => pedestrian.id === id ? { ...pedestrian, ...patch } : pedestrian) });
   const pedestrianComplete = !isPedestrian || (count > 0 && pedestrians.length === count && pedestrians.every(pedestrian => !!pedestrian.pedestrian_type && !!pedestrian.pedestrian_action));
   const vehicleComplete = !isAuto || (otherVehicles.length > 0 && otherVehicles.every(vehicle => vehicle.dart_dart !== undefined && !!vehicle.vehicle_type && !!vehicle.action));
   const updateOtherVehicles = (vehicles: OtherVehicle[]) => {
@@ -246,27 +238,31 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
       near_miss_other_vehicle_action: first?.action,
     });
   };
+  const updatePedestrians = (people: Person[]) => {
+    const next: NearMissPedestrianRecord[] = people.map(person => ({
+      id: person.id,
+      pedestrian_type: person.pedestrian_type,
+      pedestrian_action: person.pedestrian_action,
+    }));
+    onUpdate({ near_miss_pedestrians: next, near_miss_pedestrian_count: next.length });
+  };
   const canProceed = pedestrianComplete && vehicleComplete;
 
   return (
     <StepContainer stepNumber={3} title="People And Impact" description="Record the people and other vehicles involved in this Near Miss.">
       <div className="space-y-5">
         <div className="dart-card dart-card--surface overflow-hidden">
-          {isPedestrian && <Section title="Pedestrian close calls" help="Enter the number of pedestrians involved. Each pedestrian gets a type and action based on the selected type.">
-          <Field label="Number of pedestrians Near Miss (Close Calls)" required error={showErrors && count < 1}><input type="number" min={1} className="dart-input-base sm:w-32" value={count || ''} onChange={event => syncPedestrians(Math.max(0, Number.parseInt(event.target.value, 10) || 0))} placeholder="Enter count" /></Field>
-          {pedestrians.length > 0 && <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Pedestrians ({pedestrians.length})</p>
-              <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture the type and action for each pedestrian involved.</p>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {pedestrians.map((pedestrian, index) => {
-                const actions = pedestrian.pedestrian_type === 'Using Micro Mobility' ? MOBILITY_ACTIONS : FOOT_ACTIONS;
-                return <div key={pedestrian.id} className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-start"><p className="w-28 shrink-0 pt-1 text-[12px] font-semibold text-slate-500 font-['Poppins']">Pedestrian {index + 1}</p><div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Pedestrian type" required error={showErrors && !pedestrian.pedestrian_type}><CustomSelect value={pedestrian.pedestrian_type || ''} onChange={value => updatePedestrian(pedestrian.id, { pedestrian_type: value, pedestrian_action: undefined })} options={PEDESTRIAN_TYPES} placeholder="Select type" /></Field><Field label="Pedestrian action" required error={showErrors && !pedestrian.pedestrian_action}><CustomSelect value={pedestrian.pedestrian_action || ''} onChange={value => updatePedestrian(pedestrian.id, { pedestrian_action: value })} options={actions} placeholder="Select action" /></Field></div></div>;
-              })}
-            </div>
-          </div>}
-        </Section>}
+          {isPedestrian && <Section title="Pedestrians" help="Add each pedestrian involved in the close call. Each person can be expanded to capture their type and action.">
+            <PersonListEditor
+              variant="nearMiss"
+              people={pedestrians.map(pedestrian => ({ id: pedestrian.id, role: 'Pedestrian', pedestrian_type: pedestrian.pedestrian_type, pedestrian_action: pedestrian.pedestrian_action }))}
+              onChange={updatePedestrians}
+              showErrors={showErrors}
+              injuryDetailsRequired={false}
+              showFollowUpFields={false}
+              showPassengerAction={false}
+            />
+          </Section>}
           {isAuto && <Section title="Other vehicles" help="Add each vehicle involved besides the DART vehicle. Each vehicle can be expanded to capture its near miss details.">
             <OtherVehiclesEditor variant="nearMiss" vehicles={otherVehicles} onChange={updateOtherVehicles} showErrors={showErrors} injuryDetailsRequired={false} />
           </Section>}
