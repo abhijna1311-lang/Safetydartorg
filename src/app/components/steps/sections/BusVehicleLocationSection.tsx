@@ -6,6 +6,7 @@ import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobo
 import { DatePickerInput } from '../../DatePickerInput';
 import { TimePickerInput } from '../../TimePickerInput';
 import { YesNoToggle } from '../../form/YesNoToggle';
+import { BUS_ROUTE_STATUSES, BUS_STATUS_OPTIONS } from './BusCollisionSection';
 import { BUS_STOP_OPTIONS } from '../../../data/busStops';
 import type { AccidentReportData } from '../../../types/accident-report';
 
@@ -15,14 +16,6 @@ interface Props {
 }
 
 // ── option lists ──────────────────────────────────────────────────────────────
-const BUS_STATUS_OPTIONS = [
-  'In Service', 'Deadhead', 'Not In Service', 'Pull In', 'Pull Out',
-  'In Yard/Bus Lot', 'Road Test', 'Tow', 'Service Protection',
-  'Special Events', 'Non-Revenue Training',
-].map(v => ({ value: v, label: v }));
-
-const SHOWS_ROUTE = ['In Service', 'Pull In', 'Pull Out', 'Service Protection'];
-
 const VEHICLE_DB = [
   { id: '2045', label: '2045', type: '40 ft Low Floor', route: 'Route 15' },
   { id: '3012', label: '3012', type: '60 ft Articulated', route: 'Route 22' },
@@ -77,14 +70,14 @@ export function BusVehicleLocationSection({ data, onUpdate }: Props) {
   };
 
   useEffect(() => {
-    if (!SHOWS_ROUTE.includes(data.bus_status_before || '')) {
+    if (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '')) {
       if (data.route_number || data.run_number) {
         onUpdate({ route_number: undefined, run_number: undefined });
       }
     }
   }, [data.bus_status_before]);
 
-  const showRouteRun = SHOWS_ROUTE.includes(data.bus_status_before || '');
+  const showRouteRun = BUS_ROUTE_STATUSES.has(data.bus_status_before || '');
 
   return (
     <div className="space-y-5">

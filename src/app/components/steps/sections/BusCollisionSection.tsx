@@ -24,8 +24,9 @@ interface Props {
 export const BUS_STATUS_OPTIONS = [
   'In Service', 'Deadhead', 'Not In Service', 'Pull In', 'Pull Out',
   'In Yard/Bus Lot', 'Road Test', 'Tow', 'Service Protection',
-  'Special Events', 'Non-Revenue Training',
+  'Special Events', 'Non-Revenue Training', 'Bus Bridge', 'Shuttle',
 ].map(v => ({ value: v, label: v }));
+export const BUS_ROUTE_STATUSES = new Set(['In Service', 'Pull In', 'Pull Out', 'Service Protection']);
 
 const EVENT_TYPE_WITH = [
   'Collision – with Auto', 'Collision – with Pedestrian',
@@ -237,6 +238,7 @@ export function BusVehicleFields({
     .map(block => ({ value: block.block, label: block.block }))
     .sort((a, b) => a.value.localeCompare(b.value, undefined, { numeric: true }));
   const hasVehicleRecord = !!(data.vehicle_number && data.trip_id?.trim() && data.block_number?.trim());
+  const showRoute = BUS_ROUTE_STATUSES.has((data[statusBeforeField] as string) || '');
 
   const handleVehicleChange = (value: string) => {
     const bus = FLEET.find(item => item.id === value);
@@ -262,6 +264,13 @@ export function BusVehicleFields({
       employee_pullout_time: match?.pulloutTime,
     });
   };
+  const handleStatusBeforeChange = (value: string) => {
+    const match = busBlocks.find(block => block.block === data.block_number);
+    onUpdate({
+      [statusBeforeField]: value,
+      route_number: BUS_ROUTE_STATUSES.has(value) ? match?.trip.route : undefined,
+    } as Partial<AccidentReportData>);
+  };
 
   return (
     <>
@@ -274,7 +283,7 @@ export function BusVehicleFields({
       </AnimatePresence>
       <div style={{ marginTop: showVehicleDetails && hasVehicleRecord ? 26 : undefined }} className={showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5' : showVehicleDetails ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3' : 'grid grid-cols-1 gap-[18px]'}>
         {showStatusFields && <Field label="Status before event" required error={showErrors && !data[statusBeforeField]}>
-          <CustomSelect value={(data[statusBeforeField] as string) || ''} onChange={value => onUpdate({ [statusBeforeField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
+          <CustomSelect value={(data[statusBeforeField] as string) || ''} onChange={handleStatusBeforeChange} options={statusOptions} placeholder="Select status" />
         </Field>}
         {showStatusFields && <Field label="Status after event" required error={showErrors && !data[statusAfterField]}>
           <CustomSelect value={(data[statusAfterField] as string) || ''} onChange={value => onUpdate({ [statusAfterField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
@@ -286,9 +295,9 @@ export function BusVehicleFields({
           <Field label="Block ID" required error={showErrors && !data.block_number}>
             <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
           </Field>
-          <Field label="Route">
+          {showRoute && <Field label="Route">
             <input type="text" readOnly value={data.route_number || ''} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500" />
-          </Field>
+          </Field>}
         </>}
       </div>
     </>

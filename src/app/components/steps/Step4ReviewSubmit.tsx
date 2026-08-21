@@ -6,7 +6,7 @@ import { GlassButton } from '../GlassButton';
 import { SmartCheckReviewBanner } from '../SmartCheckReviewBanner';
 import { SubmissionSuccessInline } from '../SubmissionSuccessInline';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
-import { FLEET, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
+import { BUS_ROUTE_STATUSES, FLEET, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
 import { TRAIN_FLEET, STREETCAR_FLEET } from './sections/LRVCollisionSection';
 import { YesNoToggle } from '../form/YesNoToggle';
 import { FormField } from '../form/FormField';
@@ -1355,7 +1355,7 @@ export function Step4ReviewSubmit({
         if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus && !data.near_miss_rail_line))) return false;
         if (data.mode === 'Streetcar' && !data.near_miss_rail_line) return false;
         if (!data.near_miss_run) return false;
-      } else if (!data.near_miss_route || !data.near_miss_run || !data.near_miss_block) {
+      } else if ((BUS_ROUTE_STATUSES.has(data.bus_status_before || '') && !data.near_miss_route) || !data.near_miss_run || !data.near_miss_block) {
         return false;
       }
     }

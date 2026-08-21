@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Info, AlertTriangle } from 'lucide-react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
-import { BusCollisionSection, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
+import { BusCollisionSection, BUS_ROUTE_STATUSES, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
 import { LRVCollisionSection } from './sections/LRVCollisionSection';
 import { NRVCollisionSection } from './sections/NRVCollisionSection';
 import { DerailmentSection } from './sections/DerailmentSection';
@@ -37,7 +37,6 @@ interface Props {
 
 // Modes that follow the LRV form path
 const LRV_MODES = ['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'];
-const ACTIVE_FIRE_STATUSES = ['In Service', 'Pull In', 'Pull Out', 'Service Protection'];
 const inputCls = 'dart-input-base';
 
 function IntakeCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -131,6 +130,7 @@ export function Step2VehicleLocation({
   );
   const busCollisionComplete = !!(
     data.vehicle_number && data.trip_id && data.block_number
+    && (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '') || data.route_number)
     && data.bus_status_before && data.bus_status_after
     && data.collision_type && data.bus_action && data.point_of_impact && answered(data.bus_speed)
     && data.street_on && data.cross_street && data.city && data.zip
@@ -246,7 +246,7 @@ export function Step2VehicleLocation({
         return false;
       }
       if (data.mode === 'Light Rail Vehicle' && !lrvDetailsComplete) return false;
-      if (data.mode === 'Bus' && ACTIVE_FIRE_STATUSES.includes(data.bus_status_before || '')) {
+      if (data.mode === 'Bus' && BUS_ROUTE_STATUSES.has(data.bus_status_before || '')) {
         if (data.mode === 'Bus' && (!data.route_number || !data.block_number)) return false;
       }
     }
@@ -289,7 +289,7 @@ export function Step2VehicleLocation({
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
     if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
     if (data.mode === 'Streetcar') return !!data.near_miss_rail_line && !!data.near_miss_run;
-    return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
+    return (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '') || !!data.near_miss_route) && !!data.near_miss_run && !!data.near_miss_block;
   })();
   const trailSwitchComplete = (() => {
     if (!isTrailSwitch) return true;
@@ -458,9 +458,9 @@ export function Step2VehicleLocation({
                     <IntakeField label="Block" required>
                       <input type="text" value={data.block_number || ''} onChange={(e) => onUpdate({ block_number: e.target.value })} placeholder="Enter block number" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="Route">
+                    {BUS_ROUTE_STATUSES.has(data.bus_status_before || '') && <IntakeField label="Route">
                       <input type="text" value={data.route_number || ''} onChange={(e) => onUpdate({ route_number: e.target.value })} placeholder="Enter route" className={inputCls} />
-                    </IntakeField>
+                    </IntakeField>}
                     <IntakeField label="Street On" required>
                       <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
                     </IntakeField>

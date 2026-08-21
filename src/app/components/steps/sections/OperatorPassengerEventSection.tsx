@@ -5,7 +5,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { ModeVehicleFields } from './ModeVehicleSection';
 import { WeatherSection } from './WeatherSection';
-import { BUS_STATUS_OPTIONS } from './BusCollisionSection';
+import { BUS_ROUTE_STATUSES, BUS_STATUS_OPTIONS } from './BusCollisionSection';
 import { RAIL_LINE_STATUSES, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
@@ -46,7 +46,6 @@ const EVENT_LOCATIONS = ['In-Transit vehicle', 'Outside/around the transit vehic
 const VEHICLES_ON = ['Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehicle', '(Hi-Rail) On-Rail Mounted Maintenance Truck'].map(value => ({ value, label: value }));
 const VEHICLE_LOCATIONS = ['Boarding with stairs', 'Alighting with stairs', 'Boarding with a lift or ramp', 'Alighting with a lift or ramp', 'On board'].map(value => ({ value, label: value }));
 const BODY_PARTS = ['Head injury', 'Upper body injury (Chest to waist)', 'Lower body', 'No Injury'].map(value => ({ value, label: value }));
-const ACTIVE_BUS_STATUSES = new Set(BUS_STATUS_OPTIONS.filter(option => ['In Service', 'Pull In', 'Pull Out', 'Service Protection'].includes(option.value)).map(option => option.value));
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
   return (
@@ -70,7 +69,7 @@ function BoolRow({ label, required, error, children }: { label: string; required
 }
 
 function activeStatus(mode: string | undefined, status: string | undefined) {
-  return mode === 'Bus' ? ACTIVE_BUS_STATUSES.has(status || '') : RAIL_LINE_STATUSES.has(status || '');
+  return mode === 'Bus' ? BUS_ROUTE_STATUSES.has(status || '') : RAIL_LINE_STATUSES.has(status || '');
 }
 
 export function operatorPassengerEventComplete(data: AccidentReportData) {
