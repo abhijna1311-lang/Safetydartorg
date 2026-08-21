@@ -241,6 +241,8 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
   const updatePedestrians = (people: Person[]) => {
     const next: NearMissPedestrianRecord[] = people.map(person => ({
       id: person.id,
+      gender: person.gender,
+      is_dart_employee: person.is_dart_employee,
       pedestrian_type: person.pedestrian_type,
       pedestrian_action: person.pedestrian_action,
     }));

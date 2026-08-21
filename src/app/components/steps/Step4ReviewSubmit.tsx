@@ -1354,7 +1354,7 @@ export function Step4ReviewSubmit({
     }
     if (data.near_miss_category === 'Pedestrian – Near Miss') {
       const pedestrians = data.near_miss_pedestrians || [];
-      if (!data.near_miss_pedestrian_count || pedestrians.length !== data.near_miss_pedestrian_count || pedestrians.some((pedestrian) => !pedestrian.pedestrian_type || !pedestrian.pedestrian_action)) return false;
+      if (!data.near_miss_pedestrian_count || pedestrians.length !== data.near_miss_pedestrian_count || pedestrians.some((pedestrian) => pedestrian.gender === undefined || pedestrian.is_dart_employee === undefined || !pedestrian.pedestrian_type || !pedestrian.pedestrian_action)) return false;
     }
     if (data.near_miss_category === 'Auto – Near Miss') {
       const vehicles = getNearMissOtherVehicles(data);
@@ -2195,7 +2195,7 @@ export function Step4ReviewSubmit({
                   { label: 'Pedestrians in close calls', value: formatReviewValue(data.near_miss_pedestrian_count) },
                 ] : []),
               ].map(item => <div key={item.label}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins']">{item.value}</div></div>)}
-              {data.near_miss_category === 'Pedestrian – Near Miss' && data.near_miss_pedestrians && data.near_miss_pedestrians.length > 0 && <div className="col-span-2 space-y-2"><div className="text-xs text-slate-500 mb-1 font-['Poppins']">Pedestrian close-call details</div>{data.near_miss_pedestrians.map((pedestrian, index) => <div key={pedestrian.id} className="rounded-lg bg-slate-50 p-3 text-sm text-slate-900 font-['Poppins']">Pedestrian {index + 1}: {[pedestrian.pedestrian_type, pedestrian.pedestrian_action].filter(Boolean).join(' · ') || '—'}</div>)}</div>}
+              {data.near_miss_category === 'Pedestrian – Near Miss' && data.near_miss_pedestrians && data.near_miss_pedestrians.length > 0 && <div className="col-span-2 space-y-2"><div className="text-xs text-slate-500 mb-1 font-['Poppins']">Pedestrian close-call details</div>{data.near_miss_pedestrians.map((pedestrian, index) => <div key={pedestrian.id} className="rounded-lg bg-slate-50 p-3 text-sm text-slate-900 font-['Poppins']">Pedestrian {index + 1}: {[pedestrian.is_dart_employee === undefined ? 'DART employee not set' : pedestrian.is_dart_employee ? 'DART employee' : 'Non-DART employee', pedestrian.gender, pedestrian.pedestrian_type, pedestrian.pedestrian_action].filter(Boolean).join(' · ') || '—'}</div>)}</div>}
               {!data.near_miss_category || (data.near_miss_category !== 'Auto – Near Miss' && data.near_miss_category !== 'Pedestrian – Near Miss') ? <div className="col-span-2 text-sm text-slate-600 font-['Poppins']">No additional pedestrian or other-vehicle close-call details.</div> : null}
             </div>
             ) : data.event_type === 'Trail a Switch' ? (

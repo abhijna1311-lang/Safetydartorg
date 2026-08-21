@@ -74,6 +74,8 @@ export interface PedestrianRecord {
 
 export interface NearMissPedestrianRecord {
   id: string;
+  gender?: 'Female' | 'Male';
+  is_dart_employee?: boolean;
   pedestrian_type?: string;
   pedestrian_action?: string;
 }

@@ -114,7 +114,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
         const showFled = showFollowUpFields && (isPassenger || isPedestrian);
         const showDoor = showPassengerAction && isPassenger && (p.passenger_action === 'Boarding Bus' || p.passenger_action === 'Alighting Bus');
         const recordComplete = isNearMiss ? (
-          !!p.pedestrian_type && !!p.pedestrian_action
+          !!p.gender && p.is_dart_employee !== undefined && !!p.pedestrian_type && !!p.pedestrian_action
         ) : (
           (!isPassenger || !showPassengerAction || (!!p.passenger_action && (!showDoor || !!p.which_door)))
           && (!isPedestrian || (!!p.pedestrian_type && !!p.pedestrian_action))
@@ -198,10 +198,26 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                         const genderSpan = equalPassengerLayout ? 'lg:col-span-4' : isPassenger && !showDoor ? 'lg:col-span-3' : 'lg:col-span-2';
                         const actionSpan = isPassenger && !showDoor ? 'lg:col-span-5' : 'lg:col-span-4';
                         const doorSpan = 'lg:col-span-2';
+                        const nearMissSpan = 'lg:col-span-3';
                         const pedTypeSpan = 'lg:col-span-3';
                         const pedActionSpan = 'lg:col-span-3';
                         return (
                         <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
+                          {isNearMiss && <>
+                            <Field label="DART employee?" required className={nearMissSpan}>
+                              <CustomSelect
+                                value={p.is_dart_employee === undefined ? '' : (p.is_dart_employee ? 'yes' : 'no')}
+                                onChange={v => update(p.id, { is_dart_employee: v === 'yes' })}
+                                options={YES_NO}
+                                placeholder="Select"
+                                error={showErrors && p.is_dart_employee === undefined}
+                              />
+                            </Field>
+                            <Field label="Gender" required className={nearMissSpan}>
+                              <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
+                            </Field>
+                          </>}
+
                           {!isNearMiss && <>
                             <Field label="Role" required className={roleSpan}>
                               <CustomSelect value={role} onChange={v => changeRole(p.id, v)} options={ROLES} placeholder="Select role" />
