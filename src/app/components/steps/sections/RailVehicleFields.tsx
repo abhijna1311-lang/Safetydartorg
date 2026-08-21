@@ -12,11 +12,14 @@ const fade = {
   transition: { duration: 0.2 },
 };
 
+const inputCls = 'dart-input-base';
+
 const toOptions = (values: string[]) => [...values]
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
   .map(value => ({ value, label: value }));
 
 export const TRAIN_STATUS_OPTIONS = toOptions(['In Service', 'Deadhead', 'Pull in', 'Pull out', 'In Yard', 'Not In Service']);
+const RAIL_LINE_OPTIONS = toOptions(['Blue', 'Green', 'Orange', 'Red']);
 
 export const TRAIN_FLEET = [
   { id: 'T-2045', fleetType: 'KIN – Kinki Sharyo USA 1996', railLine: 'Blue', endOfLine: 'UNT Dallas', pulloutDate: '2026-07-24', pulloutTime: '05:10', cars: ['2101', '2102'] },
@@ -123,6 +126,7 @@ export function RailVehicleFields({
   requiredVehicleNumber = true,
 }: RailVehicleFieldsProps) {
   const isStreetcar = data.mode === 'Streetcar';
+  const isLRV = data.mode === 'Light Rail Vehicle';
   const activeFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
   const trainOptions: ComboboxOption[] = [...activeFleet]
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
@@ -131,6 +135,7 @@ export function RailVehicleFields({
   const hasTrainRecord = !!selectedTrain;
   const statusBefore = data[statusBeforeField] as string | undefined;
   const statusAfter = data[statusAfterField] as string | undefined;
+  const requiredLrvDetails = isLRV && requiredVehicleNumber;
   const updateStatus = (field: StatusField, value: string) => onUpdate({ [field]: value } as Partial<AccidentReportData>);
 
   const handleTrainChange = (value: string) => {
@@ -140,6 +145,7 @@ export function RailVehicleFields({
       train_number: value,
       lrv_fleet_type: train?.fleetType,
       rail_line: train?.railLine,
+      block_number: undefined,
       lrv_end_of_line: train?.endOfLine,
       train_pullout_date: train?.pulloutDate,
       train_pullout_time: train?.pulloutTime,
@@ -162,7 +168,13 @@ export function RailVehicleFields({
         )}
       </AnimatePresence>
 
-      <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
+      <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={isLRV ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-5' : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
+        {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status Before Event' : 'Train status before event'} required>
+          <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={statusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
+        </Field>}
+        {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status After Event' : 'Train status after event'} required>
+          <CustomSelect value={statusAfter || ''} onChange={value => updateStatus(statusAfterField, value)} options={statusAfterOptions} placeholder="Select status" />
+        </Field>}
         <Field label={isStreetcar ? 'Streetcar Number Involved in the Event' : 'LRV number involved in event'} required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !data.train_number}>
           <SearchableCombobox
             options={trainOptions}
@@ -173,11 +185,11 @@ export function RailVehicleFields({
             emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
           />
         </Field>
-        {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status Before Event' : 'Train status before event'} required>
-          <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={statusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
+        {isLRV && <Field label="Block ID" required={requiredLrvDetails} error={showErrors && requiredLrvDetails && !data.block_number}>
+          <input type="text" value={data.block_number || ''} onChange={event => onUpdate({ block_number: event.target.value })} placeholder="Enter block ID" className={inputCls} />
         </Field>}
-        {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status After Event' : 'Train status after event'} required>
-          <CustomSelect value={statusAfter || ''} onChange={value => updateStatus(statusAfterField, value)} options={statusAfterOptions} placeholder="Select status" />
+        {isLRV && <Field label="Line" required={requiredLrvDetails} error={showErrors && requiredLrvDetails && !data.rail_line}>
+          <CustomSelect value={data.rail_line || ''} onChange={value => onUpdate({ rail_line: value })} options={RAIL_LINE_OPTIONS} placeholder="Select line" />
         </Field>}
       </div>
 

@@ -85,7 +85,8 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
     isBus
       ? !!data.vehicle_number && !!data.block_number && !!data.bus_status_before && !!data.bus_status_after
       : isRail
-        ? !!data.train_number && !!data.train_status_before && !!data.train_status_after && (data.mode === 'Streetcar' || (data.lrv_consist_count ?? 0) > 0)
+        ? !!data.train_number && !!data.train_status_before && !!data.train_status_after
+          && (data.mode === 'Streetcar' || (!!data.block_number && !!data.rail_line && (data.lrv_consist_count ?? 0) > 0))
         : isNonRail && !!data.vehicle_number
   );
   const routeComplete = !isOperating || !activeStatus(data.mode, statusBefore) || (

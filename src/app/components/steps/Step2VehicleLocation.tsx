@@ -122,6 +122,7 @@ export function Step2VehicleLocation({
   const railVehicleNumber = data.mode === 'Hi-Rail' ? data.vehicle_number : data.train_number;
   const railStatusBefore = data.mode === 'Hi-Rail' ? data.vehicle_status_before : data.train_status_before;
   const railStatusAfter = data.mode === 'Hi-Rail' ? data.vehicle_status_after : data.train_status_after;
+  const lrvDetailsComplete = data.mode !== 'Light Rail Vehicle' || (!!data.block_number && !!data.rail_line);
   const requiredWeatherComplete = !!(
     data.weather && data.road_conditions && data.lighting_conditions
     && data.traffic_conditions && data.traffic_controls && data.roadway_configuration
@@ -143,6 +144,7 @@ export function Step2VehicleLocation({
   );
   const railCollisionComplete = !!(
     railVehicleNumber && railVehicleComplete
+    && lrvDetailsComplete
     && (hideRailStatusFields || (railStatusBefore && railStatusAfter))
     && data.lrv_collision_type && data.train_action && data.lrv_point_of_impact && answered(data.train_speed)
     && data.location_category && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
@@ -172,7 +174,7 @@ export function Step2VehicleLocation({
     && (data.location_category !== 'Right-of-Way: Grade Crossing' || data.grade_crossing_applicable)
     && (hideRailStatusFields || (data.train_status_before && data.train_status_after))
     && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
-    && (!['In Service', 'Pull-In', 'Pull-Out'].includes(data.train_status_before || '') || data.mode !== 'Light Rail Vehicle' || data.rail_line)
+    && lrvDetailsComplete
     && data.train_action && answered(data.train_speed)
     && answered(data.train_damage) && answered(data.runaway_train)
     && (data.runaway_train !== true || data.operator_in_train_runaway)
@@ -180,6 +182,7 @@ export function Step2VehicleLocation({
   );
   const signalViolationComplete = !!(
     data.train_number
+    && lrvDetailsComplete
     && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
     && data.signal_date && data.signal_number
     && data.signal_displaying_properly && data.signal_territory
@@ -203,6 +206,7 @@ export function Step2VehicleLocation({
       if (!((hideRailStatusFields || (data.vehicle_status_before && data.vehicle_status_after)) && answered(data.driver_window_assault))) return false;
       if (data.mode === 'Bus' && !data.vehicle_number) return false;
       if (isLRV && data.mode !== 'Hi-Rail' && !data.train_number) return false;
+      if (isLRV && (!data.block_number || !data.rail_line)) return false;
       if (data.mode === 'Hi-Rail' && !data.vehicle_number) return false;
       if (isNRV && !data.vehicle_number) return false;
       if (data.mode === 'Streetcar' && data.line_description !== 'Streetcar') return false;
@@ -235,7 +239,8 @@ export function Step2VehicleLocation({
         ? data.vehicle_number && data.bus_status_before && data.bus_status_after
         : hideRailStatusFields
           ? data.train_number
-          : data.train_number && data.train_status_before && data.train_status_after)) {
+          : data.train_number && data.train_status_before && data.train_status_after
+            && (data.mode !== 'Light Rail Vehicle' || (data.block_number && data.rail_line)))) {
         return false;
       }
       if (data.mode === 'Bus' && ACTIVE_FIRE_STATUSES.includes(data.bus_status_before || '')) {
@@ -276,6 +281,7 @@ export function Step2VehicleLocation({
     if (data.mode === 'Light Rail Vehicle' && (!data.train_status_before || !data.train_status_after)) return false;
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
+    if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || !data.near_miss_rail_line)) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
     if (data.near_miss_revenue_service === undefined) return false;
     if (!data.near_miss_revenue_service) return true;
@@ -287,7 +293,7 @@ export function Step2VehicleLocation({
     const hasVehicle = isHiRail ? !!data.vehicle_number : !!data.train_number;
     const consistComplete = data.mode !== 'Light Rail Vehicle' || lrvConsistComplete;
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lineComplete = !isLRV || !['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description;
+    const lineComplete = !isLRV || (lrvDetailsComplete && (!['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description));
     return !!(
       hasVehicle
       && consistComplete
