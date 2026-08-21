@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { CustomSelect } from '../../CustomSelect';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { ModeVehicleFields } from './ModeVehicleSection';
+import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { WeatherSection } from './WeatherSection';
 import type { AccidentReportData } from '../../../types/accident-report';
 
@@ -14,15 +15,6 @@ interface Props {
 }
 
 const inputCls = 'dart-input-base';
-const TRAIL_STATUS_OPTIONS = [
-  'In Service',
-  'Deadhead',
-  'Not In Service',
-  'Pull in',
-  'Pull out',
-  'Special Events',
-  'In Yard',
-].map(value => ({ value, label: value }));
 const SWITCH_OPTIONS = ['Interlocking', 'Crossover', 'Yard Switch'].map(value => ({ value, label: value }));
 const LOCATION_OPTIONS = ['Mainline', 'Yard', 'Rail Station', 'Grade Crossing', 'Bridge', 'Tunnel', 'Other'].map(value => ({ value, label: value }));
 const ACTION_OPTIONS = ['Going straight', 'In a curve'].map(value => ({ value, label: value }));
@@ -95,8 +87,8 @@ export function TrailSwitchSection({ data, onUpdate, showErrors = false, headerS
           showStatusFields
           showRailLine={isLRV}
           showLrvConsist={isLRV}
-          statusBeforeOptions={isHiRail ? undefined : TRAIL_STATUS_OPTIONS}
-          statusAfterOptions={isHiRail ? undefined : TRAIL_STATUS_OPTIONS}
+          statusBeforeOptions={isHiRail ? undefined : TRAIN_STATUS_OPTIONS}
+          statusAfterOptions={isHiRail ? undefined : TRAIN_STATUS_OPTIONS}
           requiredVehicleNumber
         />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

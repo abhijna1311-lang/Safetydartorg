@@ -6,6 +6,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleFields } from './ModeVehicleSection';
+import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 import {
   ASSAULT_LOCATIONS,
@@ -125,7 +126,9 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
     }
   }, [isStreetcar, data.line_description, show, onUpdate]);
 
-  const vehicleStatusOptions = getVehicleStatusOptions(data.mode).map((s) => ({ value: s.value, label: s.label }));
+  const vehicleStatusOptions = isLRV
+    ? TRAIN_STATUS_OPTIONS
+    : getVehicleStatusOptions(data.mode).map((s) => ({ value: s.value, label: s.label }));
   const vehicle2TypeOptions = getVehicle2TypeOptions(data.vehicle2_is_dart_vehicle);
 
   return (

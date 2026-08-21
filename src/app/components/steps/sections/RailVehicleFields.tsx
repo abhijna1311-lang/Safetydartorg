@@ -12,9 +12,7 @@ const fade = {
   transition: { duration: 0.2 },
 };
 
-const toOptions = (values: string[]) => [...values]
-  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-  .map(value => ({ value, label: value }));
+const toOptions = (values: string[]) => values.map(value => ({ value, label: value }));
 
 export const TRAIN_STATUS_OPTIONS = toOptions(['In Service', 'Deadhead', 'Pull in', 'Pull out', 'In Yard', 'Not In Service']);
 const RAIL_LINE_OPTIONS = toOptions(['Blue', 'Green', 'Orange', 'Red']);
@@ -126,6 +124,7 @@ export function RailVehicleFields({
 }: RailVehicleFieldsProps) {
   const isStreetcar = data.mode === 'Streetcar';
   const isLRV = data.mode === 'Light Rail Vehicle';
+  const shouldShowRailLine = isLRV && showRailLine;
   const activeFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
   const trainOptions: ComboboxOption[] = [...activeFleet]
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
@@ -134,8 +133,12 @@ export function RailVehicleFields({
   const hasTrainRecord = !!selectedTrain;
   const statusBefore = data[statusBeforeField] as string | undefined;
   const statusAfter = data[statusAfterField] as string | undefined;
-  const requiredLrvDetails = isLRV && requiredVehicleNumber;
-  const updateStatus = (field: StatusField, value: string) => onUpdate({ [field]: value } as Partial<AccidentReportData>);
+  const requiredLrvBlock = isLRV && requiredVehicleNumber;
+  const requiredLrvRailLine = requiredLrvBlock && shouldShowRailLine;
+  const updateStatus = (field: StatusField, value: string) => onUpdate({
+    [field]: value,
+    ...(isLRV && field === statusBeforeField && !['In Service', 'Pull in', 'Pull out'].includes(value) ? { rail_line: undefined } : {}),
+  } as Partial<AccidentReportData>);
 
   const handleTrainChange = (value: string) => {
     const train = activeFleet.find(item => item.id === value);
@@ -167,7 +170,7 @@ export function RailVehicleFields({
         )}
       </AnimatePresence>
 
-      <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={isLRV ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-5' : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
+      <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={isLRV ? `grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${shouldShowRailLine ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
         {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status Before Event' : 'Train status before event'} required>
           <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={statusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
         </Field>}
@@ -184,10 +187,10 @@ export function RailVehicleFields({
             emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
           />
         </Field>
-        {isLRV && <Field label="Block ID" required={requiredLrvDetails} error={showErrors && requiredLrvDetails && !data.block_number}>
+        {isLRV && <Field label="Block ID" required={requiredLrvBlock} error={showErrors && requiredLrvBlock && !data.block_number}>
           <CustomSelect value={data.block_number || ''} onChange={value => onUpdate({ block_number: value })} options={LRV_BLOCK_OPTIONS} placeholder="Select block" />
         </Field>}
-        {isLRV && <Field label="Line" required={requiredLrvDetails} error={showErrors && requiredLrvDetails && !data.rail_line}>
+        {shouldShowRailLine && <Field label="Rail Line" required={requiredLrvRailLine} error={showErrors && requiredLrvRailLine && !data.rail_line}>
           <CustomSelect value={data.rail_line || ''} onChange={value => onUpdate({ rail_line: value })} options={RAIL_LINE_OPTIONS} placeholder="Select line" />
         </Field>}
       </div>

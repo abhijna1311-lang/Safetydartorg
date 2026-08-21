@@ -122,7 +122,9 @@ export function Step2VehicleLocation({
   const railVehicleNumber = data.mode === 'Hi-Rail' ? data.vehicle_number : data.train_number;
   const railStatusBefore = data.mode === 'Hi-Rail' ? data.vehicle_status_before : data.train_status_before;
   const railStatusAfter = data.mode === 'Hi-Rail' ? data.vehicle_status_after : data.train_status_after;
-  const lrvDetailsComplete = data.mode !== 'Light Rail Vehicle' || (!!data.block_number && !!data.rail_line);
+  const activeLrvStatus = new Set(['In Service', 'Pull in', 'Pull out']);
+  const lrvDetailsComplete = data.mode !== 'Light Rail Vehicle'
+    || (!!data.block_number && (!activeLrvStatus.has(data.train_status_before || '') || !!data.rail_line));
   const requiredWeatherComplete = !!(
     data.weather && data.road_conditions && data.lighting_conditions
     && data.traffic_conditions && data.traffic_controls && data.roadway_configuration
@@ -206,7 +208,7 @@ export function Step2VehicleLocation({
       if (!((hideRailStatusFields || (data.vehicle_status_before && data.vehicle_status_after)) && answered(data.driver_window_assault))) return false;
       if (data.mode === 'Bus' && !data.vehicle_number) return false;
       if (isLRV && data.mode !== 'Hi-Rail' && !data.train_number) return false;
-      if (isLRV && (!data.block_number || !data.rail_line)) return false;
+      if (isLRV && !lrvDetailsComplete) return false;
       if (data.mode === 'Hi-Rail' && !data.vehicle_number) return false;
       if (isNRV && !data.vehicle_number) return false;
       if (data.mode === 'Streetcar' && data.line_description !== 'Streetcar') return false;
@@ -240,9 +242,10 @@ export function Step2VehicleLocation({
         : hideRailStatusFields
           ? data.train_number
           : data.train_number && data.train_status_before && data.train_status_after
-            && (data.mode !== 'Light Rail Vehicle' || (data.block_number && data.rail_line)))) {
+            && (data.mode !== 'Light Rail Vehicle' || lrvDetailsComplete))) {
         return false;
       }
+      if (data.mode === 'Light Rail Vehicle' && !lrvDetailsComplete) return false;
       if (data.mode === 'Bus' && ACTIVE_FIRE_STATUSES.includes(data.bus_status_before || '')) {
         if (data.mode === 'Bus' && (!data.route_number || !data.block_number)) return false;
       }
@@ -281,11 +284,12 @@ export function Step2VehicleLocation({
     if (data.mode === 'Light Rail Vehicle' && (!data.train_status_before || !data.train_status_after)) return false;
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
-    if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || !data.near_miss_rail_line)) return false;
+    if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus.has(data.train_status_before || '') && !data.near_miss_rail_line))) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
     if (data.near_miss_revenue_service === undefined) return false;
     if (!data.near_miss_revenue_service) return true;
-    if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) return !!data.near_miss_rail_line && !!data.near_miss_run;
+    if (data.mode === 'Light Rail Vehicle') return (!activeLrvStatus.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
+    if (data.mode === 'Streetcar') return !!data.near_miss_rail_line && !!data.near_miss_run;
     return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
   })();
   const trailSwitchComplete = (() => {

@@ -47,7 +47,7 @@ const VEHICLES_ON = ['Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehi
 const VEHICLE_LOCATIONS = ['Boarding with stairs', 'Alighting with stairs', 'Boarding with a lift or ramp', 'Alighting with a lift or ramp', 'On board'].map(value => ({ value, label: value }));
 const BODY_PARTS = ['Head injury', 'Upper body injury (Chest to waist)', 'Lower body', 'No Injury'].map(value => ({ value, label: value }));
 const ACTIVE_BUS_STATUSES = new Set(BUS_STATUS_OPTIONS.filter(option => ['In Service', 'Pull In', 'Pull Out', 'Service Protection'].includes(option.value)).map(option => option.value));
-const ACTIVE_TRAIN_STATUSES = new Set(['In Service', 'Pull in', 'Pull out', 'Service Protection']);
+const ACTIVE_TRAIN_STATUSES = new Set(['In Service', 'Pull in', 'Pull out']);
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
   return (
@@ -81,12 +81,13 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
   const isRail = data.mode === 'Light Rail Vehicle' || data.mode === 'Streetcar';
   const isNonRail = data.mode === 'Hi-Rail' || data.mode === 'Non-Revenue Vehicle';
   const statusBefore = isBus ? data.bus_status_before : data.train_status_before;
+  const lrvLineRequired = data.mode === 'Light Rail Vehicle' && ['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '');
   const vehicleComplete = !isOperating || (
     isBus
       ? !!data.vehicle_number && !!data.block_number && !!data.bus_status_before && !!data.bus_status_after
       : isRail
         ? !!data.train_number && !!data.train_status_before && !!data.train_status_after
-          && (data.mode === 'Streetcar' || (!!data.block_number && !!data.rail_line && (data.lrv_consist_count ?? 0) > 0))
+          && (data.mode === 'Streetcar' || (!!data.block_number && (!lrvLineRequired || !!data.rail_line) && (data.lrv_consist_count ?? 0) > 0))
         : isNonRail && !!data.vehicle_number
   );
   const routeComplete = !isOperating || !activeStatus(data.mode, statusBefore) || (

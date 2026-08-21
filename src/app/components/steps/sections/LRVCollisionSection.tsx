@@ -21,7 +21,6 @@ const toOptions = (values: string[]) => [...values]
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
   .map(v => ({ value: v, label: v }));
 
-const TRAIN_STATUS = toOptions(['In Service', 'Deadhead', 'Pull in', 'Pull out', 'In Yard', 'Not In Service']);
 const SHOWS_RAIL_LINE = ['In Service', 'Pull in', 'Pull out'];
 const CONSIST_COUNT_OPTIONS = [1, 2, 3, 4].map(n => ({ value: String(n), label: String(n) }));
 const CONSIST_KEYS = ['lrv_consist_1', 'lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;

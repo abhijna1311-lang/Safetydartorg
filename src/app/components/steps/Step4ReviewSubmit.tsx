@@ -1346,12 +1346,14 @@ export function Step4ReviewSubmit({
     if (data.mode === 'Light Rail Vehicle' && (!data.train_status_before || !data.train_status_after)) return false;
     if (!observed) {
       if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
-      if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || !data.near_miss_rail_line)) return false;
+      const activeLrvStatus = ['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '');
+      if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus && !data.near_miss_rail_line))) return false;
       if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
       if (data.near_miss_revenue_service === undefined) return false;
       if (!data.near_miss_revenue_service) return true;
       if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
-        if (!data.near_miss_rail_line || !data.near_miss_run) return false;
+        if ((data.mode === 'Streetcar' || activeLrvStatus) && !data.near_miss_rail_line) return false;
+        if (!data.near_miss_run) return false;
       } else if (!data.near_miss_route || !data.near_miss_run || !data.near_miss_block) {
         return false;
       }
@@ -1378,7 +1380,7 @@ export function Step4ReviewSubmit({
         .every(Boolean)
     );
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lrvDetailsComplete = !isLRV || (!!data.block_number && !!data.rail_line);
+    const lrvDetailsComplete = !isLRV || (!!data.block_number && (!['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.rail_line));
     const lineComplete = !isLRV || (lrvDetailsComplete && (!['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description));
     const trailPeople = data.people ?? [];
     const trailPeopleComplete = data.people_involved !== undefined

@@ -5,6 +5,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleFields } from './ModeVehicleSection';
+import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -19,13 +20,9 @@ interface Props {
 // ── option lists ──────────────────────────────────────────────────────────────
 const toOptions = (values: string[]) => values.map(v => ({ value: v, label: v }));
 
-// Signal Violation uses its own status list per spec — differs from LRVCollisionSection
-// (adds "Special Events", uses "Pull In"/"Pull Out" casing).
-const SIGNAL_TRAIN_STATUS_ALL = [
-  'In Service', 'Deadhead', 'Not In Service', 'Pull In', 'Pull Out', 'Special Events', 'In Yard',
-];
+const SIGNAL_TRAIN_STATUS_ALL = TRAIN_STATUS_OPTIONS.map(option => option.value);
 // Yard territory hides mainline-only statuses; Mainline hides In Yard.
-const YARD_HIDE = new Set(['In Service', 'Deadhead', 'Pull Out', 'Special Events', 'Pull In']);
+const YARD_HIDE = new Set(['In Service', 'Deadhead', 'Pull out', 'Pull in']);
 const MAINLINE_HIDE = new Set(['In Yard']);
 const TERRITORY_OPTIONS = toOptions(['Mainline Territory', 'Yard Territory']);
 const DISPLAY_OPTIONS = [
@@ -34,7 +31,7 @@ const DISPLAY_OPTIONS = [
   { value: 'not_observed', label: 'Not observed' },
 ];
 // Line Description only appears when status-before is one of these.
-const SHOWS_LINE = ['In Service', 'Pull In', 'Pull Out'];
+const SHOWS_LINE = ['In Service', 'Pull in', 'Pull out'];
 
 const fade = {
   initial: { opacity: 0, y: 6 },

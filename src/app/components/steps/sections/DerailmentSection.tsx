@@ -4,6 +4,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleFields } from './ModeVehicleSection';
+import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { HI_RAIL_FLEET } from './operatorVehicleFleets';
 import type { AccidentReportData } from '../../../types/accident-report';
 
@@ -26,10 +27,7 @@ const MAINLINE_LOCATIONS = toOptions([
   'Right-of-Way: Trackway',
 ]);
 const YARD_LOCATIONS = toOptions(['Non-Revenue Facility']);
-const TRAIN_STATUS = toOptions([
-  'Deadhead', 'In Service', 'In Yard', 'Not in Service', 'Pull-In', 'Pull-Out', 'Special Events',
-]);
-const SHOWS_LINE = ['In Service', 'Pull-In', 'Pull-Out'];
+const SHOWS_LINE = ['In Service', 'Pull in', 'Pull out'];
 const RAIL_LINES = toOptions(['Blue', 'Green', 'Orange', 'Red']);
 const TRAIN_ACTIONS = toOptions([
   'Going Straight',
@@ -107,8 +105,8 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
           showErrors={showErrors}
           statusBeforeField={isLRV ? 'train_status_before' : 'vehicle_status_before'}
           statusAfterField={isLRV ? 'train_status_after' : 'vehicle_status_after'}
-          statusBeforeOptions={TRAIN_STATUS}
-          statusAfterOptions={TRAIN_STATUS}
+          statusBeforeOptions={TRAIN_STATUS_OPTIONS}
+          statusAfterOptions={TRAIN_STATUS_OPTIONS}
           vehicleNumberField={isLRV ? undefined : 'train_number'}
           nonRailFleet={HI_RAIL_FLEET}
           showRailLine={showLine}
