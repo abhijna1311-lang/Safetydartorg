@@ -12,14 +12,13 @@ const fade = {
   transition: { duration: 0.2 },
 };
 
-const inputCls = 'dart-input-base';
-
 const toOptions = (values: string[]) => [...values]
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
   .map(value => ({ value, label: value }));
 
 export const TRAIN_STATUS_OPTIONS = toOptions(['In Service', 'Deadhead', 'Pull in', 'Pull out', 'In Yard', 'Not In Service']);
 const RAIL_LINE_OPTIONS = toOptions(['Blue', 'Green', 'Orange', 'Red']);
+const LRV_BLOCK_OPTIONS = toOptions(['BLK-101', 'BLK-102', 'BLK-103', 'BLK-104', 'BLK-105']);
 
 export const TRAIN_FLEET = [
   { id: 'T-2045', fleetType: 'KIN – Kinki Sharyo USA 1996', railLine: 'Blue', endOfLine: 'UNT Dallas', pulloutDate: '2026-07-24', pulloutTime: '05:10', cars: ['2101', '2102'] },
@@ -186,7 +185,7 @@ export function RailVehicleFields({
           />
         </Field>
         {isLRV && <Field label="Block ID" required={requiredLrvDetails} error={showErrors && requiredLrvDetails && !data.block_number}>
-          <input type="text" value={data.block_number || ''} onChange={event => onUpdate({ block_number: event.target.value })} placeholder="Enter block ID" className={inputCls} />
+          <CustomSelect value={data.block_number || ''} onChange={value => onUpdate({ block_number: value })} options={LRV_BLOCK_OPTIONS} placeholder="Select block" />
         </Field>}
         {isLRV && <Field label="Line" required={requiredLrvDetails} error={showErrors && requiredLrvDetails && !data.rail_line}>
           <CustomSelect value={data.rail_line || ''} onChange={value => onUpdate({ rail_line: value })} options={RAIL_LINE_OPTIONS} placeholder="Select line" />
