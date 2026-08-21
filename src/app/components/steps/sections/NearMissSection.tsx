@@ -95,7 +95,6 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
     lrv_consist_3: data.near_miss_consist_3,
     lrv_consist_4: data.near_miss_consist_4,
   };
-  const showVehicleDetails = data.near_miss_revenue_service === false;
   const updateVehicle = (patch: Partial<AccidentReportData>) => {
     const nearMissPatch: Partial<AccidentReportData> = {};
     if ('vehicle_number' in patch || 'train_number' in patch) nearMissPatch.near_miss_vehicle_number = patch.vehicle_number ?? patch.train_number;
@@ -124,9 +123,9 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
       data={vehicleData}
       onUpdate={updateVehicle}
       showErrors={showErrors}
-      showRailLine={showVehicleDetails}
-      showStatusFields={showVehicleDetails}
-      showVehicleDetails={showVehicleDetails}
+      showRailLine
+      showStatusFields
+      showVehicleDetails
       showLrvConsist={true}
       requiredVehicleNumber={!isObserved}
       help={`Select the ${data.mode || 'DART'} vehicle involved in the Near Miss. Assigned vehicle details are pulled in automatically.`}
@@ -179,7 +178,7 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
             <InlineField label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
               <input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" />
             </InlineField>
-            {data.near_miss_revenue_service === false && (mode === 'Light Rail Vehicle' || mode === 'Streetcar') && <InlineField label="Run" required error={showErrors && !data.near_miss_run}>
+            {(mode === 'Light Rail Vehicle' || mode === 'Streetcar') && <InlineField label="Run" required error={showErrors && !data.near_miss_run}>
               <input className="dart-input-base" value={data.near_miss_run || ''} onChange={event => onUpdate({ near_miss_run: event.target.value })} placeholder="Enter run" />
             </InlineField>}
           </>}
