@@ -123,8 +123,9 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const needsDrivingQ = hasEventType && SHOW_DRIVING_QUESTION.includes(data.event_type!);
   const isAssaultEvent = data.event_type === 'Assault (Verbal or Physical)';
   const isFireEvent = data.event_type === 'Fire';
+  const isOperatorPassengerEvent = data.event_type === 'Operator/Passenger Events (non-collision)';
   // Assault spec: possession = No → the mode picker is disabled and no mode is required.
-  const modeDisabledByPossession = (isAssaultEvent || isFireEvent) && data.operating_dart_vehicle === false;
+  const modeDisabledByPossession = (isAssaultEvent || isFireEvent || isOperatorPassengerEvent) && data.operating_dart_vehicle === false;
   const modeIsAllowed = (!isDerailmentEvent || DERAILMENT_MODES.includes(data.mode || ''))
     && (!isTrailSwitchEvent || TRAIL_SWITCH_MODES.includes(data.mode || ''))
     && (!isSignalViolationEvent || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
@@ -183,7 +184,16 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     }
     // Assault + not in possession of a DART vehicle: no mode applies — clear any stale pick.
     if (modeDisabledByPossession && data.mode) {
-      onUpdate({ mode: undefined });
+      onUpdate({
+        mode: undefined,
+        vehicle_number: undefined,
+        fleet_type: undefined,
+        trip_id: undefined,
+        block_number: undefined,
+        train_number: undefined,
+        lrv_fleet_type: undefined,
+        line_description: undefined,
+      });
     }
   }, [data.mode, isDerailmentEvent, isSignalViolationEvent, modeDisabledByPossession, onUpdate]);
 
@@ -314,6 +324,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     const isSignal = val === 'Signal Violation';
     const isTrail = val === 'Trail a Switch';
     const leavingTrail = data.event_type === 'Trail a Switch' && !isTrail;
+    const leavingOperatorPassenger = data.event_type === 'Operator/Passenger Events (non-collision)' && val !== data.event_type;
     const modeRemainsAllowed = (!isDerail || DERAILMENT_MODES.includes(data.mode || ''))
       && (!isTrail || TRAIL_SWITCH_MODES.includes(data.mode || ''))
       && (!isSignal || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
@@ -349,6 +360,24 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
         trail_passengers_transported: undefined,
         trail_pedestrian_injuries: undefined,
         trail_pedestrians_transported: undefined,
+      } : {}),
+      ...(leavingOperatorPassenger ? {
+        operator_passenger_event_relating_to: undefined,
+        operator_passenger_event_type: undefined,
+        operator_passenger_evacuation_location: undefined,
+        operator_passenger_evacuation_reason: undefined,
+        operator_passenger_employee_injured: undefined,
+        operator_passenger_employee_body_part: undefined,
+        operator_passenger_employee_transported: undefined,
+        operator_passenger_injured_non_transit_employees: undefined,
+        operator_passenger_non_transit_employees_transported: undefined,
+        operator_passenger_defective_vehicle_exchanged: undefined,
+        operator_passenger_replacement_vehicle_number: undefined,
+        operator_passenger_location: undefined,
+        operator_passenger_vehicle_location: undefined,
+        operator_passenger_transit_vehicle_on: undefined,
+        operator_passenger_transit_vehicle_number: undefined,
+        operator_passenger_transit_route_or_line: undefined,
       } : {}),
       // Reset driving question when event type changes
       operating_dart_vehicle: SHOW_DRIVING_QUESTION.includes(val) ? data.operating_dart_vehicle : undefined,

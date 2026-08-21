@@ -30,6 +30,7 @@ import { type WorkflowSectionKey, type WorkflowSectionState, type WorkflowSectio
 import { PMReviewActionBar } from '../PMReviewActionBar';
 import { ActionSelectionScreen } from '../actions/ActionSelectionScreen';
 import { buildSpmActions, buildFsActions, buildOperatorActions } from '../actions/actionConfigs';
+import { operatorPassengerEventComplete } from './sections/OperatorPassengerEventSection';
 
 interface Step4Props {
   data: AccidentReportData;
@@ -1315,6 +1316,7 @@ export function Step4ReviewSubmit({
 
   const isNearMiss = data.event_type === 'Near Miss';
   const isTrailSwitch = data.event_type === 'Trail a Switch';
+  const isOperatorPassengerEvent = data.event_type === 'Operator/Passenger Events (non-collision)';
   const nearMissCanSubmit = (() => {
     if (!isNearMiss) return true;
     const observed = data.near_miss_reason === 'Near-Miss Observed';
@@ -1432,7 +1434,7 @@ export function Step4ReviewSubmit({
   const canSubmit = Boolean(
     isRoleAllowedToAdvance &&
     confirmationChecked &&
-    (data.mode || (data.event_type === 'Fire' && data.operating_dart_vehicle === false)) &&
+    (data.mode || ((data.event_type === 'Fire' || isOperatorPassengerEvent) && data.operating_dart_vehicle === false)) &&
     data.event_type &&
     data.employee_badge_number &&
     data.employee_name &&
@@ -1440,6 +1442,8 @@ export function Step4ReviewSubmit({
       ? trailSwitchCanSubmit
       : isNearMiss
         ? nearMissCanSubmit
+      : isOperatorPassengerEvent
+        ? operatorPassengerEventComplete(data)
       : data.incident_date &&
         data.incident_time &&
         (data.description_of_event || data.incident_description))
@@ -1805,7 +1809,7 @@ export function Step4ReviewSubmit({
         )}
 
         {/* Incident Details Summary */}
-        {showInlineReferenceSummaries && data.event_type !== 'Near Miss' && !isTrailSwitch && (
+        {showInlineReferenceSummaries && data.event_type !== 'Near Miss' && !isTrailSwitch && !isOperatorPassengerEvent && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Incident details</h4>
@@ -2110,6 +2114,55 @@ export function Step4ReviewSubmit({
                 <div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div>
               </div>
             ))}
+          </div>
+        </div>
+        )}
+
+        {showInlineReferenceSummaries && isOperatorPassengerEvent && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Operator / passenger event details</h4>
+            <button onClick={() => onJumpToStep(2)} className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"><Edit className="w-3 h-3" />Edit</button>
+          </div>
+          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+            {[
+              { label: 'Operating a DART vehicle', value: data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—' },
+              { label: 'Event relates to', value: data.operator_passenger_event_relating_to || '—' },
+              { label: 'Type of event', value: data.operator_passenger_event_type || '—' },
+              { label: 'Where it happened', value: data.operator_passenger_location || '—' },
+              ...(data.operator_passenger_vehicle_location ? [{ label: 'Location in vehicle', value: data.operator_passenger_vehicle_location }] : []),
+              ...(data.operator_passenger_transit_vehicle_on ? [{ label: 'Transit vehicle ridden', value: [data.operator_passenger_transit_vehicle_on, data.operator_passenger_transit_vehicle_number, data.operator_passenger_transit_route_or_line].filter(Boolean).join(' · ') }] : []),
+              { label: 'Street On', value: data.street_on || '—' },
+              { label: 'Cross Street', value: data.cross_street || '—' },
+              { label: 'City', value: data.city || '—' },
+              { label: 'ZIP Code', value: data.zip || '—' },
+              ...(data.operator_passenger_event_type === 'Passenger Self-Evacuation' ? [
+                { label: 'Evacuation location', value: data.operator_passenger_evacuation_location || '—' },
+                { label: 'Reason for evacuation', value: data.operator_passenger_evacuation_reason || '—' },
+              ] : []),
+              ...(data.operator_passenger_event_type === 'Transit Equipment Defect' ? [
+                { label: 'Replacement vehicle used', value: data.operator_passenger_defective_vehicle_exchanged === true ? 'Yes' : data.operator_passenger_defective_vehicle_exchanged === false ? 'No' : '—' },
+                ...(data.operator_passenger_defective_vehicle_exchanged === true ? [{ label: 'Replacement vehicle number', value: data.operator_passenger_replacement_vehicle_number || '—' }] : []),
+              ] : []),
+              ...(data.operator_passenger_event_relating_to === 'DART Employee' && data.operator_passenger_employee_injured !== undefined ? [
+                { label: 'DART employee injured', value: data.operator_passenger_employee_injured ? 'Yes' : 'No' },
+                ...(data.operator_passenger_employee_injured ? [
+                  { label: 'Employee transported', value: data.operator_passenger_employee_transported === true ? 'Yes' : data.operator_passenger_employee_transported === false ? 'No' : '—' },
+                  { label: 'Body part', value: data.operator_passenger_employee_body_part || '—' },
+                ] : []),
+              ] : []),
+              ...(data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee' && data.operator_passenger_injured_non_transit_employees !== undefined ? [
+                { label: 'Injured non-transit employees', value: formatReviewValue(data.operator_passenger_injured_non_transit_employees) },
+                { label: 'Non-transit employees transported', value: formatReviewValue(data.operator_passenger_non_transit_employees_transported) },
+              ] : []),
+              { label: 'Weather', value: data.weather || '—' },
+              { label: 'Road / track conditions', value: data.road_conditions || '—' },
+              { label: 'Lighting conditions', value: data.lighting_conditions || '—' },
+              { label: 'Traffic conditions', value: data.traffic_conditions || '—' },
+              { label: 'Traffic controls', value: data.traffic_controls || '—' },
+              { label: 'Roadway configuration', value: data.roadway_configuration || '—' },
+              { label: 'Description of event', value: data.description_of_event || '—', wide: true },
+            ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
           </div>
         </div>
         )}

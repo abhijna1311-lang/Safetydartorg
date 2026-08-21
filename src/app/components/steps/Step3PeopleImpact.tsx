@@ -13,6 +13,7 @@ import { AssaultPeopleImpactSection } from './sections/AssaultPeopleImpactSectio
 import { FirePeopleImpactSection } from './sections/FirePeopleImpactSection';
 import { NearMissPeopleImpactSection } from './sections/NearMissSection';
 import { TrailSwitchPeopleImpactSection } from './sections/TrailSwitchPeopleImpactSection';
+import { OperatorPassengerPeopleImpactSection } from './sections/OperatorPassengerPeopleImpactSection';
 import type { AccidentReportData, AssaultPerpetrator, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
@@ -105,6 +106,7 @@ export function Step3PeopleImpact({
   const isAssault = data.event_type === 'Assault (Verbal or Physical)';
   const isNearMiss = data.event_type === 'Near Miss';
   const isTrailSwitch = data.event_type === 'Trail a Switch';
+  const isOperatorPassengerEvent = data.event_type === 'Operator/Passenger Events (non-collision)';
   const isInitiationStage = workflowStage === 'initiation';
   const isSupervisorReview = activeSectionKey === 'supervisor';
   const canOpenOperatorReport = isSupervisorReview && !isInitiationStage;
@@ -208,6 +210,9 @@ export function Step3PeopleImpact({
   }
   if (isTrailSwitch) {
     return <TrailSwitchPeopleImpactSection data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} workflowStage={workflowStage} activeSectionKey={activeSectionKey} showErrors={showErrors} />;
+  }
+  if (isOperatorPassengerEvent) {
+    return <OperatorPassengerPeopleImpactSection data={data} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} />;
   }
   if (data.event_type === 'Fire') {
     return (

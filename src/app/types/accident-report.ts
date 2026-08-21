@@ -341,6 +341,24 @@ export interface AccidentReportData {
   notified_law_enforcement?: boolean;
   contacted_supervisor?: boolean;
 
+  // Operator/Passenger Events (non-collision)
+  operator_passenger_event_relating_to?: 'DART Employee' | 'Passenger/Non-Dart Employee';
+  operator_passenger_event_type?: string;
+  operator_passenger_evacuation_location?: string;
+  operator_passenger_evacuation_reason?: string;
+  operator_passenger_employee_injured?: boolean;
+  operator_passenger_employee_transported?: boolean;
+  operator_passenger_employee_body_part?: string;
+  operator_passenger_injured_non_transit_employees?: number;
+  operator_passenger_non_transit_employees_transported?: number;
+  operator_passenger_defective_vehicle_exchanged?: boolean;
+  operator_passenger_replacement_vehicle_number?: string;
+  operator_passenger_location?: string;
+  operator_passenger_vehicle_location?: string;
+  operator_passenger_transit_vehicle_on?: string;
+  operator_passenger_transit_vehicle_number?: string;
+  operator_passenger_transit_route_or_line?: string;
+
   // Weather (shared – option sets differ by mode)
   weather?: string;
   road_conditions?: string;

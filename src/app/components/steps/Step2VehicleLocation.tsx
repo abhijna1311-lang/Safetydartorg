@@ -12,6 +12,7 @@ import { BasicIncidentSection } from './sections/BasicIncidentSection';
 import { FireSection } from './sections/FireSection';
 import { NearMissSection } from './sections/NearMissSection';
 import { TrailSwitchSection } from './sections/TrailSwitchSection';
+import { OperatorPassengerEventSection, operatorPassengerEventComplete } from './sections/OperatorPassengerEventSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
@@ -98,6 +99,7 @@ export function Step2VehicleLocation({
   const isFire = data.event_type === 'Fire';
   const isNearMiss = data.event_type === 'Near Miss';
   const isTrailSwitch = data.event_type === 'Trail a Switch';
+  const isOperatorPassengerEvent = data.event_type === 'Operator/Passenger Events (non-collision)';
 
   // Dynamic title and description based on event type
   const stepTitle = isCollision ? 'Collision information' : `${data.event_type || 'Event'} details`;
@@ -332,6 +334,8 @@ export function Step2VehicleLocation({
         ? !!(hasSchedule && nearMissComplete)
       : isTrailSwitch
         ? !!(hasSchedule && trailSwitchComplete)
+      : isOperatorPassengerEvent
+        ? !!(hasSchedule && operatorPassengerEventComplete(data))
       : !!(
         hasSchedule &&
         narrativeRequirementMet &&
@@ -509,8 +513,10 @@ export function Step2VehicleLocation({
                 if (isTrailSwitch) {
                   return <TrailSwitchSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
                 }
-                // Non-collision / non-derailment / non-assault (Near Miss, Fire,
-                // Operator/Passenger Events) use the generic incident form.
+                if (isOperatorPassengerEvent) {
+                  return <OperatorPassengerEventSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
+                }
+                // Other non-collision / non-derailment / non-assault events use the generic incident form.
                 return <BasicIncidentSection data={data} onUpdate={onUpdate} narrativeReadOnly={isOperatorNarrativeLocked} showErrors={showErrors} headerSection={schedule} />;
               })()}
             </>
