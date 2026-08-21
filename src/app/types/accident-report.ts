@@ -427,6 +427,7 @@ export interface AccidentReportData {
   near_miss_between_dart_vehicles?: boolean;
   near_miss_other_vehicle_type?: string;
   near_miss_other_vehicle_action?: string;
+  near_miss_other_vehicles?: OtherVehicle[];
 
   // ── STEP 3: People & Impact ────────────────────────────────────
   // Operator / Other Employees

@@ -90,7 +90,7 @@ interface Props {
   // 'operator' drops "Occupant fatalities" and captures gender + transported per injured occupant.
   // 'supervisor' matches operator's per-occupant capture and also asks age group.
   // 'pm' keeps fatalities count and captures severity + body part + age + gender + transported per injured occupant.
-  variant?: 'operator' | 'supervisor' | 'pm' | 'full' | 'assault';
+  variant?: 'operator' | 'supervisor' | 'pm' | 'full' | 'assault' | 'nearMiss';
 }
 
 const GENDER_OPTS = [
@@ -169,6 +169,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
   const isSupervisor = variant === 'supervisor';
   const isPM = variant === 'pm';
   const isAssault = variant === 'assault';
+  const isNearMiss = variant === 'nearMiss';
   // Operator, Supervisor and PM collect per-injured-occupant rows instead of aggregate 'transported' counts.
   const perOccupant = isOperator || isSupervisor || isPM;
   const [openId, setOpenId] = useState<string | null>(null);
@@ -299,7 +300,9 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                 )
               : (v.fatalities !== undefined && (!injuryDetailsRequired || (v.injuries !== undefined && v.fled !== undefined && (!hasInjuries || v.transported !== undefined))))
           );
-        const recordComplete = isAssault
+        const recordComplete = isNearMiss
+          ? v.dart_dart !== undefined && !!v.vehicle_type && !!v.action
+          : isAssault
           ? v.occupants !== undefined && v.dart_dart !== undefined && !!v.vehicle_type && assaultPerpetratorsComplete
           : v.occupants !== undefined
             && occupantsComplete
@@ -308,7 +311,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
         // Richer collapsed subtitle so scanners see impact + condition, not just occupant count.
         const subtitleParts = [
           v.vehicle_type || 'Type not set',
-          `${v.occupants ?? 0} occ.`,
+          isNearMiss ? (v.action || 'Action not set') : `${v.occupants ?? 0} occ.`,
           v.point_of_impact ? `${v.point_of_impact} impact` : null,
           v.damage ? 'damaged' : null,
           v.tow_away ? 'towed' : null,
@@ -376,7 +379,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                   <div className="space-y-6 px-4 py-5">
                     {/* This determines which vehicle-type options apply, so ask it first. */}
                     <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-                      <BoolRow label={isAssault ? `Was the other vehicle #${idx + 2} a DART vehicle?` : 'Was this a collision between DART vehicles?'} required sentenceCase error={showErrors && v.dart_dart === undefined}>
+                      <BoolRow label={isAssault ? `Was the other vehicle #${idx + 2} a DART vehicle?` : isNearMiss ? 'Was this a Near Miss between DART vehicles?' : 'Was this a collision between DART vehicles?'} required sentenceCase error={showErrors && v.dart_dart === undefined}>
                         <YesNoToggle value={v.dart_dart} onChange={val => update(v.id, { dart_dart: val, vehicle_type: undefined })} />
                       </BoolRow>
                     </div>
@@ -384,7 +387,7 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                     {/* Vehicle */}
                     <div>
                       <GroupLabel>Vehicle</GroupLabel>
-                      <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isAssault ? 'lg:grid-cols-1' : isPM ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+                      <div className={`grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 ${isAssault ? 'lg:grid-cols-1' : isNearMiss ? 'lg:grid-cols-2' : isPM ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
                         <Field label={isAssault ? `Other vehicle #${idx + 2} type` : 'Vehicle type'} required error={showErrors && !v.vehicle_type}>
                           <CustomSelect value={v.vehicle_type || ''} onChange={val => update(v.id, { vehicle_type: val })} options={typeOptions} placeholder="Select vehicle type" />
                         </Field>
@@ -396,14 +399,15 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         {!isAssault && <Field label="Vehicle action" required error={showErrors && !v.action}>
                           <CustomSelect value={v.action || ''} onChange={val => update(v.id, { action: val })} options={ACTIONS} placeholder="Select" />
                         </Field>}
-                        {!isAssault && <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
+                        {!isAssault && !isNearMiss && <Field label="Direction relative to DART vehicle" required error={showErrors && !v.direction}>
                           <CustomSelect value={v.direction || ''} onChange={val => update(v.id, { direction: val })} options={DIRECTIONS} placeholder="Select" />
                         </Field>}
                       </div>
                     </div>
 
-                    {/* Occupants */}
+                    {!isNearMiss && (
                     <div>
+                      {/* Occupants */}
                       <GroupLabel>Occupants</GroupLabel>
                       {/* Column count adapts to which follow-ups apply: fatalities and aggregate transport for FS/PM, per-injury rows below for operator/supervisor/pm. */}
                       <div
@@ -625,8 +629,9 @@ export function OtherVehiclesEditor({ vehicles, onChange, showErrors = false, in
                         </div>
                       )}
                     </div>
+                    )}
 
-                    {!isAssault && (
+                    {!isAssault && !isNearMiss && (
                       <>
                     {/* Damage */}
                     <div>

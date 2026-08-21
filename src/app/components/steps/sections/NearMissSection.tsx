@@ -5,7 +5,8 @@ import { StepContainer } from '../../StepContainer';
 import { GlassButton } from '../../GlassButton';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleSection } from './ModeVehicleSection';
-import type { AccidentReportData } from '../../../types/accident-report';
+import { OtherVehiclesEditor } from '../../OtherVehiclesEditor';
+import type { AccidentReportData, OtherVehicle } from '../../../types/accident-report';
 
 interface Step2Props {
   data: AccidentReportData;
@@ -23,9 +24,19 @@ const RAIL_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Right-of-Way Trac
 const PEDESTRIAN_TYPES = toOptions(['On Foot/Wheelchair/Walker/Cane/Crutches', 'Using Micro Mobility']);
 const FOOT_ACTIONS = toOptions(['Standing', 'Walking', 'Jogging/Running', 'Mobility Assistance', 'Lying', 'Sitting']);
 const MOBILITY_ACTIONS = toOptions(['Going Straight', 'Making a left turn', 'Making a right turn', 'Going backwards', 'Changing Lanes', 'Stopped', 'Negotiating a curve']);
-const DART_VEHICLE_TYPES = toOptions(['Passenger Auto/St Wagon', 'Motorcycle/Moped', 'Passenger Truck/Van', 'Non-Revenue Rail vehicle (Maintenance)', 'Hi-Rail – Maintenance vehicle mounted to rail', 'Light rail vehicle', 'Streetcar', 'Bus', 'Wrecker/Tow Truck/Electric Utility cart/Garbage Truck/Forklift']);
-const NON_DART_VEHICLE_TYPES = toOptions(['Passenger Auto/St Wagon', 'Motorcycle/Moped', 'Passenger Truck/Van', 'Delivery Truck/Van', '18 Wheel Truck (Semi)', 'Fire Engine, Ambulance, Police car', 'Tractor Trailer', 'Commercial Rail or Amtrak', 'School Bus/Charter/Tour Bus', 'Taxi/Rideshare', 'Utility Trucks', 'Trolley', 'Wrecker/Tow Truck/Electric Utility cart/Garbage Truck/Forklift']);
-const VEHICLE_ACTIONS = toOptions(['Going Straight', 'Making a left turn', 'Making a right turn', 'Going backwards', 'Changing lanes', 'Stopped', 'Negotiating a curve', 'Parked']);
+
+export function getNearMissOtherVehicles(data: AccidentReportData): OtherVehicle[] {
+  if (data.near_miss_other_vehicles) return data.near_miss_other_vehicles;
+  if (data.near_miss_between_dart_vehicles !== undefined || data.near_miss_other_vehicle_type || data.near_miss_other_vehicle_action) {
+    return [{
+      id: 'near-miss-vehicle-2',
+      dart_dart: data.near_miss_between_dart_vehicles,
+      vehicle_type: data.near_miss_other_vehicle_type,
+      action: data.near_miss_other_vehicle_action,
+    }];
+  }
+  return [];
+}
 
 function Field({ label, required, error, children }: { label: string; required?: boolean; error?: boolean; children: ReactNode }) {
   return (
@@ -160,7 +171,7 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
             <CustomSelect value={data.near_miss_reason || ''} onChange={resetReasonDependentFields} options={REASONS} placeholder="Select reason" />
           </InlineField>
           <InlineField label="Select the category the Near Miss most relates to" required error={showErrors && !data.near_miss_category}>
-            <CustomSelect value={data.near_miss_category || ''} onChange={value => onUpdate({ near_miss_category: value as AccidentReportData['near_miss_category'], near_miss_pedestrian_count: undefined, near_miss_pedestrians: undefined, near_miss_between_dart_vehicles: undefined, near_miss_other_vehicle_type: undefined, near_miss_other_vehicle_action: undefined })} options={CATEGORIES} placeholder="Select category" />
+            <CustomSelect value={data.near_miss_category || ''} onChange={value => onUpdate({ near_miss_category: value as AccidentReportData['near_miss_category'], near_miss_pedestrian_count: undefined, near_miss_pedestrians: undefined, near_miss_between_dart_vehicles: undefined, near_miss_other_vehicle_type: undefined, near_miss_other_vehicle_action: undefined, near_miss_other_vehicles: undefined })} options={CATEGORIES} placeholder="Select category" />
           </InlineField>
           {!isObserved && <>
             <InlineField label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
@@ -216,6 +227,7 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
   const isPedestrian = data.near_miss_category?.startsWith('Pedestrian') === true;
   const isAuto = data.near_miss_category?.startsWith('Auto') === true;
   const pedestrians = data.near_miss_pedestrians || [];
+  const otherVehicles = getNearMissOtherVehicles(data);
   const count = data.near_miss_pedestrian_count || 0;
   const syncPedestrians = (nextCount: number) => {
     const next = pedestrians.slice(0, nextCount);
@@ -224,7 +236,16 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
   };
   const updatePedestrian = (id: string, patch: { pedestrian_type?: string; pedestrian_action?: string }) => onUpdate({ near_miss_pedestrians: pedestrians.map(pedestrian => pedestrian.id === id ? { ...pedestrian, ...patch } : pedestrian) });
   const pedestrianComplete = !isPedestrian || (count > 0 && pedestrians.length === count && pedestrians.every(pedestrian => !!pedestrian.pedestrian_type && !!pedestrian.pedestrian_action));
-  const vehicleComplete = !isAuto || (data.near_miss_between_dart_vehicles !== undefined && !!data.near_miss_other_vehicle_type && !!data.near_miss_other_vehicle_action);
+  const vehicleComplete = !isAuto || (otherVehicles.length > 0 && otherVehicles.every(vehicle => vehicle.dart_dart !== undefined && !!vehicle.vehicle_type && !!vehicle.action));
+  const updateOtherVehicles = (vehicles: OtherVehicle[]) => {
+    const first = vehicles[0];
+    onUpdate({
+      near_miss_other_vehicles: vehicles,
+      near_miss_between_dart_vehicles: first?.dart_dart,
+      near_miss_other_vehicle_type: first?.vehicle_type,
+      near_miss_other_vehicle_action: first?.action,
+    });
+  };
   const canProceed = pedestrianComplete && vehicleComplete;
 
   return (
@@ -246,27 +267,9 @@ export function NearMissPeopleImpactSection({ data, onUpdate, onNext, onBack, on
             </div>
           </div>}
         </Section>}
-          {isAuto && <Section title="Other vehicles" help="Record the other vehicle involved in this Auto Near Miss.">
-            <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
-              <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Other vehicle</p>
-                <p className="mt-0.5 text-[11px] text-slate-400 font-['Poppins']">Capture the other vehicle involved in this Auto Near Miss.</p>
-              </div>
-              <div className="divide-y divide-slate-100">
-              <InlineField label="Was this a Near Miss between two DART vehicles" required error={showErrors && data.near_miss_between_dart_vehicles === undefined}>
-                <YesNoToggle value={data.near_miss_between_dart_vehicles} onChange={value => onUpdate({ near_miss_between_dart_vehicles: value, near_miss_other_vehicle_type: undefined, near_miss_other_vehicle_action: undefined })} />
-              </InlineField>
-              {data.near_miss_between_dart_vehicles !== undefined && <>
-                <InlineField label="Other vehicle #2 type" required error={showErrors && !data.near_miss_other_vehicle_type}>
-                  <CustomSelect value={data.near_miss_other_vehicle_type || ''} onChange={value => onUpdate({ near_miss_other_vehicle_type: value })} options={data.near_miss_between_dart_vehicles ? DART_VEHICLE_TYPES : NON_DART_VEHICLE_TYPES} placeholder="Select vehicle type" />
-                </InlineField>
-                <InlineField label="Other vehicle #2 action" required error={showErrors && !data.near_miss_other_vehicle_action}>
-                  <CustomSelect value={data.near_miss_other_vehicle_action || ''} onChange={value => onUpdate({ near_miss_other_vehicle_action: value })} options={VEHICLE_ACTIONS} placeholder="Select action" />
-                </InlineField>
-              </>}
-              </div>
-            </div>
-        </Section>}
+          {isAuto && <Section title="Other vehicles" help="Add each vehicle involved besides the DART vehicle. Each vehicle can be expanded to capture its near miss details.">
+            <OtherVehiclesEditor variant="nearMiss" vehicles={otherVehicles} onChange={updateOtherVehicles} showErrors={showErrors} injuryDetailsRequired={false} />
+          </Section>}
           {!isPedestrian && !isAuto && <Section title="No additional close-call details" help="Fixed Object and Non-Fixed Object near misses do not require pedestrian or other-vehicle details." />}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-y-3 border-t border-slate-200 pt-6"><button onClick={onBack} className="dart-action-link min-h-[44px] rounded-lg px-4">← Back</button><div className="flex items-center gap-4"><GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton><GlassButton variant="primary" onClick={onNext} disabled={!canProceed}>Next</GlassButton></div></div>

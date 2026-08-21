@@ -31,6 +31,7 @@ import { PMReviewActionBar } from '../PMReviewActionBar';
 import { ActionSelectionScreen } from '../actions/ActionSelectionScreen';
 import { buildSpmActions, buildFsActions, buildOperatorActions } from '../actions/actionConfigs';
 import { operatorPassengerEventComplete } from './sections/OperatorPassengerEventSection';
+import { getNearMissOtherVehicles } from './sections/NearMissSection';
 
 interface Step4Props {
   data: AccidentReportData;
@@ -1355,7 +1356,10 @@ export function Step4ReviewSubmit({
       const pedestrians = data.near_miss_pedestrians || [];
       if (!data.near_miss_pedestrian_count || pedestrians.length !== data.near_miss_pedestrian_count || pedestrians.some((pedestrian) => !pedestrian.pedestrian_type || !pedestrian.pedestrian_action)) return false;
     }
-    if (data.near_miss_category === 'Auto – Near Miss' && (data.near_miss_between_dart_vehicles === undefined || !data.near_miss_other_vehicle_type || !data.near_miss_other_vehicle_action)) return false;
+    if (data.near_miss_category === 'Auto – Near Miss') {
+      const vehicles = getNearMissOtherVehicles(data);
+      if (vehicles.length === 0 || vehicles.some(vehicle => vehicle.dart_dart === undefined || !vehicle.vehicle_type || !vehicle.action)) return false;
+    }
     return true;
   })();
   const trailSwitchCanSubmit = (() => {
@@ -2184,11 +2188,9 @@ export function Step4ReviewSubmit({
             {data.event_type === 'Near Miss' ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
               {[
-                ...(data.near_miss_category === 'Auto – Near Miss' ? [
-                  { label: 'Between two DART vehicles', value: formatReviewValue(data.near_miss_between_dart_vehicles) },
-                  { label: 'Other vehicle #2 type', value: data.near_miss_other_vehicle_type || '—' },
-                  { label: 'Other vehicle #2 action', value: data.near_miss_other_vehicle_action || '—' },
-                ] : []),
+                ...(data.near_miss_category === 'Auto – Near Miss' ? getNearMissOtherVehicles(data).flatMap((vehicle, index) => [
+                  { label: `Other vehicle #${index + 2}`, value: [vehicle.dart_dart === undefined ? 'DART status not set' : vehicle.dart_dart ? 'DART vehicle' : 'Non-DART vehicle', vehicle.vehicle_type || 'Type not set', vehicle.action || 'Action not set'].join(' · ') },
+                ]) : []),
                 ...(data.near_miss_category === 'Pedestrian – Near Miss' ? [
                   { label: 'Pedestrians in close calls', value: formatReviewValue(data.near_miss_pedestrian_count) },
                 ] : []),
