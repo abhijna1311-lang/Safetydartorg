@@ -93,7 +93,7 @@ export function OperatorNonRailVehicleFields({
           </motion.div>
         )}
       </AnimatePresence>
-      <div style={{ marginTop: selected ? 26 : undefined }} className={hasStatusFields ? 'grid grid-cols-1 gap-[18px] md:grid-cols-3' : 'max-w-xl'}>
+      <div style={{ marginTop: selected ? 26 : undefined }} className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
         <Field label={label} required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !value}>
           <SearchableCombobox options={options} value={value || ''} onChange={handleChange} placeholder={placeholder} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
         </Field>
