@@ -30,9 +30,6 @@ const DISPLAY_OPTIONS = [
   { value: 'no', label: 'No' },
   { value: 'not_observed', label: 'Not observed' },
 ];
-// Line Description only appears when status-before is one of these.
-const SHOWS_LINE = ['In Service', 'Pull in', 'Pull out'];
-
 const fade = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },

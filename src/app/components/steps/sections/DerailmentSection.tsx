@@ -4,7 +4,7 @@ import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleFields } from './ModeVehicleSection';
-import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
+import { RAIL_LINE_STATUSES, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { HI_RAIL_FLEET } from './operatorVehicleFleets';
 import type { AccidentReportData } from '../../../types/accident-report';
 
@@ -27,7 +27,6 @@ const MAINLINE_LOCATIONS = toOptions([
   'Right-of-Way: Trackway',
 ]);
 const YARD_LOCATIONS = toOptions(['Non-Revenue Facility']);
-const SHOWS_LINE = ['In Service', 'Pull in', 'Pull out'];
 const RAIL_LINES = toOptions(['Blue', 'Green', 'Orange', 'Red']);
 const TRAIN_ACTIONS = toOptions([
   'Going Straight',
@@ -94,7 +93,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
   const locationOptions = data.derailment_type === 'Yard' ? YARD_LOCATIONS : MAINLINE_LOCATIONS;
   const showStation = data.location_category === 'Revenue Facility: Transit Station';
   const showGradeCrossing = data.location_category === 'Right-of-Way: Grade Crossing';
-  const showLine = isLRV && SHOWS_LINE.includes(data.train_status_before || '');
+  const showLine = isLRV && RAIL_LINE_STATUSES.has(data.train_status_before || '');
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}

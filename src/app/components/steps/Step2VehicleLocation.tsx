@@ -14,6 +14,7 @@ import { NearMissSection } from './sections/NearMissSection';
 import { TrailSwitchSection } from './sections/TrailSwitchSection';
 import { OperatorPassengerEventSection, operatorPassengerEventComplete } from './sections/OperatorPassengerEventSection';
 import { OperatorReportDrawer } from './sections/OperatorReportDrawer';
+import { RAIL_LINE_STATUSES } from './sections/RailVehicleFields';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
 import { TimePickerInput } from '../TimePickerInput';
@@ -122,9 +123,8 @@ export function Step2VehicleLocation({
   const railVehicleNumber = data.mode === 'Hi-Rail' ? data.vehicle_number : data.train_number;
   const railStatusBefore = data.mode === 'Hi-Rail' ? data.vehicle_status_before : data.train_status_before;
   const railStatusAfter = data.mode === 'Hi-Rail' ? data.vehicle_status_after : data.train_status_after;
-  const activeLrvStatus = new Set(['In Service', 'Pull in', 'Pull out']);
   const lrvDetailsComplete = data.mode !== 'Light Rail Vehicle'
-    || (!!data.block_number && (!activeLrvStatus.has(data.train_status_before || '') || !!data.rail_line));
+    || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
   const requiredWeatherComplete = !!(
     data.weather && data.road_conditions && data.lighting_conditions
     && data.traffic_conditions && data.traffic_controls && data.roadway_configuration
@@ -287,7 +287,7 @@ export function Step2VehicleLocation({
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
-    if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!activeLrvStatus.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
+    if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
     if (data.mode === 'Streetcar') return !!data.near_miss_rail_line && !!data.near_miss_run;
     return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
   })();
@@ -296,7 +296,7 @@ export function Step2VehicleLocation({
     const hasVehicle = isHiRail ? !!data.vehicle_number : !!data.train_number;
     const consistComplete = data.mode !== 'Light Rail Vehicle' || lrvConsistComplete;
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lineComplete = !isLRV || (lrvDetailsComplete && (!['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description));
+    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.trail_line_description));
     return !!(
       hasVehicle
       && consistComplete

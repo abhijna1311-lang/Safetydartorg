@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
 import { DatePickerInput } from '../../DatePickerInput';
 import { TimePickerInput } from '../../TimePickerInput';
+import { RAIL_LINE_STATUSES } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -11,7 +12,6 @@ interface Props {
 
 // ── option lists ──────────────────────────────────────────────────────────────
 const TRAIN_STATUS = ['In Service', 'Deadhead', 'Pull in', 'Pull out', 'In Yard', 'Not In Service'].map(v => ({ value: v, label: v }));
-const SHOWS_RAIL_LINE = ['In Service', 'Pull in', 'Pull out'];
 
 const LOCATION_CATEGORY = ['Rail Station', 'Right-of-way', 'Grade Crossing', 'Non-Revenue facility/Yard', 'Tunnel', 'Bridge'].map(v => ({ value: v, label: v }));
 const TUNNEL_LOCATIONS = Array.from({ length: 21 }, (_, i) => ({ value: `Cross Passage ${i + 1}`, label: `Cross Passage ${i + 1}` }));
@@ -64,7 +64,7 @@ function locationShowsGrade(cat: string) { return ['Grade Crossing', 'Bridge'].i
 function locationShowsTunnel(cat: string) { return cat === 'Tunnel'; }
 
 export function LRVVehicleLocationSection({ data, onUpdate }: Props) {
-  const showRailLine = SHOWS_RAIL_LINE.includes(data.train_status_before || '');
+  const showRailLine = RAIL_LINE_STATUSES.has(data.train_status_before || '');
   const consist = data.lrv_consist_count ?? 0;
 
   return (

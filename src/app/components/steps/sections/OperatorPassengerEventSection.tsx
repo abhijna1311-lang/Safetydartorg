@@ -6,7 +6,7 @@ import { FormField as Field } from '../../form/FormField';
 import { ModeVehicleFields } from './ModeVehicleSection';
 import { WeatherSection } from './WeatherSection';
 import { BUS_STATUS_OPTIONS } from './BusCollisionSection';
-import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
+import { RAIL_LINE_STATUSES, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -47,7 +47,6 @@ const VEHICLES_ON = ['Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehi
 const VEHICLE_LOCATIONS = ['Boarding with stairs', 'Alighting with stairs', 'Boarding with a lift or ramp', 'Alighting with a lift or ramp', 'On board'].map(value => ({ value, label: value }));
 const BODY_PARTS = ['Head injury', 'Upper body injury (Chest to waist)', 'Lower body', 'No Injury'].map(value => ({ value, label: value }));
 const ACTIVE_BUS_STATUSES = new Set(BUS_STATUS_OPTIONS.filter(option => ['In Service', 'Pull In', 'Pull Out', 'Service Protection'].includes(option.value)).map(option => option.value));
-const ACTIVE_TRAIN_STATUSES = new Set(['In Service', 'Pull in', 'Pull out']);
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
   return (
@@ -71,7 +70,7 @@ function BoolRow({ label, required, error, children }: { label: string; required
 }
 
 function activeStatus(mode: string | undefined, status: string | undefined) {
-  return mode === 'Bus' ? ACTIVE_BUS_STATUSES.has(status || '') : ACTIVE_TRAIN_STATUSES.has(status || '');
+  return mode === 'Bus' ? ACTIVE_BUS_STATUSES.has(status || '') : RAIL_LINE_STATUSES.has(status || '');
 }
 
 export function operatorPassengerEventComplete(data: AccidentReportData) {
@@ -81,7 +80,7 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
   const isRail = data.mode === 'Light Rail Vehicle' || data.mode === 'Streetcar';
   const isNonRail = data.mode === 'Hi-Rail' || data.mode === 'Non-Revenue Vehicle';
   const statusBefore = isBus ? data.bus_status_before : data.train_status_before;
-  const lrvLineRequired = data.mode === 'Light Rail Vehicle' && ['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '');
+  const lrvLineRequired = data.mode === 'Light Rail Vehicle' && RAIL_LINE_STATUSES.has(data.train_status_before || '');
   const vehicleComplete = !isOperating || (
     isBus
       ? !!data.vehicle_number && !!data.block_number && !!data.bus_status_before && !!data.bus_status_after

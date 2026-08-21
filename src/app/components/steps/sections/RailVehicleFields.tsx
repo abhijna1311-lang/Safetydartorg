@@ -15,6 +15,7 @@ const fade = {
 const toOptions = (values: string[]) => values.map(value => ({ value, label: value }));
 
 export const TRAIN_STATUS_OPTIONS = toOptions(['In Service', 'Deadhead', 'Pull in', 'Pull out', 'In Yard', 'Not In Service']);
+export const RAIL_LINE_STATUSES = new Set(['In Service', 'Pull in', 'Pull out']);
 const RAIL_LINE_OPTIONS = toOptions(['Blue', 'Green', 'Orange', 'Red']);
 const LRV_BLOCK_OPTIONS = toOptions(['BLK-101', 'BLK-102', 'BLK-103', 'BLK-104', 'BLK-105']);
 
@@ -118,7 +119,7 @@ export function RailVehicleFields({
   statusAfterOptions = TRAIN_STATUS_OPTIONS,
   statusBeforeDisabled = false,
   statusBeforePlaceholder = 'Select status',
-  showRailLine = ['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || ''),
+  showRailLine = RAIL_LINE_STATUSES.has(data.train_status_before || ''),
   showStatusFields = true,
   showVehicleDetails = true,
   showConsist = true,
@@ -139,7 +140,7 @@ export function RailVehicleFields({
   const requiredLrvRailLine = requiredLrvBlock && shouldShowRailLine;
   const updateStatus = (field: StatusField, value: string) => onUpdate({
     [field]: value,
-    ...(isLRV && field === statusBeforeField && !['In Service', 'Pull in', 'Pull out'].includes(value) ? { rail_line: undefined } : {}),
+    ...(isLRV && field === statusBeforeField && !RAIL_LINE_STATUSES.has(value) ? { rail_line: undefined } : {}),
   } as Partial<AccidentReportData>);
 
   const handleTrainChange = (value: string) => {

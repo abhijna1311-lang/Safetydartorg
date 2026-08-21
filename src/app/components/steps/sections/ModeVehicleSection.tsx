@@ -1,11 +1,9 @@
 import { BusVehicleFields, BUS_STATUS_OPTIONS } from './BusCollisionSection';
 import { OperatorNonRailVehicleFields, type FleetVehicle, type StatusFieldConfig, type VehicleNumberField } from './OperatorNonRailVehicleFields';
-import { RailVehicleFields, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
+import { RailVehicleFields, RAIL_LINE_STATUSES, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { getVehicleStatusOptions } from './assault/assaultFlow';
 import { HI_RAIL_FLEET, NRV_FLEET } from './operatorVehicleFleets';
 import type { AccidentReportData } from '../../../types/accident-report';
-
-const ACTIVE_LRV_STATUSES = new Set(['In Service', 'Pull in', 'Pull out']);
 
 type VehicleStatusField = 'bus_status_before' | 'bus_status_after' | 'train_status_before' | 'train_status_after' | 'vehicle_status_before' | 'vehicle_status_after';
 
@@ -80,7 +78,7 @@ export function ModeVehicleSection({
       ? `Enter the ${isStreetcar ? 'streetcar' : 'LRV'} number. Its assigned fleet and schedule are pulled in automatically.`
       : 'Enter the vehicle number. Its assigned fleet and pull-out details are pulled in automatically.';
   const railLine = (showRailLine ?? (isLRV && !isStreetcar))
-    && (!isLRV || ACTIVE_LRV_STATUSES.has(data.train_status_before || ''));
+    && (!isLRV || RAIL_LINE_STATUSES.has(data.train_status_before || ''));
 
   if (!isBus && !isRail && !isHiRail && !isNRV) return null;
 
@@ -140,7 +138,7 @@ export function ModeVehicleFields({
   const beforeField = statusBeforeField || (isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before');
   const afterField = statusAfterField || (isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after');
   const railLine = (showRailLine ?? (isLRV && !isStreetcar))
-    && (!isLRV || ACTIVE_LRV_STATUSES.has(data.train_status_before || ''));
+    && (!isLRV || RAIL_LINE_STATUSES.has(data.train_status_before || ''));
 
   if (isBus) {
     return (

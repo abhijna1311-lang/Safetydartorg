@@ -6,6 +6,7 @@ import { FormField as Field } from '../../form/FormField';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleFields } from './ModeVehicleSection';
+import { RAIL_LINE_STATUSES } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 interface Props {
@@ -21,7 +22,6 @@ const toOptions = (values: string[]) => [...values]
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
   .map(v => ({ value: v, label: v }));
 
-const SHOWS_RAIL_LINE = ['In Service', 'Pull in', 'Pull out'];
 const CONSIST_COUNT_OPTIONS = [1, 2, 3, 4].map(n => ({ value: String(n), label: String(n) }));
 const CONSIST_KEYS = ['lrv_consist_1', 'lrv_consist_2', 'lrv_consist_3', 'lrv_consist_4'] as const;
 
@@ -181,7 +181,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
   const isHiRail = data.mode === 'Hi-Rail';
   const locationOptions = isStreetcar ? STREETCAR_LOCATION_CATEGORY : LRV_LOCATION_CATEGORY;
   const stationOptions = isStreetcar ? STREETCAR_STATION_OPTIONS : LRV_STATION_OPTIONS;
-  const showRailLine = !isHiRail && SHOWS_RAIL_LINE.includes(data.train_status_before || '');
+  const showRailLine = !isHiRail && RAIL_LINE_STATUSES.has(data.train_status_before || '');
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">

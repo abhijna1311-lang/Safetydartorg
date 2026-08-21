@@ -22,6 +22,7 @@ import { OtherVehiclesEditor } from '../OtherVehiclesEditor';
 import { VehicleImpactDiagram } from '../VehicleImpactDiagram';
 import { PeopleImpactSummaryCard } from './sections/PeopleImpactSummaryCard';
 import { LrvConsistFields } from './sections/LrvConsistFields';
+import { RAIL_LINE_STATUSES } from './sections/RailVehicleFields';
 import type { AccidentReportData, PMClassification, Person, PMInjuryBodyPart, PMInjuryRecord, PMInjurySeverity, PMPersonRecord, SupervisorDemographicRecord, SupervisorOtherVehicleRecord } from '../../types/accident-report';
 import { useUserRole, type UserRole } from '../../context/UserRoleContext';
 import { EMPLOYEE_DB } from '../../data/employeeDatabase';
@@ -1348,7 +1349,7 @@ export function Step4ReviewSubmit({
         || !(data.mode === 'Bus' ? data.bus_status_after : data.train_status_after))) return false;
     if (!observed) {
       if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
-      const activeLrvStatus = ['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '');
+      const activeLrvStatus = RAIL_LINE_STATUSES.has(data.train_status_before || '');
       if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
       if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
         if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus && !data.near_miss_rail_line))) return false;
@@ -1380,8 +1381,8 @@ export function Step4ReviewSubmit({
         .every(Boolean)
     );
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lrvDetailsComplete = !isLRV || (!!data.block_number && (!['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.rail_line));
-    const lineComplete = !isLRV || (lrvDetailsComplete && (!['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || '') || !!data.trail_line_description));
+    const lrvDetailsComplete = !isLRV || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
+    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.trail_line_description));
     const trailPeople = data.people ?? [];
     const trailPeopleComplete = data.people_involved !== undefined
       && (data.people_involved === false || (trailPeople.length > 0 && trailPeople.every(person => (
