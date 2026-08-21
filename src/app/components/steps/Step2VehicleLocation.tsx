@@ -262,6 +262,7 @@ export function Step2VehicleLocation({
   const nearMissComplete = (() => {
     if (!isNearMiss) return true;
     const experienced = data.near_miss_reason === 'Near-Miss Experienced';
+    const nearMissVehicleDetailsRequired = data.near_miss_revenue_service === false;
     const base = !!(
       data.near_miss_description?.trim()
       && data.incident_date
@@ -281,14 +282,16 @@ export function Step2VehicleLocation({
       && data.near_miss_traffic_controls
       && data.near_miss_roadway_configuration
     );
-    if (data.mode === 'Light Rail Vehicle' && (!data.train_status_before || !data.train_status_after)) return false;
+    if (nearMissVehicleDetailsRequired && ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')
+      && (!(data.mode === 'Bus' ? data.bus_status_before : data.train_status_before)
+        || !(data.mode === 'Bus' ? data.bus_status_after : data.train_status_after))) return false;
+    if (['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '') && data.near_miss_revenue_service === undefined) return false;
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
-    if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus.has(data.train_status_before || '') && !data.near_miss_rail_line))) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
     if (data.near_miss_revenue_service === undefined) return false;
-    if (!data.near_miss_revenue_service) return true;
-    if (data.mode === 'Light Rail Vehicle') return (!activeLrvStatus.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
+    if (data.near_miss_revenue_service) return true;
+    if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!activeLrvStatus.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
     if (data.mode === 'Streetcar') return !!data.near_miss_rail_line && !!data.near_miss_run;
     return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
   })();

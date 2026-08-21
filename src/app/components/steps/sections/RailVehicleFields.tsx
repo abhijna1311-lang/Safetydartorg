@@ -103,6 +103,7 @@ interface RailVehicleFieldsProps {
   statusBeforePlaceholder?: string;
   showRailLine?: boolean;
   showStatusFields?: boolean;
+  showVehicleDetails?: boolean;
   showConsist?: boolean;
   requiredVehicleNumber?: boolean;
 }
@@ -119,12 +120,13 @@ export function RailVehicleFields({
   statusBeforePlaceholder = 'Select status',
   showRailLine = ['In Service', 'Pull in', 'Pull out'].includes(data.train_status_before || ''),
   showStatusFields = true,
+  showVehicleDetails = true,
   showConsist = true,
   requiredVehicleNumber = true,
 }: RailVehicleFieldsProps) {
   const isStreetcar = data.mode === 'Streetcar';
   const isLRV = data.mode === 'Light Rail Vehicle';
-  const shouldShowRailLine = isLRV && showRailLine;
+  const shouldShowRailLine = isLRV && showVehicleDetails && showRailLine;
   const activeFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
   const trainOptions: ComboboxOption[] = [...activeFleet]
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
@@ -133,7 +135,7 @@ export function RailVehicleFields({
   const hasTrainRecord = !!selectedTrain;
   const statusBefore = data[statusBeforeField] as string | undefined;
   const statusAfter = data[statusAfterField] as string | undefined;
-  const requiredLrvBlock = isLRV && requiredVehicleNumber;
+  const requiredLrvBlock = isLRV && showVehicleDetails && requiredVehicleNumber;
   const requiredLrvRailLine = requiredLrvBlock && shouldShowRailLine;
   const updateStatus = (field: StatusField, value: string) => onUpdate({
     [field]: value,
@@ -163,14 +165,14 @@ export function RailVehicleFields({
   return (
     <>
       <AnimatePresence>
-        {hasTrainRecord && (
+        {showVehicleDetails && hasTrainRecord && (
           <motion.div {...fade} key="train-record">
             <TrainRecordCard data={data} showRailLine={showRailLine && !isStreetcar} showConsist={!isStreetcar} showCarNumber={false} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div style={{ marginTop: hasTrainRecord ? 26 : undefined }} className={isLRV ? `grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${shouldShowRailLine ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
+      <div style={{ marginTop: showVehicleDetails && hasTrainRecord ? 26 : undefined }} className={isLRV ? `grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${shouldShowRailLine ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
         {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status Before Event' : 'Train status before event'} required>
           <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={statusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
         </Field>}
@@ -187,7 +189,7 @@ export function RailVehicleFields({
             emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
           />
         </Field>
-        {isLRV && <Field label="Block ID" required={requiredLrvBlock} error={showErrors && requiredLrvBlock && !data.block_number}>
+        {isLRV && showVehicleDetails && <Field label="Block ID" required={requiredLrvBlock} error={showErrors && requiredLrvBlock && !data.block_number}>
           <CustomSelect value={data.block_number || ''} onChange={value => onUpdate({ block_number: value })} options={LRV_BLOCK_OPTIONS} placeholder="Select block" />
         </Field>}
         {shouldShowRailLine && <Field label="Rail Line" required={requiredLrvRailLine} error={showErrors && requiredLrvRailLine && !data.rail_line}>

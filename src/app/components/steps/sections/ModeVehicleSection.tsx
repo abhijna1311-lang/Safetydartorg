@@ -21,6 +21,7 @@ type Props = {
   statusBeforePlaceholder?: string;
   showRailLine?: boolean;
   showStatusFields?: boolean;
+  showVehicleDetails?: boolean;
   showLrvConsist?: boolean;
   requiredVehicleNumber?: boolean;
   help?: string;
@@ -52,6 +53,7 @@ export function ModeVehicleSection({
   statusBeforePlaceholder,
   showRailLine,
   showStatusFields = true,
+  showVehicleDetails = true,
   showLrvConsist = true,
   requiredVehicleNumber = true,
   help,
@@ -96,6 +98,7 @@ export function ModeVehicleSection({
         statusBeforePlaceholder={statusBeforePlaceholder}
         showRailLine={railLine}
         showStatusFields={shouldShowStatusFields}
+        showVehicleDetails={showVehicleDetails}
         showLrvConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
         vehicleNumberField={vehicleNumberField}
@@ -117,6 +120,7 @@ export function ModeVehicleFields({
   statusBeforePlaceholder,
   showRailLine,
   showStatusFields = true,
+  showVehicleDetails = true,
   showLrvConsist = true,
   requiredVehicleNumber = true,
   vehicleNumberField,
@@ -148,6 +152,7 @@ export function ModeVehicleFields({
         statusAfterField={afterField as 'bus_status_after' | 'vehicle_status_after'}
         statusOptions={beforeOptions}
         showStatusFields={shouldShowStatusFields}
+        showVehicleDetails={showVehicleDetails}
         requiredVehicleNumber={requiredVehicleNumber}
       />
     );
@@ -167,6 +172,7 @@ export function ModeVehicleFields({
         statusBeforePlaceholder={statusBeforePlaceholder}
         showRailLine={railLine}
         showStatusFields={shouldShowStatusFields}
+        showVehicleDetails={showVehicleDetails}
         showConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
       />

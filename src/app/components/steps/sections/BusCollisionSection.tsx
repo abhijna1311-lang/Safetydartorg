@@ -217,6 +217,7 @@ export function BusVehicleFields({
   statusAfterField = 'bus_status_after',
   statusOptions = BUS_STATUS_OPTIONS,
   showStatusFields = true,
+  showVehicleDetails = true,
   requiredVehicleNumber = true,
 }: {
   data: AccidentReportData;
@@ -226,6 +227,7 @@ export function BusVehicleFields({
   statusAfterField?: BusStatusField;
   statusOptions?: { value: string; label: string }[];
   showStatusFields?: boolean;
+  showVehicleDetails?: boolean;
   requiredVehicleNumber?: boolean;
 }) {
   const vehicleOptions: ComboboxOption[] = FLEET.map(bus => ({ value: bus.id, label: bus.id, description: bus.type }));
@@ -264,13 +266,13 @@ export function BusVehicleFields({
   return (
     <>
       <AnimatePresence>
-        {hasVehicleRecord && (
+        {showVehicleDetails && hasVehicleRecord && (
           <motion.div {...fade} key="bus-record">
             <VehicleRecordCard data={data} />
           </motion.div>
         )}
       </AnimatePresence>
-      <div style={{ marginTop: hasVehicleRecord ? 26 : undefined }} className={showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3'}>
+      <div style={{ marginTop: showVehicleDetails && hasVehicleRecord ? 26 : undefined }} className={showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5' : showVehicleDetails ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3' : 'grid grid-cols-1 gap-[18px]'}>
         {showStatusFields && <Field label="Status before event" required error={showErrors && !data[statusBeforeField]}>
           <CustomSelect value={(data[statusBeforeField] as string) || ''} onChange={value => onUpdate({ [statusBeforeField]: value } as Partial<AccidentReportData>)} options={statusOptions} placeholder="Select status" />
         </Field>}
@@ -280,12 +282,14 @@ export function BusVehicleFields({
         <Field label="Bus vehicle number" required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !data.vehicle_number}>
           <SearchableCombobox options={vehicleOptions} value={data.vehicle_number || ''} onChange={handleVehicleChange} placeholder="Search vehicle #" searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
         </Field>
-        <Field label="Block ID" required error={showErrors && !data.block_number}>
-          <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
-        </Field>
-        <Field label="Route">
-          <input type="text" readOnly value={data.route_number || ''} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500" />
-        </Field>
+        {showVehicleDetails && <>
+          <Field label="Block ID" required error={showErrors && !data.block_number}>
+            <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
+          </Field>
+          <Field label="Route">
+            <input type="text" readOnly value={data.route_number || ''} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500" />
+          </Field>
+        </>}
       </div>
     </>
   );

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { CustomSelect } from '../../CustomSelect';
-import { YesNoToggle } from '../../form/YesNoToggle';
 import { StepContainer } from '../../StepContainer';
 import { GlassButton } from '../../GlassButton';
 import { PersonListEditor } from '../../PersonListEditor';
@@ -96,12 +95,15 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
     lrv_consist_3: data.near_miss_consist_3,
     lrv_consist_4: data.near_miss_consist_4,
   };
+  const showVehicleDetails = data.near_miss_revenue_service === false;
   const updateVehicle = (patch: Partial<AccidentReportData>) => {
     const nearMissPatch: Partial<AccidentReportData> = {};
     if ('vehicle_number' in patch || 'train_number' in patch) nearMissPatch.near_miss_vehicle_number = patch.vehicle_number ?? patch.train_number;
     if ('fleet_type' in patch || 'lrv_fleet_type' in patch) nearMissPatch.near_miss_fleet_type = patch.fleet_type ?? patch.lrv_fleet_type;
     if ('train_status_before' in patch) nearMissPatch.train_status_before = patch.train_status_before;
     if ('train_status_after' in patch) nearMissPatch.train_status_after = patch.train_status_after;
+    if ('bus_status_before' in patch) nearMissPatch.bus_status_before = patch.bus_status_before;
+    if ('bus_status_after' in patch) nearMissPatch.bus_status_after = patch.bus_status_after;
     if ('rail_line' in patch) nearMissPatch.near_miss_rail_line = patch.rail_line;
     if ('route_number' in patch) nearMissPatch.near_miss_route = patch.route_number;
     if ('trip_id' in patch) nearMissPatch.near_miss_run = patch.trip_id;
@@ -122,7 +124,9 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
       data={vehicleData}
       onUpdate={updateVehicle}
       showErrors={showErrors}
-      showStatusFields={data.mode === 'Light Rail Vehicle'}
+      showRailLine={showVehicleDetails}
+      showStatusFields={showVehicleDetails}
+      showVehicleDetails={showVehicleDetails}
       showLrvConsist={true}
       requiredVehicleNumber={!isObserved}
       help={`Select the ${data.mode || 'DART'} vehicle involved in the Near Miss. Assigned vehicle details are pulled in automatically.`}
@@ -134,13 +138,11 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
   const mode = data.mode || 'Bus';
   const isObserved = data.near_miss_reason === 'Near-Miss Observed';
   const isRail = mode === 'Light Rail Vehicle' || mode === 'Streetcar' || mode === 'Hi-Rail';
-  const hasRevenueService = mode === 'Bus' || mode === 'Light Rail Vehicle' || mode === 'Streetcar';
   const locationOptions = isRail ? RAIL_LOCATION_CATEGORIES : BUS_LOCATION_CATEGORIES;
   const resetReasonDependentFields = (reason: string) => onUpdate({
     near_miss_reason: reason as AccidentReportData['near_miss_reason'],
     near_miss_employee_involved: undefined,
     near_miss_speed: undefined,
-    near_miss_revenue_service: undefined,
     near_miss_route: undefined,
     near_miss_run: undefined,
     near_miss_block: undefined,
@@ -177,10 +179,7 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
             <InlineField label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
               <input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" />
             </InlineField>
-            {hasRevenueService && <InlineField label="Was DART vehicle in revenue service at the time of the Near Miss" required error={showErrors && data.near_miss_revenue_service === undefined}>
-              <YesNoToggle value={data.near_miss_revenue_service} onChange={value => onUpdate({ near_miss_revenue_service: value, near_miss_run: value ? data.near_miss_run : undefined })} />
-            </InlineField>}
-            {data.near_miss_revenue_service === true && (mode === 'Light Rail Vehicle' || mode === 'Streetcar') && <InlineField label="Run" required error={showErrors && !data.near_miss_run}>
+            {data.near_miss_revenue_service === false && (mode === 'Light Rail Vehicle' || mode === 'Streetcar') && <InlineField label="Run" required error={showErrors && !data.near_miss_run}>
               <input className="dart-input-base" value={data.near_miss_run || ''} onChange={event => onUpdate({ near_miss_run: event.target.value })} placeholder="Enter run" />
             </InlineField>}
           </>}
