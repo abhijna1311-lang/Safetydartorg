@@ -316,7 +316,9 @@ export function Step2VehicleLocation({
 
   // Minimum required to proceed
   const hasSchedule = !showSchedule || hasScheduleAnswers(data);
-  const canProceed = isInitiationStage
+  const nonRailPulloutComplete = (!isNRV && !isHiRail)
+    || (!!data.employee_pullout_date && !!data.employee_pullout_time);
+  const canProceedWithoutPullout = isInitiationStage
     ? !!(
         data.incident_date &&
         data.incident_time &&
@@ -352,8 +354,8 @@ export function Step2VehicleLocation({
                 ? nrvCollisionComplete
                 : isCollision && isLRV
                   ? railCollisionComplete
-                  : isBus || isNRV ? data.street_on : data.train_number)
-      );
+                  : isBus || isNRV ? data.street_on : data.train_number));
+  const canProceed = nonRailPulloutComplete && canProceedWithoutPullout;
 
   const handleNextClick = () => {
     if (canProceed) {

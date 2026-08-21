@@ -1318,6 +1318,8 @@ export function Step4ReviewSubmit({
   const isNearMiss = data.event_type === 'Near Miss';
   const isTrailSwitch = data.event_type === 'Trail a Switch';
   const isOperatorPassengerEvent = data.event_type === 'Operator/Passenger Events (non-collision)';
+  const nonRailPulloutComplete = !['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')
+    || (!!data.employee_pullout_date && !!data.employee_pullout_time);
   const nearMissCanSubmit = (() => {
     if (!isNearMiss) return true;
     const observed = data.near_miss_reason === 'Near-Miss Observed';
@@ -1443,6 +1445,7 @@ export function Step4ReviewSubmit({
     data.event_type &&
     data.employee_badge_number &&
     data.employee_name &&
+    nonRailPulloutComplete &&
     (isTrailSwitch
       ? trailSwitchCanSubmit
       : isNearMiss

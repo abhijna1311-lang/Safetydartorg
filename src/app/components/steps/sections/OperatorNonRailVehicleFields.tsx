@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobox';
 import { CustomSelect } from '../../CustomSelect';
 import { FormField as Field } from '../../form/FormField';
+import { DatePickerInput } from '../../DatePickerInput';
+import { TimePickerInput } from '../../TimePickerInput';
 import type { AccidentReportData } from '../../../types/accident-report';
 
 export type FleetVehicle = {
@@ -27,20 +29,6 @@ const fade = {
   exit: { opacity: 0 },
   transition: { duration: 0.2 },
 };
-
-function fmtDate(value?: string) {
-  if (!value) return '\u2014';
-  const [year, month, day] = value.split('-');
-  return year && month && day ? `${month}/${day}/${year}` : value;
-}
-
-function fmtTime(value?: string) {
-  if (!value) return '\u2014';
-  const [hour, minute = '00'] = value.split(':');
-  const hour24 = Number(hour);
-  if (Number.isNaN(hour24)) return value;
-  return `${hour24 % 12 || 12}:${minute.padStart(2, '0')} ${hour24 >= 12 ? 'PM' : 'AM'}`;
-}
 
 export function OperatorNonRailVehicleFields({
   data,
@@ -83,10 +71,10 @@ export function OperatorNonRailVehicleFields({
       [numberField]: nextValue,
       fleet_type: vehicle?.type,
       lrv_fleet_type: vehicle?.fleetType,
-      employee_pullout_date: vehicle?.pulloutDate,
-      employee_pullout_time: vehicle?.pulloutTime,
-      train_pullout_date: vehicle?.pulloutDate,
-      train_pullout_time: vehicle?.pulloutTime,
+      employee_pullout_date: undefined,
+      employee_pullout_time: undefined,
+      train_pullout_date: undefined,
+      train_pullout_time: undefined,
       ...(numberField === 'train_number' ? { car_number: undefined } : {}),
     } as Partial<AccidentReportData>);
   };
@@ -101,14 +89,6 @@ export function OperatorNonRailVehicleFields({
                 <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">{icon}</span></span>
                 <div className="dart-vehicle-text"><span className="dart-vehicle-label">{typeLabel}</span><span className="dart-vehicle-value">{selected.type || selected.fleetType || '\u2014'}</span></div>
               </div>
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">calendar_month</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Pull-out date</span><span className="dart-vehicle-value dart-tabular">{fmtDate(selected.pulloutDate)}</span></div>
-              </div>
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">schedule</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Pull-out time</span><span className="dart-vehicle-value dart-tabular">{fmtTime(selected.pulloutTime)}</span></div>
-              </div>
             </div>
           </motion.div>
         )}
@@ -116,6 +96,12 @@ export function OperatorNonRailVehicleFields({
       <div style={{ marginTop: selected ? 26 : undefined }} className={hasStatusFields ? 'grid grid-cols-1 gap-[18px] md:grid-cols-3' : 'max-w-xl'}>
         <Field label={label} required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !value}>
           <SearchableCombobox options={options} value={value || ''} onChange={handleChange} placeholder={placeholder} searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
+        </Field>
+        <Field label="Pull-out date" required error={showErrors && !data.employee_pullout_date}>
+          <DatePickerInput value={data.employee_pullout_date || ''} onChange={value => onUpdate({ employee_pullout_date: value, train_pullout_date: value })} />
+        </Field>
+        <Field label="Pull-out time" required error={showErrors && !data.employee_pullout_time}>
+          <TimePickerInput value={data.employee_pullout_time || ''} onChange={value => onUpdate({ employee_pullout_time: value, train_pullout_time: value })} />
         </Field>
         {statusFields.map(status => (
           <Field key={status.label} label={status.label} required error={status.error}>
