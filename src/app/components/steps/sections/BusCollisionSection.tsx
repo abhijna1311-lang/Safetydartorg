@@ -34,7 +34,7 @@ const EVENT_TYPE_WITH = [
   'Collision – with Animal',
 ].map(v => ({ value: v, label: v }));
 
-const BUS_ACTIONS = [
+export const DART_VEHICLE_ACTIONS = [
   'Changing Lanes', 'Completion of Left Turn', 'Completion of Right Turn',
   'Leaving Bus Stop', 'Leaving Terminus', 'Merging Left', 'Merging Right',
   'Moving Forward', 'Moving from Curb', 'Moving in Front of Bus',
@@ -296,7 +296,7 @@ export function BusVehicleFields({
             <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
           </Field>
           {showRoute && <Field label="Route">
-            <input type="text" readOnly value={data.route_number || ''} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base bg-white/70 cursor-not-allowed text-slate-500" />
+            <input type="text" value={data.route_number || ''} onChange={e => onUpdate({ route_number: e.target.value })} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base" />
           </Field>}
         </>}
       </div>
@@ -343,8 +343,8 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
     <div className="dart-card dart-card--surface overflow-hidden">
       {headerSection}
 
-      {/* 1 — The vehicle: bus number + Block ID drive the read-only detail card; route is derived. */}
-      <Section title="The Vehicle" help="Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically.">
+      {/* 1 — The vehicle: bus number + Block ID drive the detail card; route can be adjusted when needed. */}
+      <Section title="The Vehicle" help="Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically. Adjust the route if needed.">
         <BusVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
       </Section>
 
@@ -356,7 +356,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
               <CustomSelect value={data.collision_type || ''} onChange={v => onUpdate({ collision_type: v })} options={EVENT_TYPE_WITH} placeholder="Select collision type" />
             </Field>
             <Field label="Bus action at time of event" required>
-              <CustomSelect value={data.bus_action || ''} onChange={v => onUpdate({ bus_action: v })} options={BUS_ACTIONS} placeholder="Select action" />
+              <CustomSelect value={data.bus_action || ''} onChange={v => onUpdate({ bus_action: v })} options={DART_VEHICLE_ACTIONS} placeholder="Select action" />
             </Field>
             <Field label="Bus speed at time of event (mph)" required>
               <input type="number" min={0} max={90} value={data.bus_speed || ''} onChange={e => onUpdate({ bus_speed: e.target.value })} placeholder="Enter speed" className={inputCls} />

@@ -345,6 +345,51 @@ html {
   text-overflow: ellipsis;
 }
 
+@media (max-width: 768px) {
+  .dart-vehicle-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dart-vehicle-item {
+    min-width: 0;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .dart-vehicle-item:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .dart-vehicle-item:nth-child(n + 3) {
+    border-top: 1px solid #eef2f7;
+  }
+
+  .dart-vehicle-value {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 480px) {
+  .dart-vehicle-strip {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dart-vehicle-item,
+  .dart-vehicle-item:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .dart-vehicle-item + .dart-vehicle-item,
+  .dart-vehicle-item:nth-child(n + 3) {
+    border-top: 1px solid #eef2f7;
+  }
+}
+
 /* Required asterisk — accent, used sparingly. */
 .dart-req { color: var(--ctl-accent); font-weight: 700; }
 

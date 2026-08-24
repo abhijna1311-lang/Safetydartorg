@@ -270,14 +270,18 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
       </Section>
 
       <Section title="Where It Happened" help="Record the event location and any transit vehicle details.">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Where did the event take place" required error={showErrors && !data.operator_passenger_location}>
-            <CustomSelect value={data.operator_passenger_location || ''} onChange={value => onUpdate({ operator_passenger_location: value, operator_passenger_vehicle_location: undefined, operator_passenger_transit_vehicle_on: undefined, operator_passenger_transit_vehicle_number: undefined, operator_passenger_transit_route_or_line: undefined })} options={EVENT_LOCATIONS} placeholder="Select location" />
-          </Field>
-          {isInTransitVehicle && (
-            <Field label="Location of event in vehicle" required error={showErrors && !data.operator_passenger_vehicle_location}>
-              <CustomSelect value={data.operator_passenger_vehicle_location || ''} onChange={value => onUpdate({ operator_passenger_vehicle_location: value })} options={VEHICLE_LOCATIONS} placeholder="Select location" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className={isInTransitVehicle ? 'sm:col-span-2 md:col-span-2' : 'sm:col-span-2 md:col-span-4'}>
+            <Field label="Where did the event take place" required error={showErrors && !data.operator_passenger_location}>
+              <CustomSelect value={data.operator_passenger_location || ''} onChange={value => onUpdate({ operator_passenger_location: value, operator_passenger_vehicle_location: undefined, operator_passenger_transit_vehicle_on: undefined, operator_passenger_transit_vehicle_number: undefined, operator_passenger_transit_route_or_line: undefined })} options={EVENT_LOCATIONS} placeholder="Select location" />
             </Field>
+          </div>
+          {isInTransitVehicle && (
+            <div className="sm:col-span-2 md:col-span-2">
+              <Field label="Location of event in vehicle" required error={showErrors && !data.operator_passenger_vehicle_location}>
+                <CustomSelect value={data.operator_passenger_vehicle_location || ''} onChange={value => onUpdate({ operator_passenger_vehicle_location: value })} options={VEHICLE_LOCATIONS} placeholder="Select location" />
+              </Field>
+            </div>
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

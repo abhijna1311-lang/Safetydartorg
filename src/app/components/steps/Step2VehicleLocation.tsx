@@ -211,6 +211,10 @@ export function Step2VehicleLocation({
       if (isLRV && !lrvDetailsComplete) return false;
       if (data.mode === 'Hi-Rail' && !data.vehicle_number) return false;
       if (isNRV && !data.vehicle_number) return false;
+      if (['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
+        if (data.assault_in_operator_driving_area === undefined) return false;
+        if (data.assault_in_operator_driving_area === true && !data.operator_driving_area_security) return false;
+      }
       if (data.mode === 'Streetcar' && data.line_description !== 'Streetcar') return false;
       if (data.mode === 'Light Rail Vehicle' && !lrvConsistComplete) return false;
     }
@@ -273,6 +277,7 @@ export function Step2VehicleLocation({
       && data.near_miss_location_category
       && data.near_miss_reason
       && data.near_miss_category
+      && data.near_miss_vehicle_action
       && data.near_miss_fleet_type
       && data.near_miss_weather
       && data.near_miss_road_conditions
@@ -287,8 +292,8 @@ export function Step2VehicleLocation({
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
-    if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_rail_line) && !!data.near_miss_run;
-    if (data.mode === 'Streetcar') return !!data.near_miss_rail_line && !!data.near_miss_run;
+    if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_rail_line);
+    if (data.mode === 'Streetcar') return !!data.near_miss_rail_line;
     return (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '') || !!data.near_miss_route) && !!data.near_miss_run && !!data.near_miss_block;
   })();
   const trailSwitchComplete = (() => {

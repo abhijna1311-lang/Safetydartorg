@@ -1354,7 +1354,6 @@ export function Step4ReviewSubmit({
       if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
         if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus && !data.near_miss_rail_line))) return false;
         if (data.mode === 'Streetcar' && !data.near_miss_rail_line) return false;
-        if (!data.near_miss_run) return false;
       } else if ((BUS_ROUTE_STATUSES.has(data.bus_status_before || '') && !data.near_miss_route) || !data.near_miss_run || !data.near_miss_block) {
         return false;
       }
@@ -1886,6 +1885,7 @@ export function Step4ReviewSubmit({
               { label: 'Reason for reporting', value: data.near_miss_reason || '—' },
               ...(data.near_miss_employee_involved ? [{ label: 'Employee involved', value: data.near_miss_employee_involved }] : []),
               { label: 'Near Miss category', value: data.near_miss_category || '—' },
+              { label: 'DART vehicle action', value: data.near_miss_vehicle_action || '—' },
               { label: 'Vehicle number', value: data.near_miss_vehicle_number || '—' },
               { label: 'Fleet type', value: data.near_miss_fleet_type || '—' },
               ...(data.mode === 'Light Rail Vehicle' ? [
@@ -1895,7 +1895,7 @@ export function Step4ReviewSubmit({
               ...(data.near_miss_speed ? [{ label: 'Speed', value: data.near_miss_speed }] : []),
               ...(data.near_miss_route ? [{ label: 'Route', value: data.near_miss_route }] : []),
               ...(data.near_miss_rail_line ? [{ label: 'Rail line', value: data.near_miss_rail_line }] : []),
-              ...(data.near_miss_run ? [{ label: 'Run', value: data.near_miss_run }] : []),
+              ...(data.mode === 'Bus' && data.near_miss_run ? [{ label: 'Trip ID', value: data.near_miss_run }] : []),
               ...(data.near_miss_block ? [{ label: 'Block', value: data.near_miss_block }] : []),
               { label: 'Weather', value: data.near_miss_weather || '—' },
               { label: 'Road / track conditions', value: data.near_miss_road_conditions || '—' },
@@ -2060,6 +2060,14 @@ export function Step4ReviewSubmit({
                   <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assaulted through driver's window</div>
                   <div className="text-sm text-slate-900 font-['Poppins']">{data.driver_window_assault === true ? 'Yes' : data.driver_window_assault === false ? 'No' : '—'}</div>
                 </div>
+                {['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '') && (
+                  <div>
+                    <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assault in operator driving area</div>
+                    <div className="text-sm text-slate-900 font-['Poppins']">
+                      {data.assault_in_operator_driving_area === true ? `Yes${data.operator_driving_area_security ? ` · ${data.operator_driving_area_security}` : ''}` : data.assault_in_operator_driving_area === false ? 'No' : '—'}
+                    </div>
+                  </div>
+                )}
               </>
             )}
             {data.operating_dart_vehicle === false && data.assault_location === 'in_transit_vehicle' && (

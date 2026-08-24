@@ -34,12 +34,20 @@ const fade = {
 
 const inputCls = 'dart-input-base';
 const readonlyCls = 'dart-input-base bg-white/70 cursor-not-allowed text-slate-500';
-const VEHICLE_EQUIPMENT_OPTIONS = [
-  'Operator Area Protective Barrier Only',
-  'Camera Only',
-  'Operator Area Protective Barrier and Camera',
-  'Neither',
-].map((value) => ({ value, label: value }));
+const OPERATOR_DRIVING_AREA_SECURITY_OPTIONS = [
+  {
+    value: 'Fully Secured',
+    label: 'Fully Secured — protective barrier or operator cab door closed and secured/locked',
+  },
+  {
+    value: 'Partially Secured',
+    label: 'Partially Secured — barrier/cab door closed, but operator window open',
+  },
+  {
+    value: 'Not Secured',
+    label: 'Not Secured — barrier/cab door open, unlocked, or otherwise allowing unrestricted access',
+  },
+];
 
 // Same visual shell used by Bus/NRV/LRV/Derailment so Step 2 renders under one card.
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
@@ -101,13 +109,14 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
     assault_involves: data.assault_involves,
     who_assaulted: data.who_assaulted,
     vehicle_status_before: data.vehicle_status_before,
+    assault_in_operator_driving_area: data.assault_in_operator_driving_area,
     assault_location: data.assault_location,
     transit_vehicle_on: data.transit_vehicle_on,
     operator_injured: data.operator_injured,
   }), [
     data.operating_dart_vehicle, data.mode, data.assault_type, data.assault_involves,
-    data.who_assaulted, data.vehicle_status_before, data.assault_location,
-    data.transit_vehicle_on, data.operator_injured,
+    data.who_assaulted, data.vehicle_status_before, data.assault_in_operator_driving_area,
+    data.assault_location, data.transit_vehicle_on, data.operator_injured,
   ]);
   const show = (key: AssaultFieldKey) => vis.has(key);
 
@@ -157,28 +166,63 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
             showRailLine={show('line_description')}
           />
 
-          {(show('vehicle_equipped_with') || show('driver_window_assault')) && (
-            <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-              {show('vehicle_equipped_with') && (
-                <BoolRow label="DART vehicle equipped with">
-                  <div className="w-full max-w-full sm:w-[320px]">
-                    <CustomSelect value={data.vehicle_equipped_with || ''} onChange={(v) => onUpdate({ vehicle_equipped_with: v })} options={VEHICLE_EQUIPMENT_OPTIONS} placeholder="Select equipment" />
-                  </div>
-                </BoolRow>
-              )}
-              {show('driver_window_assault') && (
-                <BoolRow label="Did the operator get assaulted through the driver's side window?" required>
-                  <YesNoToggle value={data.driver_window_assault} onChange={(v) => onUpdate({ driver_window_assault: v })} />
-                </BoolRow>
-              )}
-            </div>
-          )}
-
         </Section>
       )}
 
+      {/* ── The assault ───────────────────────────────────────────────── */}
+      <Section title="What Happened" help="What happened, what led to it, and who was involved.">
+        <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
+          <textarea
+            value={data.assault_description || ''}
+            onChange={(e) => onUpdate({ assault_description: e.target.value })}
+            placeholder="Describe what happened in your own words"
+            readOnly={narrativeReadOnly}
+            rows={4}
+            className={inputCls}
+          />
+        </Field>
+
+        {(show('operator_driving_area') || show('operator_driving_area_security') || show('driver_window_assault')) && (
+          <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+            {show('operator_driving_area') && (
+              <BoolRow label="Did the assault take place in the operator driving area?" required>
+                <YesNoToggle
+                  value={data.assault_in_operator_driving_area}
+                  onChange={(value) => onUpdate({
+                    assault_in_operator_driving_area: value,
+                    ...(value === false ? { operator_driving_area_security: undefined } : {}),
+                  })}
+                />
+              </BoolRow>
+            )}
+            {show('operator_driving_area_security') && (
+              <BoolRow label="Was the operator driving area secured from passenger access?" required>
+                <div className="w-full max-w-full sm:w-[360px]">
+                  <CustomSelect
+                    value={data.operator_driving_area_security || ''}
+                    onChange={(value) => onUpdate({ operator_driving_area_security: value as AccidentReportData['operator_driving_area_security'] })}
+                    options={OPERATOR_DRIVING_AREA_SECURITY_OPTIONS}
+                    placeholder="Select security status"
+                  />
+                </div>
+              </BoolRow>
+            )}
+            {show('driver_window_assault') && (
+              <BoolRow label="Did the operator get assaulted through the driver's side window?" required>
+                <YesNoToggle value={data.driver_window_assault} onChange={(v) => onUpdate({ driver_window_assault: v })} />
+              </BoolRow>
+            )}
+          </div>
+        )}
+
+      </Section>
+
       {/* ── Where it happened ─────────────────────────────────────────── */}
       <Section title="Where It Happened" help="The location of the assault and the conditions there.">
+        <Field label="Where did the assault take place?" required error={showErrors && !data.assault_location}>
+          <CustomSelect value={data.assault_location || ''} onChange={(v) => onUpdate({ assault_location: v as AccidentReportData['assault_location'] })} options={ASSAULT_LOCATIONS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+        </Field>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Field label="Street On" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
@@ -193,10 +237,6 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
             <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
           </Field>
         </div>
-
-        <Field label="Where did the assault take place?" required error={showErrors && !data.assault_location}>
-          <CustomSelect value={data.assault_location || ''} onChange={(v) => onUpdate({ assault_location: v as AccidentReportData['assault_location'] })} options={ASSAULT_LOCATIONS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
-        </Field>
 
         {/* Not in possession, but assaulted while riding a transit vehicle */}
         <Show when={show('transit_vehicle_on')}>
@@ -227,21 +267,6 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
             </Show>
           </div>
         </Show>
-      </Section>
-
-      {/* ── The assault ───────────────────────────────────────────────── */}
-      <Section title="What Happened" help="What happened, what led to it, and who was involved.">
-        <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
-          <textarea
-            value={data.assault_description || ''}
-            onChange={(e) => onUpdate({ assault_description: e.target.value })}
-            placeholder="Describe what happened in your own words"
-            readOnly={narrativeReadOnly}
-            rows={4}
-            className={inputCls}
-          />
-        </Field>
-
       </Section>
 
       {/* ── Weather and conditions (spec: weather/road/lighting/streetlights) ── */}

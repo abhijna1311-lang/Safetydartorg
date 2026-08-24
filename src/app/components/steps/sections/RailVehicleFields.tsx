@@ -54,7 +54,7 @@ export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber
   const cols = [
     { label: 'Fleet type', value: data.lrv_fleet_type, glyph: 'tram' },
     ...(showCarNumber ? [{ label: 'Car number', value: data.car_number, glyph: 'confirmation_number' }] : []),
-    ...(showRailLine ? [{ label: 'Rail line', value: data.rail_line, glyph: 'route' }] : []),
+    { label: 'Trip ID', value: data.train_number, glyph: 'route' },
     { label: 'Pull-out date', value: fmtDate(data.train_pullout_date), glyph: 'calendar_month' },
     { label: 'Pull-out time', value: fmtTime(data.train_pullout_time), glyph: 'schedule' },
     { label: 'End of line destination', value: data.lrv_end_of_line, glyph: 'flag' },

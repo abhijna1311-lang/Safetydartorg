@@ -139,10 +139,9 @@ export function resizePerpetrators(list: PerpetratorDetails[], count: number): P
 // ---------- Visibility engine ----------
 
 export type AssaultFieldKey =
-  | 'mode' | 'employee_pullout' | 'driver_window_assault'
+  | 'mode' | 'employee_pullout' | 'driver_window_assault' | 'operator_driving_area' | 'operator_driving_area_security'
   | 'vehicle_status_before' | 'vehicle_status_after' | 'vehicle_number' | 'fleet_type'
   | 'car_number' | 'lrv_consist' | 'route_number' | 'run_number' | 'line_description'
-  | 'vehicle_equipped_with'
   | 'assault_type' | 'spat_on' | 'assault_method' | 'description_of_assault'
   | 'assault_involves' | 'who_assaulted' | 'assault_trigger' | 'assault_location'
   | 'transit_vehicle_on' | 'transit_vehicle_number' | 'transit_route_or_line'
@@ -158,6 +157,7 @@ export interface AssaultAnswers {
   assault_involves?: string;
   who_assaulted?: string;
   vehicle_status_before?: string;
+  assault_in_operator_driving_area?: boolean;
   assault_location?: string;
   transit_vehicle_on?: string;
   operator_injured?: boolean;
@@ -171,10 +171,11 @@ const ALWAYS_VISIBLE: AssaultFieldKey[] = [
 
 /** Fields that only exist when the employee was in possession of a DART vehicle. */
 const POSSESSION_ONLY: AssaultFieldKey[] = [
-  'mode', 'employee_pullout', 'driver_window_assault',
+  'mode', 'employee_pullout', 'driver_window_assault', 'operator_driving_area',
+  'operator_driving_area_security',
   'vehicle_status_before', 'vehicle_status_after', 'vehicle_number', 'fleet_type',
   'car_number', 'lrv_consist', 'route_number', 'run_number',
-  'line_description', 'vehicle_equipped_with',
+  'line_description',
 ];
 
 export function getVisibleAssaultFields(a: AssaultAnswers): Set<AssaultFieldKey> {
@@ -194,9 +195,12 @@ export function getVisibleAssaultFields(a: AssaultAnswers): Set<AssaultFieldKey>
     }
     if (a.mode === 'Hi-Rail' || a.mode === 'Non-Revenue Vehicle') {
       (['vehicle_status_before', 'vehicle_status_after', 'car_number', 'lrv_consist',
-        'route_number', 'run_number', 'line_description', 'vehicle_equipped_with'] as const)
+        'route_number', 'run_number', 'line_description', 'operator_driving_area',
+        'operator_driving_area_security'] as const)
         .forEach((f) => visible.delete(f));
     }
+
+    if (a.assault_in_operator_driving_area !== true) visible.delete('operator_driving_area_security');
 
     // Vehicle-status rule: non-revenue statuses hide route/run/line.
     if (a.vehicle_status_before && NON_REVENUE_STATUSES.includes(a.vehicle_status_before as VehicleStatus)) {

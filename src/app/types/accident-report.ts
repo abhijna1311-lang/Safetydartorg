@@ -325,6 +325,8 @@ export interface AccidentReportData {
   vehicle_status_after?: string;
   line_description?: string;
   vehicle_equipped_with?: string;
+  assault_in_operator_driving_area?: boolean;
+  operator_driving_area_security?: 'Fully Secured' | 'Partially Secured' | 'Not Secured';
   assault_location?: 'in_transit_vehicle' | 'transit_property_revenue' | 'transit_property_non_revenue' | 'non_transit_property' | 'outside_around_transit_vehicle';
   // When not in possession of a DART vehicle but assaulted while riding one.
   transit_vehicle_on?: string;
@@ -404,6 +406,7 @@ export interface AccidentReportData {
   near_miss_vehicle_number?: string;
   near_miss_fleet_type?: string;
   near_miss_speed?: string;
+  near_miss_vehicle_action?: string;
   near_miss_revenue_service?: boolean;
   near_miss_route?: string;
   near_miss_run?: string;

@@ -6,6 +6,7 @@ import { PersonListEditor } from '../../PersonListEditor';
 import { WeatherSection } from './WeatherSection';
 import { ModeVehicleSection } from './ModeVehicleSection';
 import { OtherVehiclesEditor } from '../../OtherVehiclesEditor';
+import { DART_VEHICLE_ACTIONS } from './BusCollisionSection';
 import type { AccidentReportData, NearMissPedestrianRecord, OtherVehicle, Person } from '../../../types/accident-report';
 
 interface Step2Props {
@@ -174,13 +175,13 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
           <InlineField label="Select the category the Near Miss most relates to" required error={showErrors && !data.near_miss_category}>
             <CustomSelect value={data.near_miss_category || ''} onChange={value => onUpdate({ near_miss_category: value as AccidentReportData['near_miss_category'], near_miss_pedestrian_count: undefined, near_miss_pedestrians: undefined, near_miss_between_dart_vehicles: undefined, near_miss_other_vehicle_type: undefined, near_miss_other_vehicle_action: undefined, near_miss_other_vehicles: undefined })} options={CATEGORIES} placeholder="Select category" />
           </InlineField>
+          <InlineField label="DART vehicle action at time of Near Miss" required error={showErrors && !data.near_miss_vehicle_action}>
+            <CustomSelect value={data.near_miss_vehicle_action || ''} onChange={value => onUpdate({ near_miss_vehicle_action: value })} options={DART_VEHICLE_ACTIONS} placeholder="Select action" />
+          </InlineField>
           {!isObserved && <>
             <InlineField label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
               <input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" />
             </InlineField>
-            {(mode === 'Light Rail Vehicle' || mode === 'Streetcar') && <InlineField label="Run" required error={showErrors && !data.near_miss_run}>
-              <input className="dart-input-base" value={data.near_miss_run || ''} onChange={event => onUpdate({ near_miss_run: event.target.value })} placeholder="Enter run" />
-            </InlineField>}
           </>}
         </div>
       </Section>

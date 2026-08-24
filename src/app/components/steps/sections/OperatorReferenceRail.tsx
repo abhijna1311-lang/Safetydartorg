@@ -1030,7 +1030,7 @@ function buildNearMissEntries(data: AccidentReportData): OperatorFieldEntry[] {
     ['near_miss_speed', 'DART vehicle speed', data.near_miss_speed],
     ['near_miss_revenue_service', 'DART vehicle in revenue service', data.near_miss_revenue_service],
     ['near_miss_route', 'Route', data.near_miss_route],
-    ['near_miss_run', 'Run', data.near_miss_run],
+    ['near_miss_run', 'Trip ID', data.near_miss_run],
     ['near_miss_block', 'Block', data.near_miss_block],
     ['near_miss_rail_line', 'Rail line', data.near_miss_rail_line],
     ['near_miss_weather', 'Weather', data.near_miss_weather],
