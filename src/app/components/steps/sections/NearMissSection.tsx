@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
 import { StepContainer } from '../../StepContainer';
 import { GlassButton } from '../../GlassButton';
@@ -172,11 +173,22 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
           <InlineField label="Reason for reporting" required error={showErrors && !data.near_miss_reason}>
             <CustomSelect value={data.near_miss_reason || ''} onChange={resetReasonDependentFields} options={REASONS} placeholder="Select reason" />
           </InlineField>
-          {!isObserved && (
-            <InlineField label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
-              <input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" />
-            </InlineField>
-          )}
+          <AnimatePresence initial={false}>
+            {!isObserved && (
+              <motion.div
+                key="near-miss-speed"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ height: { type: 'spring', stiffness: 420, damping: 34 }, opacity: { duration: 0.2, ease: 'easeInOut' } }}
+                className="overflow-hidden bg-slate-50/60"
+              >
+                <InlineField label="DART vehicle speed at the time of Near Miss" required error={showErrors && !data.near_miss_speed}>
+                  <input className="dart-input-base" value={data.near_miss_speed || ''} onChange={event => onUpdate({ near_miss_speed: event.target.value })} placeholder="Enter speed" />
+                </InlineField>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <InlineField label="Select the category the Near Miss most relates to" required error={showErrors && !data.near_miss_category}>
             <CustomSelect value={data.near_miss_category || ''} onChange={value => onUpdate({ near_miss_category: value as AccidentReportData['near_miss_category'], near_miss_pedestrian_count: undefined, near_miss_pedestrians: undefined, near_miss_between_dart_vehicles: undefined, near_miss_other_vehicle_type: undefined, near_miss_other_vehicle_action: undefined, near_miss_other_vehicles: undefined })} options={CATEGORIES} placeholder="Select category" />
           </InlineField>
