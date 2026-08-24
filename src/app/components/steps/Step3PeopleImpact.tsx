@@ -14,6 +14,7 @@ import { FirePeopleImpactSection } from './sections/FirePeopleImpactSection';
 import { NearMissPeopleImpactSection } from './sections/NearMissSection';
 import { TrailSwitchPeopleImpactSection } from './sections/TrailSwitchPeopleImpactSection';
 import { OperatorPassengerPeopleImpactSection } from './sections/OperatorPassengerPeopleImpactSection';
+import { isAssaultTriggerAllowed } from './sections/assault/assaultFlow';
 import type { AccidentReportData, AssaultPerpetrator, Person } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
@@ -174,6 +175,7 @@ export function Step3PeopleImpact({
       && data.notified_law_enforcement !== undefined && data.contacted_supervisor !== undefined
       && (!data.operator_injured || !!data.operator_injured_body_part)
       && !!data.assault_type
+      && isAssaultTriggerAllowed(data.assault_trigger, data.mode)
       && !!data.assault_trigger
       && !!data.assault_involves;
     if (!base) return false;

@@ -9,9 +9,9 @@ import type { AccidentReportData, AssaultPerpetrator } from '../../../types/acci
 import {
   ASSAULT_INVOLVES,
   ASSAULT_METHODS,
-  ASSAULT_TRIGGERS,
   ASSAULT_TYPES,
   getVehicle2TypeOptions,
+  getAssaultTriggerOptions,
   INJURED_BODY_PARTS,
   PERPETRATOR_AGES,
   PERPETRATOR_GENDERS,
@@ -69,13 +69,14 @@ function Show({ when, children }: { when: boolean; children: React.ReactNode }) 
 // ── Perpetrator card-list editor — mirrors PersonListEditor's card anatomy ─────
 // Collapsible card per perpetrator: avatar + title + subtitle + delete, an inline
 // editor (Details / Follow-up) and a Done button, with an "Add perpetrator" affordance.
-function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaultTrigger, assaultInvolves, onAssaultChange, vehicle2IsDartVehicle, vehicle2Type, onVehicle2Change }: {
+function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaultTrigger, assaultInvolves, mode, onAssaultChange, vehicle2IsDartVehicle, vehicle2Type, onVehicle2Change }: {
   list: AssaultPerpetrator[] | undefined;
   onChange: (next: AssaultPerpetrator[]) => void;
   showErrors: boolean;
   assaultType?: AccidentReportData['assault_type'];
   assaultTrigger?: string;
   assaultInvolves?: AccidentReportData['assault_involves'];
+  mode?: string;
   onAssaultChange: (patch: Partial<AccidentReportData>) => void;
   vehicle2IsDartVehicle?: boolean;
   vehicle2Type?: string;
@@ -181,7 +182,7 @@ function PerpetratorListEditor({ list, onChange, showErrors, assaultType, assaul
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                         <BoolRow label="Assault trigger" required>
                           <FollowUpControl>
-                            <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(ASSAULT_TRIGGERS)} placeholder="Select" error={showErrors && !assaultTrigger} />
+                            <CustomSelect value={assaultTrigger || ''} onChange={(v) => onAssaultChange({ assault_trigger: v })} options={toOptions(getAssaultTriggerOptions(mode))} placeholder="Select" error={showErrors && !assaultTrigger} />
                           </FollowUpControl>
                         </BoolRow>
                         {assaultType !== 'Verbal Assault' && (
@@ -341,6 +342,7 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
               assaultType={data.assault_type}
               assaultTrigger={data.assault_trigger}
               assaultInvolves={data.assault_involves}
+              mode={data.mode}
               vehicle2IsDartVehicle={data.vehicle2_is_dart_vehicle}
               vehicle2Type={data.vehicle2_type}
               onVehicle2Change={onUpdate}

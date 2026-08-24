@@ -42,6 +42,14 @@ export const ASSAULT_TRIGGERS = [
   'Failure to follow DART Policy', 'White Line', 'Animal', 'Unprovoked',
 ] as const;
 
+export function getAssaultTriggerOptions(mode: string | undefined) {
+  return ASSAULT_TRIGGERS.filter((trigger) => trigger !== 'White Line' || mode === 'Bus');
+}
+
+export function isAssaultTriggerAllowed(trigger: string | undefined, mode: string | undefined) {
+  return trigger !== 'White Line' || mode === 'Bus';
+}
+
 export const ASSAULT_METHODS = [
   'Punched', 'Kicked', 'Pushed', 'Struck by Hand', 'Struck by Object',
   'Struck by Liquid', 'Bite', 'Struck by bodily fluid',

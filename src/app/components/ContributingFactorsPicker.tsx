@@ -68,26 +68,69 @@ export const CONTRIBUTING_FACTOR_CATEGORIES: FactorCategory[] = [
   },
 ];
 
+const RAIL_CONTRIBUTING_FACTOR_CATEGORIES: FactorCategory[] = [
+  {
+    id: 'rail-human-factors',
+    label: 'Operations & Human Factors',
+    icon: Eye,
+    factors: [
+      'Medically Related',
+      'Operating Rule Violation/Human Factor',
+      'Fatigue',
+    ],
+  },
+  {
+    id: 'rail-right-of-way',
+    label: 'Right of Way & Public Interaction',
+    icon: AlertTriangle,
+    factors: ['Action of Motorist', 'Pedestrian Action', 'Trespasser'],
+  },
+  {
+    id: 'rail-equipment',
+    label: 'Equipment & Maintenance',
+    icon: RotateCcw,
+    factors: ['Equipment Failure', 'Poor Maintenance'],
+  },
+  {
+    id: 'rail-safety-other',
+    label: 'Passenger Safety & Other',
+    icon: ShieldAlert,
+    factors: [
+      'Imprudent Patron Actions',
+      'Slips and Falls',
+      'Suicide',
+      'Possible Criminal Conduct',
+      'Other/TBD',
+      'No contributing factor identified',
+    ],
+  },
+];
+
 // Flat list mirrors the pre-existing PROGRAM_MANAGER_CONTRIBUTING_FACTORS shape.
 export const CONTRIBUTING_FACTORS_FLAT = CONTRIBUTING_FACTOR_CATEGORIES.flatMap(c => c.factors);
 
 interface Props {
   selected: string[];
   onSelectedChange: (next: string[]) => void;
+  mode?: string;
 }
 
-export function ContributingFactorsPicker({ selected, onSelectedChange }: Props) {
+export function ContributingFactorsPicker({ selected, onSelectedChange, mode }: Props) {
+  const isRailMode = mode === 'Light Rail Vehicle' || mode === 'Streetcar' || mode === 'Hi-Rail';
+  const factorCategories = isRailMode ? RAIL_CONTRIBUTING_FACTOR_CATEGORIES : CONTRIBUTING_FACTOR_CATEGORIES;
+  const availableFactors = useMemo(() => new Set(factorCategories.flatMap(category => category.factors)), [factorCategories]);
+  const visibleSelected = selected.filter(factor => availableFactors.has(factor));
   // A category is always active — no empty-editor state.
   const [activeId, setActiveId] = useState<string>('attention');
   // Mobile review sheet (persistent summary is visible on desktop).
   const [showSheet, setShowSheet] = useState(false);
 
-  const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const totalSelected = selected.length;
+  const selectedSet = useMemo(() => new Set(visibleSelected), [visibleSelected]);
+  const totalSelected = visibleSelected.length;
 
   const activeCategory =
-    CONTRIBUTING_FACTOR_CATEGORIES.find(c => c.id === activeId) ??
-    CONTRIBUTING_FACTOR_CATEGORIES[0];
+    factorCategories.find(c => c.id === activeId) ??
+    factorCategories[0];
   const ActiveIcon = activeCategory.icon;
   const activeSelectedInCat = activeCategory.factors.filter(f => selectedSet.has(f));
 
@@ -148,7 +191,7 @@ export function ContributingFactorsPicker({ selected, onSelectedChange }: Props)
       ) : (
         <>
           <div className="divide-y divide-slate-100">
-            {CONTRIBUTING_FACTOR_CATEGORIES.map(cat => {
+            {factorCategories.map(cat => {
               const chosen = cat.factors.filter(f => selectedSet.has(f));
               return (
                 <div key={cat.id} className="px-5 py-4">
@@ -223,7 +266,7 @@ export function ContributingFactorsPicker({ selected, onSelectedChange }: Props)
 
       {/* Category navigation — cards carry the label and a count. No factor names, no preview. */}
       <div className="mt-4 grid grid-cols-1 items-start gap-2 sm:grid-cols-2 md:gap-3" role="tablist" aria-label="Contributing factor categories">
-        {CONTRIBUTING_FACTOR_CATEGORIES.map((cat) => {
+        {factorCategories.map((cat) => {
           const isActive = cat.id === activeId;
           const catSelectedCount = cat.factors.filter(f => selectedSet.has(f)).length;
           const hasSelection = catSelectedCount > 0;

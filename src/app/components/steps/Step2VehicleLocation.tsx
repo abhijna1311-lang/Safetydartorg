@@ -225,7 +225,7 @@ export function Step2VehicleLocation({
     if (!isFire) return true;
     const base = !!(
       data.description_of_event?.trim()
-      && data.fire_station_transit_center
+      && (data.fire_location !== 'Bus Stop/Train Station/Revenue Transit Center' || data.fire_station_transit_center)
       && (data.street_on || data.fire_address)
       && data.cross_street
       && data.city

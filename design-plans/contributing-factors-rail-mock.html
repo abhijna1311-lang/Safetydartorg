@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rail contributing factors - stakeholder mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #00205B;
+    --blue: #0078AE;
+    --ink: #17233b;
+    --muted: #64748b;
+    --line: #dce5ef;
+    --canvas: #edf2f8;
+    --panel: #f7faff;
+    --teal: #0f7b6c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: 'Poppins', system-ui, sans-serif;
+    background: var(--canvas);
+    background-image: radial-gradient(1100px 620px at 4% -10%, rgba(0,120,174,.11), transparent 62%), radial-gradient(900px 560px at 100% 0%, rgba(0,32,91,.08), transparent 58%);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; }
+  .header { height: 68px; padding: 0 42px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,.86); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: #fff; font-weight: 700; background: linear-gradient(135deg, #00244f, #0067b3); }
+  .brand-name { color: var(--navy); font-size: 15px; font-weight: 700; }
+  .brand-sub { margin-top: -2px; color: var(--muted); font-size: 11px; }
+  .role { padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; color: #42536b; background: #fff; font-size: 12px; font-weight: 500; }
+  .layout { max-width: 1320px; margin: 0 auto; padding: 38px 42px 70px; display: grid; grid-template-columns: 286px minmax(0, 1fr); gap: 34px; align-items: start; }
+  .rail { position: sticky; top: 28px; display: grid; gap: 18px; }
+  .context { padding: 20px 21px; border-radius: 15px; color: #fff; background: linear-gradient(135deg, #001b40, #003d7a); box-shadow: 0 16px 34px -20px rgba(0,32,91,.7); }
+  .eyebrow { color: rgba(255,255,255,.63); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+  .case { margin-top: 4px; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .context-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; font-size: 12px; }
+  .context-row span:first-child { color: rgba(255,255,255,.62); }
+  .context-row span:last-child { color: #fff; font-weight: 500; text-align: right; }
+  .steps { padding: 18px 20px; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(180deg, #fff, #fbfdff); box-shadow: 0 14px 32px -20px rgba(15,23,42,.2); }
+  .steps-title { margin-bottom: 12px; color: #94a3b8; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .step { position: relative; display: flex; gap: 11px; padding: 9px 0; }
+  .step:not(:last-child)::after { content: ''; position: absolute; left: 12px; top: 34px; bottom: -9px; width: 1.5px; background: #e2e8f0; }
+  .bullet { z-index: 1; display: grid; width: 26px; height: 26px; flex: 0 0 26px; place-items: center; border-radius: 50%; color: #94a3b8; border: 1.5px solid #d7dfea; background: #fff; font-size: 12px; font-weight: 600; }
+  .step.done .bullet { color: #fff; border-color: #10b981; background: #10b981; }
+  .step.now .bullet { color: #fff; border-color: var(--navy); background: var(--navy); box-shadow: 0 0 0 4px rgba(0,32,91,.12); }
+  .step-copy { padding-top: 3px; }
+  .step-title { color: #334155; font-size: 13px; font-weight: 600; }
+  .step.now .step-title { color: var(--navy); }
+  .step-sub { color: #94a3b8; font-size: 11px; }
+  .main { min-width: 0; }
+  .heading { margin-bottom: 23px; }
+  .heading .eyebrow { color: var(--blue); }
+  h1 { margin: 6px 0 0; color: var(--navy); font-size: 27px; font-weight: 600; line-height: 1.15; }
+  .heading p { max-width: 620px; margin: 8px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+  .card { overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(180deg, #fff, #fbfdff); box-shadow: 0 14px 32px -20px rgba(15,23,42,.2); }
+  .section-head { padding: 24px 26px 20px; }
+  .section-head h2 { margin: 0; color: var(--navy); font-size: 16px; font-weight: 600; }
+  .section-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+  .analysis { margin: 0 26px 26px; padding: 18px; border: 1px solid #c8d8ed; border-radius: 13px; background: linear-gradient(180deg, #f7faff, #fff); }
+  .analysis-head { display: flex; align-items: start; justify-content: space-between; gap: 18px; padding-bottom: 15px; border-bottom: 1px solid #dbe5f1; }
+  .analysis-title { display: flex; align-items: center; gap: 11px; }
+  .train-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: var(--navy); background: #e8f0fa; box-shadow: inset 0 0 0 1px #cad8ea; font-size: 19px; }
+  .kicker { color: #557091; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .analysis h3 { margin: 2px 0 0; color: var(--navy); font-size: 15px; font-weight: 600; }
+  .analysis-note { color: var(--teal); font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .category { position: relative; display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 11px 14px; border: 1px solid #dce5ef; border-radius: 11px; color: var(--ink); background: #fff; text-align: left; cursor: pointer; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+  .category.active { border-color: #8facd1; background: #f7faff; box-shadow: 0 0 0 1px rgba(22,57,120,.08), 0 6px 16px rgba(22,57,120,.07); }
+  .category.active::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: #163978; }
+  .category-icon { display: grid; width: 35px; height: 35px; flex: 0 0 35px; place-items: center; border: 1px solid #d5e0ef; border-radius: 9px; color: var(--navy); background: #f1f5fb; font-size: 16px; }
+  .category-title { font-size: 12.5px; font-weight: 600; }
+  .category-count { margin-top: 2px; color: #94a3b8; font-size: 11px; }
+  .workspace { overflow: hidden; margin-top: 16px; border: 1px solid #8facd1; border-radius: 11px; background: linear-gradient(180deg, #f7faff, #fff); box-shadow: 0 0 0 1px rgba(22,57,120,.06), 0 2px 6px -2px rgba(22,57,120,.08); }
+  .workspace-head { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid rgba(143,172,209,.4); background: rgba(255,255,255,.6); }
+  .workspace-head h3 { margin: 2px 0 0; color: var(--ink); font-size: 13px; font-weight: 600; }
+  .workspace-kicker { color: rgba(0,32,91,.7); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .factor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 13px; }
+  .factor { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 9px 11px; border: 1px solid #dce5ef; border-radius: 10px; color: #334155; background: #fff; text-align: left; font-size: 11.5px; cursor: pointer; }
+  .factor.selected { border-color: rgba(0,32,91,.6); color: #fff; background: var(--navy); box-shadow: 0 6px 16px -10px rgba(0,32,91,.5); }
+  .factor-box { display: grid; width: 17px; height: 17px; flex: 0 0 17px; place-items: center; border: 1px solid #cbd8e8; border-radius: 5px; color: transparent; background: #fff; font-size: 12px; font-weight: 700; }
+  .factor.selected .factor-box { border-color: rgba(255,255,255,.4); color: var(--navy); }
+  .selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; margin-top: 14px; padding: 10px 13px; border: 1px solid #d8e3f0; border-radius: 9px; background: #f7faff; }
+  .selection-count { color: var(--navy); font-size: 12px; font-weight: 600; }
+  .clear { border: 0; color: var(--muted); background: transparent; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .clear:hover { color: var(--navy); }
+  .footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .button { padding: 11px 17px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .button.secondary { color: #475569; border: 1px solid #d7dfea; background: #fff; }
+  .button.primary { color: #fff; border: 1px solid var(--navy); background: var(--navy); box-shadow: 0 10px 22px -12px rgba(0,32,91,.7); }
+  @media (max-width: 850px) {
+    .header { padding: 0 20px; }
+    .layout { grid-template-columns: 1fr; padding: 25px 20px 50px; }
+    .rail { position: static; grid-template-columns: 1fr 1fr; }
+    .analysis { margin-right: 18px; margin-left: 18px; }
+    .section-head { padding-right: 18px; padding-left: 18px; }
+  }
+  @media (max-width: 560px) {
+    .role { display: none; }
+    .rail { grid-template-columns: 1fr; }
+    .analysis-head, .toolbar { align-items: stretch; flex-direction: column; }
+    .analysis-note { white-space: normal; }
+    .search { width: 100%; }
+    .category-grid, .factor-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand"><div class="mark">D</div><div><div class="brand-name">DART Safety</div><div class="brand-sub">Accident Reporting</div></div></div>
+  <div class="role">Safety Program Manager · Rail review</div>
+</header>
+<div class="layout">
+  <aside class="rail">
+    <div class="context">
+      <div class="eyebrow">Active case</div>
+      <div class="case">DART-2026-0412</div>
+      <div class="context-row"><span>Reporting for</span><span>M. Alvarez · #4821</span></div>
+      <div class="context-row"><span>Event</span><span>Collision · Light Rail Vehicle</span></div>
+      <div class="context-row"><span>Started</span><span>Today, 9:42 AM</span></div>
+    </div>
+    <div class="steps">
+      <div class="steps-title">Review progress</div>
+      <div class="step done"><div class="bullet">✓</div><div class="step-copy"><div class="step-title">Report intake</div><div class="step-sub">Complete</div></div></div>
+      <div class="step done"><div class="bullet">✓</div><div class="step-copy"><div class="step-title">Vehicle &amp; location</div><div class="step-sub">Complete</div></div></div>
+      <div class="step now"><div class="bullet">3</div><div class="step-copy"><div class="step-title">Event analysis</div><div class="step-sub">In progress</div></div></div>
+      <div class="step"><div class="bullet">4</div><div class="step-copy"><div class="step-title">Classification</div><div class="step-sub">Up next</div></div></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="heading"><div class="eyebrow">Safety Program Manager review</div><h1>Event analysis</h1><p>This rail report uses the contributing-factor list for LRV, Streetcar, and Hi-Rail events.</p></div>
+    <section class="card">
+      <div class="section-head"><h2>Contributing factors</h2><p>Select all factors that apply to this rail event.</p></div>
+      <div class="analysis">
+        <div class="analysis-head">
+          <div class="analysis-title"><div class="train-icon">▣</div><div><div class="kicker">Rail factor set</div><h3>Light Rail Vehicle</h3></div></div>
+          <div id="availableCount" class="analysis-note">14 available factors</div>
+        </div>
+        <div id="categoryGrid" class="category-grid" role="tablist" aria-label="Rail contributing-factor categories"></div>
+        <div class="workspace">
+          <div class="workspace-head"><div class="train-icon">▣</div><div><div class="workspace-kicker">Editing</div><h3 id="activeCategoryTitle">Operations &amp; Human Factors</h3></div></div>
+          <div id="factorGrid" class="factor-grid" aria-label="Rail contributing factors"></div>
+        </div>
+        <div class="selection-bar"><div id="count" class="selection-count">0 selected</div><button id="clear" class="clear" type="button">Clear selection</button></div>
+      </div>
+    </section>
+    <div class="footer"><button class="button secondary" type="button">Save draft</button><button class="button primary" type="button">Continue <span aria-hidden="true">→</span></button></div>
+  </main>
+</div>
+<script>
+  const categories = [
+    { id: 'human', label: 'Operations & Human Factors', icon: '◉', factors: ['Medically Related', 'Operating Rule Violation/Human Factor', 'Fatigue'] },
+    { id: 'right-of-way', label: 'Right of Way & Public Interaction', icon: '⚠', factors: ['Action of Motorist', 'Pedestrian Action', 'Trespasser'] },
+    { id: 'equipment', label: 'Equipment & Maintenance', icon: '↻', factors: ['Equipment Failure', 'Poor Maintenance'] },
+    { id: 'other', label: 'Passenger Safety & Other', icon: '◈', factors: ['Imprudent Patron Actions', 'Slips and Falls', 'Suicide', 'Possible Criminal Conduct', 'Other/TBD', 'No contributing factor identified'] },
+  ];
+  const selected = new Set();
+  let activeId = 'human';
+  const categoryGrid = document.getElementById('categoryGrid');
+  const factorGrid = document.getElementById('factorGrid');
+  const count = document.getElementById('count');
+  const activeCategoryTitle = document.getElementById('activeCategoryTitle');
+
+  function render() {
+    categoryGrid.innerHTML = categories.map(category => {
+      const categorySelected = category.factors.filter(factor => selected.has(factor)).length;
+      return `<button class="category ${category.id === activeId ? 'active' : ''}" type="button" role="tab" aria-selected="${category.id === activeId}" data-category="${category.id}"><span class="category-icon">${category.icon}</span><span><span class="category-title">${category.label}</span><span class="category-count">${categorySelected ? `${categorySelected} selected` : 'Not selected'}</span></span></button>`;
+    }).join('');
+    categoryGrid.querySelectorAll('[data-category]').forEach(button => button.addEventListener('click', () => { activeId = button.dataset.category; render(); }));
+    const activeCategory = categories.find(category => category.id === activeId);
+    activeCategoryTitle.textContent = activeCategory.label;
+    factorGrid.innerHTML = activeCategory.factors.map(factor => `<button class="factor ${selected.has(factor) ? 'selected' : ''}" type="button" data-factor="${factor}"><span class="factor-box">✓</span><span>${factor}</span></button>`).join('');
+    factorGrid.querySelectorAll('[data-factor]').forEach(button => button.addEventListener('click', () => {
+      selected.has(button.dataset.factor) ? selected.delete(button.dataset.factor) : selected.add(button.dataset.factor);
+      render();
+    }));
+    count.textContent = `${selected.size} selected`;
+  }
+  document.getElementById('clear').addEventListener('click', () => { selected.clear(); render(); });
+  render();
+</script>
+</body>
+</html>

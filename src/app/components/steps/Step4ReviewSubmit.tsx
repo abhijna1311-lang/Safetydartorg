@@ -3787,6 +3787,7 @@ export function Step4ReviewSubmit({
                   <div className="pt-6 border-t border-slate-100">
                     <ContributingFactorsPicker
                       selected={contributingFactorsList}
+                      mode={data.mode}
                       onSelectedChange={(next) => {
                         const patch: Partial<typeof data> = { program_manager_contributing_factors_list: next };
                         // Clear the legacy primary field if the previously-primary factor was removed.

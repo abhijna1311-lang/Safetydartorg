@@ -25,6 +25,7 @@ const FIRE_RESPONSIBLE_OPTIONS = ['Pedestrian', 'Customer on Board', 'Unknown'].
 const FIRE_LOCATIONS = [
   'In or on Transit Vehicle', 'Bus Stop/Train Station/Revenue Transit Center',
   'Right-of-Way: Outside vehicle', 'Street: Outside vehicle', 'Grade Crossing',
+  'Non-Revenue Facility',
 ];
 const TRANSIT_VEHICLES = [
   'Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehicle',
@@ -64,6 +65,7 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
   const isPossession = data.operating_dart_vehicle === true;
   const isRailMode = ['Light Rail Vehicle', 'Streetcar', HI_RAIL_MODE].includes(data.mode || '');
   const noPossessionOnTransitVehicle = data.operating_dart_vehicle === false && data.fire_location === 'In or on Transit Vehicle';
+  const needsStationTransitCenter = data.fire_location === 'Bus Stop/Train Station/Revenue Transit Center';
   const canShowCustomersOnBoard = !['Non-Revenue Vehicle', HI_RAIL_MODE].includes(data.mode || '');
   const locationOptions = fireLocationOptions(data.mode);
   const needsTransitNumber = ['Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehicle', HI_RAIL_MODE].includes(data.fire_transit_vehicle_on || '');
@@ -103,7 +105,7 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
           <Field label="Location of fire" required error={showErrors && !data.fire_location}>
             <CustomSelect value={data.fire_location || ''} onChange={value => onUpdate({ fire_location: value, fire_transit_vehicle_on: undefined, fire_transit_vehicle_number: undefined, fire_transit_route_or_line: undefined })} options={locationOptions} placeholder="Select location" />
           </Field>
-          <Field label="Stations / transit centers" required error={showErrors && !data.fire_station_transit_center}>
+          <Field label="Stations / transit centers" required={needsStationTransitCenter} error={showErrors && needsStationTransitCenter && !data.fire_station_transit_center}>
             <CustomSelect value={data.fire_station_transit_center || ''} onChange={value => onUpdate({ fire_station_transit_center: value })} options={DART_STATION_OPTIONS} placeholder="Select station or transit center" />
           </Field>
         </div>
