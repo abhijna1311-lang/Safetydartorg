@@ -292,6 +292,59 @@ const PROGRAM_MANAGER_DERAIL_CONFIG_OPTIONS = [
   'Tangent (Straight) Track',
   'Interlocking',
 ].map(value => ({ value, label: value }));
+const PROGRAM_MANAGER_DERAILMENT_TYPE_OPTIONS = [
+  'Mainline derailment',
+  'Yard derailment',
+  'Shop derailment',
+  'Work zone derailment',
+].map(value => ({ value, label: value }));
+const PROGRAM_MANAGER_PRIMARY_CAUSE_OPTIONS = [
+  'Track defect',
+  'Equipment failure',
+  'Human error - Operator',
+  'Human error - Maintenance',
+  'Signal issue',
+  'Obstruction on track',
+  'Weather-related',
+  'Other - Please type',
+].map(value => ({ value, label: value }));
+const PROGRAM_MANAGER_DAMAGE_ASSESSMENT_OPTIONS = [
+  'No damage',
+  'Minor vehicle damage',
+  'Major vehicle damage',
+  'Track damage',
+  'Infrastructure damage',
+].map(value => ({ value, label: value }));
+const PROGRAM_MANAGER_SWITCH_POSITION_OPTIONS = [
+  'Properly aligned',
+  'Misaligned',
+  'Damaged',
+  'Under maintenance',
+  'Not applicable',
+].map(value => ({ value, label: value }));
+const PROGRAM_MANAGER_POST_EVENT_ACTION_OPTIONS = [
+  'Train removed from service',
+  'Bus bridge implemented',
+  'Maintenance dispatched',
+  'Supervisor responded',
+  'Police notified',
+];
+const PROGRAM_MANAGER_EQUIPMENT_CONDITION_OPTIONS = [
+  'No defects',
+  'Wheel defect',
+  'Brake issue',
+  'Suspension issue',
+  'Mechanical failure',
+].map(value => ({ value, label: value }));
+const PROGRAM_MANAGER_TRACK_CONDITION_OPTIONS = [
+  'Normal',
+  'Wet',
+  'Debris on track',
+  'Misaligned track',
+  'Switch malfunction',
+  'Rail defect',
+  'Construction/Work zone',
+].map(value => ({ value, label: value }));
 
 const PROGRAM_MANAGER_CLASSIFICATION_OPTIONS: { value: PMClassification; label: PMClassification }[] = [
   { value: 'Preventable', label: 'Preventable' },
@@ -3348,6 +3401,14 @@ export function Step4ReviewSubmit({
             { key: 'ped', glyph: 'directions_walk', title: 'Pedestrians', value: pmPedTransported },
             { key: 'ov', glyph: 'directions_car', title: 'Other vehicle', value: pmOvTransported },
           ];
+          const togglePMPostEventAction = (action: string) => {
+            const current = data.program_manager_post_event_actions || [];
+            onUpdate({
+              program_manager_post_event_actions: current.includes(action)
+                ? current.filter(value => value !== action)
+                : [...current, action],
+            });
+          };
 
           const updatePMInjuryRecord = (
             field:
@@ -3680,6 +3741,13 @@ export function Step4ReviewSubmit({
                       <p className="mb-2 text-xs leading-relaxed text-slate-500 font-['Poppins']">What the operator reported doing after the event.</p>
                       <textarea rows={4} value={data.action_taken || ''} onChange={(e) => onUpdate({ action_taken: e.target.value })} placeholder="Describe the operator's action after the event" className={TEXTAREA_CLASS} />
                     </div>
+                    {derailmentApplies && (
+                      <div>
+                        <div className={FIELD_LABEL_CLASS}>Program Manager statement</div>
+                        <p className="mb-2 text-xs leading-relaxed text-slate-500 font-['Poppins']">Summarize your investigation of the derailment.</p>
+                        <textarea rows={4} value={data.program_manager_statement || ''} onChange={(e) => onUpdate({ program_manager_statement: e.target.value })} placeholder="Record the Program Manager's investigation statement" className={TEXTAREA_CLASS} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3690,7 +3758,7 @@ export function Step4ReviewSubmit({
               {/* Event analysis — Contributing Factors always; collision fields only when event is Collision */}
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                 <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Event analysis</h3>
-                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Select contributing factors and, for collisions, the collision context.</p>
+                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Select contributing factors and record the details that explain this event.</p>
                 <div className="space-y-5">
                   {/* Collision geometry — collision rows + damage gate + diagram all in one card since they describe the same event. Independent SPM record. */}
                   <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
@@ -3805,8 +3873,17 @@ export function Step4ReviewSubmit({
               {derailmentApplies && (
                 <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
                   <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Derailment details</h3>
-                  <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Rail-specific configuration and cars derailed.</p>
+                  <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Record the derailment type, configuration, cause, and extent of the event.</p>
                   <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Derailment type</div>
+                      <CustomSelect
+                        value={data.program_manager_derailment_type || ''}
+                        onChange={(value) => onUpdate({ program_manager_derailment_type: value as AccidentReportData['program_manager_derailment_type'] })}
+                        options={PROGRAM_MANAGER_DERAILMENT_TYPE_OPTIONS}
+                        placeholder="Select derailment type"
+                      />
+                    </div>
                     <div>
                       <div className={FIELD_LABEL_CLASS}>Derail configuration</div>
                       <CustomSelect
@@ -3816,20 +3893,67 @@ export function Step4ReviewSubmit({
                         placeholder="Select configuration"
                       />
                     </div>
-                    {modeIsLRV && (
-                      <div>
-                        <div className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                          <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Number of cars derailed</div>
-                          <div className="shrink-0"><input
-                            type="number"
-                            min={0}
-                            value={data.program_manager_cars_derailed_count ?? ''}
-                            onChange={(e) => onUpdate({ program_manager_cars_derailed_count: parseOptionalCount(e.target.value) })}
-                            className="dart-input-base w-full text-center sm:w-24"
-                          /></div>
-                        </div>
-                      </div>
-                    )}
+                    {modeIsRail && <div>
+                      <div className={FIELD_LABEL_CLASS}>Number of cars derailed</div>
+                      <input type="number" min={0} value={data.program_manager_cars_derailed_count ?? ''} onChange={(e) => onUpdate({ program_manager_cars_derailed_count: parseOptionalCount(e.target.value) })} className="dart-input-base" />
+                    </div>}
+                    {modeIsRail && <div>
+                      <div className={FIELD_LABEL_CLASS}>Number of axles derailed</div>
+                      <input type="number" min={0} value={data.program_manager_axles_derailed_count ?? ''} onChange={(e) => onUpdate({ program_manager_axles_derailed_count: parseOptionalCount(e.target.value) })} className="dart-input-base" />
+                    </div>}
+                    {modeIsRail && <div>
+                      <div className={FIELD_LABEL_CLASS}>Speed at time of derailment</div>
+                      <input type="number" min={0} value={data.program_manager_derailment_speed || ''} onChange={(e) => onUpdate({ program_manager_derailment_speed: e.target.value })} placeholder="mph" className="dart-input-base" />
+                    </div>}
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Primary cause</div>
+                      <CustomSelect
+                        value={data.program_manager_primary_cause || ''}
+                        onChange={(value) => onUpdate({ program_manager_primary_cause: value, ...(!value.includes('Other') ? { program_manager_primary_cause_other: undefined } : {}) })}
+                        options={PROGRAM_MANAGER_PRIMARY_CAUSE_OPTIONS}
+                        placeholder="Select primary cause"
+                      />
+                    </div>
+                    {data.program_manager_primary_cause === 'Other - Please type' && <div>
+                      <div className={FIELD_LABEL_CLASS}>Other primary cause</div>
+                      <input value={data.program_manager_primary_cause_other || ''} onChange={(e) => onUpdate({ program_manager_primary_cause_other: e.target.value })} placeholder="Describe another primary cause" className="dart-input-base" />
+                    </div>}
+                  </div>
+                </div>
+              )}
+
+              {derailmentApplies && (
+                <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
+                  <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Derailment assessment</h3>
+                  <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Capture the infrastructure condition and response alongside the existing vehicle damage and tow details.</p>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Damage assessment</div>
+                      <CustomSelect value={data.program_manager_damage_assessment || ''} onChange={(value) => onUpdate({ program_manager_damage_assessment: value })} options={PROGRAM_MANAGER_DAMAGE_ASSESSMENT_OPTIONS} placeholder="Select damage assessment" />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Switch position (if applicable)</div>
+                      <CustomSelect value={data.program_manager_switch_position || ''} onChange={(value) => onUpdate({ program_manager_switch_position: value })} options={PROGRAM_MANAGER_SWITCH_POSITION_OPTIONS} placeholder="Select switch position" />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Equipment condition</div>
+                      <CustomSelect value={data.program_manager_equipment_condition || ''} onChange={(value) => onUpdate({ program_manager_equipment_condition: value })} options={PROGRAM_MANAGER_EQUIPMENT_CONDITION_OPTIONS} placeholder="Select equipment condition" />
+                    </div>
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Track condition</div>
+                      <CustomSelect value={data.program_manager_track_condition || ''} onChange={(value) => onUpdate({ program_manager_track_condition: value })} options={PROGRAM_MANAGER_TRACK_CONDITION_OPTIONS} placeholder="Select track condition" />
+                    </div>
+                  </div>
+                  <div className="mt-5">
+                    <div className={FIELD_LABEL_CLASS}>Post-event actions taken</div>
+                    <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+                      {PROGRAM_MANAGER_POST_EVENT_ACTION_OPTIONS.map(action => (
+                        <label key={action} className="flex cursor-pointer items-center gap-3 px-4 py-3 text-sm text-slate-700 font-['Poppins']">
+                          <input type="checkbox" checked={(data.program_manager_post_event_actions || []).includes(action)} onChange={() => togglePMPostEventAction(action)} className="h-4 w-4 rounded border-slate-300 text-[#00205B] focus:ring-[#FFCD00]" />
+                          <span>{action}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -4179,6 +4303,7 @@ export function Step4ReviewSubmit({
                         { label: 'Field Supervisor statement', value: formatReviewValue(data.supervisor_event_description), required: true, wide: true },
                         { label: 'Police statement', value: formatReviewValue(data.police_statement), wide: true },
                         { label: 'Action taken', value: formatReviewValue(data.action_taken), wide: true },
+                        ...(derailmentApplies ? [{ label: 'Program Manager statement', value: formatReviewValue(data.program_manager_statement), wide: true }] : []),
                       ]
                     )}
 
@@ -4196,8 +4321,20 @@ export function Step4ReviewSubmit({
                           { label: 'DART vehicle point of impact', value: formatReviewValue(data.program_manager_dart_collision_type) },
                         ] : []),
                         ...(derailmentApplies ? [
+                          { label: 'Derailment type', value: formatReviewValue(data.program_manager_derailment_type) },
                           { label: 'Derail configuration', value: formatReviewValue(data.program_manager_derail_configuration) },
-                          ...(modeIsLRV ? [{ label: 'Cars derailed', value: formatReviewValue(data.program_manager_cars_derailed_count) }] : []),
+                          ...(modeIsRail ? [
+                            { label: 'Cars derailed', value: formatReviewValue(data.program_manager_cars_derailed_count) },
+                            { label: 'Axles derailed', value: formatReviewValue(data.program_manager_axles_derailed_count) },
+                            { label: 'Speed at derailment', value: formatReviewValue(data.program_manager_derailment_speed) },
+                          ] : []),
+                          { label: 'Primary cause', value: formatReviewValue(data.program_manager_primary_cause) },
+                          ...(data.program_manager_primary_cause === 'Other - Please type' ? [{ label: 'Other primary cause', value: formatReviewValue(data.program_manager_primary_cause_other) }] : []),
+                          { label: 'Damage assessment', value: formatReviewValue(data.program_manager_damage_assessment) },
+                          { label: 'Switch position', value: formatReviewValue(data.program_manager_switch_position) },
+                          { label: 'Equipment condition', value: formatReviewValue(data.program_manager_equipment_condition) },
+                          { label: 'Track condition', value: formatReviewValue(data.program_manager_track_condition) },
+                          { label: 'Post-event actions', value: data.program_manager_post_event_actions?.length ? data.program_manager_post_event_actions.join(', ') : 'Not entered', wide: true },
                         ] : []),
                         ...(modeIsBus ? [{ label: 'Estimated damages', value: formatReviewValue(data.program_manager_estimated_total_damages) }] : []),
                         { label: 'Tow-away', value: formatReviewValue(data.program_manager_tow_away) },

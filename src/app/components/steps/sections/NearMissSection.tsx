@@ -21,6 +21,20 @@ interface Step2Props {
 const toOptions = (values: string[]) => values.map(value => ({ value, label: value }));
 const REASONS = toOptions(['Near-Miss Experienced', 'Near-Miss Observed']);
 const CATEGORIES = toOptions(['Auto – Near Miss', 'Pedestrian – Near Miss', 'Fixed Object – Near Miss', 'Non-Fixed Object – Near Miss']);
+const NEAR_MISS_STATUS_LABELS = [
+  'In Service', 'Deadhead', 'Not In Service', 'Pull In', 'Pull Out',
+  'In Yard/Bus Lot', 'Road Test', 'Tow', 'Service Protection',
+  'Special Events', 'Non-Revenue Training', 'Bus Bridge', 'Shuttle',
+];
+const NEAR_MISS_BUS_STATUS_OPTIONS = toOptions(NEAR_MISS_STATUS_LABELS);
+const NEAR_MISS_RAIL_STATUS_OPTIONS = NEAR_MISS_STATUS_LABELS.map(label => ({
+  value: ({
+    'Pull In': 'Pull in',
+    'Pull Out': 'Pull out',
+    'In Yard/Bus Lot': 'In Yard',
+  } as Record<string, string>)[label] || label,
+  label,
+}));
 const BUS_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Intersection', 'Train Station', 'Bus Stop', 'Street', 'Bridge', 'Tunnel', 'Non-Revenue Facility/Yard', 'Garage']);
 const RAIL_LOCATION_CATEGORIES = toOptions(['Grade Crossing', 'Right-of-Way Track', 'Train Station', 'Bridge', 'Tunnel', 'Non-Revenue Facility/Yard', 'Garage']);
 
@@ -75,6 +89,8 @@ function Section({ title, help, children }: { title: string; help?: string; chil
 
 function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: AccidentReportData; onUpdate: (d: Partial<AccidentReportData>) => void; showErrors: boolean }) {
   const isObserved = data.near_miss_reason === 'Near-Miss Observed';
+  const isRail = data.mode === 'Light Rail Vehicle' || data.mode === 'Streetcar';
+  const nearMissStatusOptions = isRail ? NEAR_MISS_RAIL_STATUS_OPTIONS : NEAR_MISS_BUS_STATUS_OPTIONS;
   const vehicleData: AccidentReportData = {
     ...data,
     vehicle_number: data.near_miss_vehicle_number,
@@ -127,6 +143,8 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
       showErrors={showErrors}
       showRailLine
       showStatusFields
+      statusBeforeOptions={nearMissStatusOptions}
+      statusAfterOptions={nearMissStatusOptions}
       showVehicleDetails
       showLrvConsist={true}
       requiredVehicleNumber={!isObserved}

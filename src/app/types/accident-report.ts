@@ -607,6 +607,7 @@ export interface AccidentReportData {
   damage_to_property_description?: string;
   field_supervisor_statement?: string;
   police_statement?: string;
+  program_manager_statement?: string;
   program_manager_collision_with?: string;
   program_manager_contributing_factors?: string;
   program_manager_contributing_factors_list?: string[];
@@ -616,8 +617,18 @@ export interface AccidentReportData {
   program_manager_dart_collision_type?: string;
   program_manager_dart_action?: string;
   program_manager_other_collision_type?: string;
+  program_manager_derailment_type?: 'Mainline derailment' | 'Yard derailment' | 'Shop derailment' | 'Work zone derailment';
   program_manager_derail_configuration?: string;
   program_manager_cars_derailed_count?: number;
+  program_manager_axles_derailed_count?: number;
+  program_manager_derailment_speed?: string;
+  program_manager_primary_cause?: string;
+  program_manager_primary_cause_other?: string;
+  program_manager_damage_assessment?: string;
+  program_manager_switch_position?: string;
+  program_manager_post_event_actions?: string[];
+  program_manager_equipment_condition?: string;
+  program_manager_track_condition?: string;
   program_manager_fatalities_present?: boolean;
   program_manager_injuries_present?: boolean;
   program_manager_life_safety_evacuation?: boolean;
