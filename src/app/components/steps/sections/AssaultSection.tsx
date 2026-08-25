@@ -63,11 +63,11 @@ function Section({ title, help, children }: { title: string; help?: string; chil
 }
 
 // Stacked yes/no question — label left, control right (matches other flows).
-function BoolRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function BoolRow({ label, required, error, children }: { label: string; required?: boolean; error?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
-      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
-      <div className="shrink-0">{children}</div>
+    <div className={`flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3 ${error ? 'bg-red-50/50' : ''}`}>
+      <p className={`dart-field-label sm:flex-1 ${error ? 'text-red-600' : ''}`} style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <div className={`w-full shrink-0 sm:w-72 ${error ? 'dart-field-error' : ''}`}>{children}</div>
     </div>
   );
 }
@@ -164,6 +164,40 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
 
       {/* ── The assault ───────────────────────────────────────────────── */}
       <Section title="What Happened" help="What happened, what led to it, and who was involved.">
+        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+          <BoolRow label="Where did the assault take place?" required error={showErrors && !data.assault_location}>
+            <CustomSelect value={data.assault_location || ''} onChange={(v) => onUpdate({ assault_location: v as AccidentReportData['assault_location'] })} options={ASSAULT_LOCATIONS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+          </BoolRow>
+          <Show when={show('transit_vehicle_on')}>
+            <div className="divide-y divide-slate-100 bg-slate-50/60">
+              <BoolRow label="Which transit vehicle were you on?" required error={showErrors && !data.transit_vehicle_on}>
+                <CustomSelect
+                  value={data.transit_vehicle_on || ''}
+                  onChange={(v) => onUpdate({ transit_vehicle_on: v })}
+                  options={[
+                    { value: 'Bus', label: 'Bus' },
+                    { value: 'Light Rail Vehicle', label: 'Light Rail Vehicle' },
+                    { value: 'Streetcar', label: 'Streetcar' },
+                    { value: 'Non-Revenue Vehicle', label: 'Non-Revenue vehicle' },
+                    { value: 'Hi-Rail', label: '(Hi-Rail) On-Rail Mounted Maintenance Truck' },
+                  ]}
+                  placeholder="Select"
+                />
+              </BoolRow>
+              <Show when={show('transit_vehicle_number')}>
+                <BoolRow label="Transit vehicle number (if applicable)">
+                  <input type="text" value={data.transit_vehicle_number || ''} onChange={(e) => onUpdate({ transit_vehicle_number: e.target.value })} placeholder="Vehicle number" className={inputCls} />
+                </BoolRow>
+              </Show>
+              <Show when={show('transit_route_or_line')}>
+                <BoolRow label="Transit route or line (if applicable)">
+                  <input type="text" value={data.transit_route_or_line || ''} onChange={(e) => onUpdate({ transit_route_or_line: e.target.value })} placeholder="Route or line" className={inputCls} />
+                </BoolRow>
+              </Show>
+            </div>
+          </Show>
+        </div>
+
         <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
           <textarea
             value={data.assault_description || ''}
@@ -211,11 +245,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       </Section>
 
       {/* ── Where it happened ─────────────────────────────────────────── */}
-      <Section title="Where It Happened" help="The location of the assault and the conditions there.">
-        <Field label="Where did the assault take place?" required error={showErrors && !data.assault_location}>
-          <CustomSelect value={data.assault_location || ''} onChange={(v) => onUpdate({ assault_location: v as AccidentReportData['assault_location'] })} options={ASSAULT_LOCATIONS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
-        </Field>
-
+      <Section title="Where It Happened" help="Record the street, cross street, city, and ZIP code for the assault.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Field label="Street On" required error={showErrors && !data.street_on}>
             <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
@@ -231,35 +261,6 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
           </Field>
         </div>
 
-        {/* Not in possession, but assaulted while riding a transit vehicle */}
-        <Show when={show('transit_vehicle_on')}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[18px]">
-            <Field label="Which transit vehicle were you on?" required error={showErrors && !data.transit_vehicle_on}>
-              <CustomSelect
-                value={data.transit_vehicle_on || ''}
-                onChange={(v) => onUpdate({ transit_vehicle_on: v })}
-                options={[
-                  { value: 'Bus', label: 'Bus' },
-                  { value: 'Light Rail Vehicle', label: 'Light Rail Vehicle' },
-                  { value: 'Streetcar', label: 'Streetcar' },
-                  { value: 'Non-Revenue Vehicle', label: 'Non-Revenue vehicle' },
-                  { value: 'Hi-Rail', label: '(Hi-Rail) On-Rail Mounted Maintenance Truck' },
-                ]}
-                placeholder="Select"
-              />
-            </Field>
-            <Show when={show('transit_vehicle_number')}>
-              <Field label="Transit vehicle number (if applicable)">
-                <input type="text" value={data.transit_vehicle_number || ''} onChange={(e) => onUpdate({ transit_vehicle_number: e.target.value })} placeholder="Vehicle number" className={inputCls} />
-              </Field>
-            </Show>
-            <Show when={show('transit_route_or_line')}>
-              <Field label="Transit route or line (if applicable)">
-                <input type="text" value={data.transit_route_or_line || ''} onChange={(e) => onUpdate({ transit_route_or_line: e.target.value })} placeholder="Route or line" className={inputCls} />
-              </Field>
-            </Show>
-          </div>
-        </Show>
       </Section>
 
       {/* ── Weather and conditions (spec: weather/road/lighting/streetlights) ── */}

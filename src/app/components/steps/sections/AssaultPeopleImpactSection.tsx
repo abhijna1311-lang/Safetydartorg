@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { CustomSelect } from '../../CustomSelect';
@@ -16,6 +16,7 @@ import {
   PERPETRATOR_AGES,
   PERPETRATOR_GENDERS,
   WHO_ASSAULTED,
+  isAssaultTriggerAllowed,
 } from './assault/assaultFlow';
 
 interface Props {
@@ -288,6 +289,18 @@ export function AssaultPeopleImpactSection({ data, onUpdate, showErrors = false 
     title: option.label,
     value: allPerps.filter((p) => p.who_assaulted === option.value).length,
   }));
+
+  useEffect(() => {
+    const hasInvalidTrigger = allPerps.some((person) => !isAssaultTriggerAllowed(person.assault_trigger, data.mode));
+    if (!hasInvalidTrigger) return;
+    onUpdate({
+      assault_perpetrators: allPerps.map((person) => (
+        !isAssaultTriggerAllowed(person.assault_trigger, data.mode)
+        ? { ...person, assault_trigger: undefined }
+        : person
+      )),
+    });
+  }, [allPerps, data.mode, onUpdate]);
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">

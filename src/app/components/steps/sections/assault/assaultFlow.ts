@@ -35,19 +35,35 @@ export const WHO_ASSAULTED = [
 export type WhoAssaulted = (typeof WHO_ASSAULTED)[number]['value'];
 
 export const ASSAULT_TRIGGERS = [
-  'Fare Dispute', 'Emotionally Disturbed', 'Bypassed/Drop off/Missed Stop/Missed Bus',
+  'Fare Dispute', 'Emotionally Disturbed', 'Bypassed/Drop Off/Missed Stop/Missed Transit Vehicle',
   'Carriage/Large Object', 'Wheelchair Delayed', 'Communication Problem',
-  'Road Rage with other Driver', 'Pedestrian', 'Late Bus', 'Intoxicated', 'Lay Over',
+  'Road Rage with other Driver', 'Pedestrian', 'Late Transit Vehicle', 'Intoxicated', 'Lay Over',
   '3rd Party Dispute', 'Traffic', 'Disruptive/Loud Music/Cell phone', 'Drugs/Smoking',
-  'Failure to follow DART Policy', 'White Line', 'Animal', 'Unprovoked',
+  'Failure to follow DART Policy', 'White Line', 'Parking Dispute', 'Animal', 'Unprovoked',
 ] as const;
+const NON_TRANSIT_VEHICLE_TRIGGERS = new Set([
+  'Bypassed/Drop Off/Missed Stop/Missed Transit Vehicle', 'Carriage/Large Object', 'Wheelchair Delayed',
+  'Late Transit Vehicle', 'Lay Over', 'Disruptive/Loud Music/Cell phone', 'White Line',
+]);
+const LEGACY_ASSAULT_TRIGGERS = new Set([
+  'Bypassed/Drop off/Missed Stop/Missed Bus', 'Late Bus',
+]);
 
 export function getAssaultTriggerOptions(mode: string | undefined) {
-  return ASSAULT_TRIGGERS.filter((trigger) => trigger !== 'White Line' || mode === 'Bus');
+  return ASSAULT_TRIGGERS.filter((trigger) => (
+    (trigger !== 'White Line' || mode === 'Bus')
+    && (trigger !== 'Parking Dispute' || mode === 'Non-Revenue Vehicle')
+    && (!(mode === 'Non-Revenue Vehicle' || mode === 'Hi-Rail') || !NON_TRANSIT_VEHICLE_TRIGGERS.has(trigger))
+  ));
 }
 
 export function isAssaultTriggerAllowed(trigger: string | undefined, mode: string | undefined) {
-  return trigger !== 'White Line' || mode === 'Bus';
+  return (
+    !LEGACY_ASSAULT_TRIGGERS.has(trigger || '')
+    && (trigger !== 'White Line' || mode === 'Bus')
+    && (trigger !== 'Parking Dispute' || mode === 'Non-Revenue Vehicle')
+    && (!(mode === 'Non-Revenue Vehicle' || mode === 'Hi-Rail') || !NON_TRANSIT_VEHICLE_TRIGGERS.has(trigger || ''))
+  );
 }
 
 export const ASSAULT_METHODS = [
