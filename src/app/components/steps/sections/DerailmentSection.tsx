@@ -27,7 +27,6 @@ const MAINLINE_LOCATIONS = toOptions([
   'Right-of-Way: Trackway',
 ]);
 const YARD_LOCATIONS = toOptions(['Non-Revenue Facility']);
-const RAIL_LINES = toOptions(['Blue', 'Green', 'Orange', 'Red']);
 const TRAIN_ACTIONS = toOptions([
   'Going Straight',
   'Leaving a Transit Stop',
@@ -74,6 +73,15 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
   );
 }
 
+function QuestionRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <div className="w-full shrink-0 sm:w-60">{children}</div>
+    </div>
+  );
+}
+
 function fmtDate(iso?: string) {
   if (!iso) return 'Not available';
   const [year, month, day] = iso.split('-');
@@ -90,6 +98,7 @@ function fmtTime(value?: string) {
 
 export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isLRV = data.mode === 'Light Rail Vehicle';
+  const isRail = isLRV || data.mode === 'Streetcar';
   const locationOptions = data.derailment_type === 'Yard' ? YARD_LOCATIONS : MAINLINE_LOCATIONS;
   const showStation = data.location_category === 'Revenue Facility: Transit Station';
   const showGradeCrossing = data.location_category === 'Right-of-Way: Grade Crossing';
@@ -102,39 +111,27 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
           data={data}
           onUpdate={onUpdate}
           showErrors={showErrors}
-          statusBeforeField={isLRV ? 'train_status_before' : 'vehicle_status_before'}
-          statusAfterField={isLRV ? 'train_status_after' : 'vehicle_status_after'}
+          statusBeforeField={isRail ? 'train_status_before' : 'vehicle_status_before'}
+          statusAfterField={isRail ? 'train_status_after' : 'vehicle_status_after'}
           statusBeforeOptions={TRAIN_STATUS_OPTIONS}
           statusAfterOptions={TRAIN_STATUS_OPTIONS}
           vehicleNumberField={isLRV ? undefined : 'train_number'}
           nonRailFleet={HI_RAIL_FLEET}
           showRailLine={showLine}
         />
-
-        <AnimatePresence>
-          {showLine && (
-            <motion.div {...fade} key="line" className="max-w-[360px]">
-              <Field label="Line description" required>
-                <CustomSelect value={data.rail_line || ''} onChange={value => onUpdate({ rail_line: value })} options={RAIL_LINES} placeholder="Select line" />
-              </Field>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </Section>
 
       <Section title="What Happened" help="Describe the event and capture the train movement immediately before the derailment.">
         <Field label="Description of derailment" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
           <textarea rows={4} value={data.description_of_event || ''} onChange={narrativeReadOnly ? undefined : event => onUpdate({ description_of_event: event.target.value })} readOnly={narrativeReadOnly} placeholder="Describe how the derailment occurred in your own words..." className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`} />
         </Field>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Action of train" required>
-            <CustomSelect value={data.train_action || ''} onChange={value => onUpdate({ train_action: value })} options={TRAIN_ACTIONS} placeholder="Select action" />
-          </Field>
-          <Field label="Train speed at time of event (mph)" required>
-            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={event => onUpdate({ train_speed: event.target.value })} placeholder="Enter speed" className={inputCls} />
-          </Field>
-        </div>
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+          <QuestionRow label="Action of train" required>
+            <CustomSelect value={data.train_action || ''} onChange={value => onUpdate({ train_action: value })} options={TRAIN_ACTIONS} placeholder="Select action" />
+          </QuestionRow>
+          <QuestionRow label="Train speed at time of event (mph)" required>
+            <input type="number" min={0} max={90} value={data.train_speed || ''} onChange={event => onUpdate({ train_speed: event.target.value })} placeholder="Enter speed" className={inputCls} />
+          </QuestionRow>
           <BoolRow label="Was there train damage?" required>
             <YesNoToggle value={data.train_damage} onChange={value => onUpdate({ train_damage: value })} />
           </BoolRow>
@@ -168,7 +165,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
         <AnimatePresence mode="popLayout">
           {showStation && (
             <motion.div {...fade} key="station">
-              <Field label="Station" required><CustomSelect value={data.station_applicable || ''} onChange={value => onUpdate({ station_applicable: value })} options={STATIONS} placeholder="Select station" /></Field>
+              <Field label="Station" required><CustomSelect value={data.station_applicable || ''} onChange={value => onUpdate({ station_applicable: value })} options={DART_STATION_OPTIONS} placeholder="Select station" /></Field>
             </motion.div>
           )}
           {showGradeCrossing && (

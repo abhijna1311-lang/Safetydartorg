@@ -10,8 +10,6 @@ export type FleetVehicle = {
   id: string;
   type?: string;
   fleetType?: string;
-  pulloutDate?: string;
-  pulloutTime?: string;
 };
 
 export type VehicleNumberField = 'vehicle_number' | 'train_number';
@@ -71,10 +69,6 @@ export function OperatorNonRailVehicleFields({
       [numberField]: nextValue,
       fleet_type: vehicle?.type,
       lrv_fleet_type: vehicle?.fleetType,
-      employee_pullout_date: vehicle?.pulloutDate,
-      employee_pullout_time: vehicle?.pulloutTime,
-      train_pullout_date: vehicle?.pulloutDate,
-      train_pullout_time: vehicle?.pulloutTime,
       ...(numberField === 'train_number' ? { car_number: undefined } : {}),
     } as Partial<AccidentReportData>);
   };
