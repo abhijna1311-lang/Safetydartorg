@@ -53,11 +53,12 @@ interface Props {
   injuryDetailsRequired?: boolean;
   showFollowUpFields?: boolean;
   showPassengerAction?: boolean;
+  showInjuryBodyPart?: boolean;
   showAge?: boolean;
   variant?: 'default' | 'nearMiss';
 }
 
-export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true, showAge = false, variant = 'default' }: Props) {
+export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true, showInjuryBodyPart = true, showAge = false, variant = 'default' }: Props) {
   const isNearMiss = variant === 'nearMiss';
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -123,7 +124,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
           && !!p.gender
           && p.is_dart_employee !== undefined
           && (!injuryDetailsRequired || (
-            !!p.injured_body_part && p.transported_to_hospital !== undefined
+            (!showInjuryBodyPart || !!p.injured_body_part) && p.transported_to_hospital !== undefined
             && (!showFollowUpFields || p.fled_scene !== undefined)
             && (!showFollowUpFields || !isPassenger || p.courtesy_card !== undefined)
           ))
@@ -278,11 +279,13 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                     {!isNearMiss && <div>
                       <GroupLabel>Injury</GroupLabel>
                       <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-                        <BoolRow label="Injured body part" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && !p.injured_body_part}>
-                          <div className="w-full sm:w-60">
-                            <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && injuryDetailsRequired && !p.injured_body_part} />
-                          </div>
-                        </BoolRow>
+                        {showInjuryBodyPart && (
+                          <BoolRow label="Injured body part" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && !p.injured_body_part}>
+                            <div className="w-full sm:w-60">
+                              <CustomSelect value={p.injured_body_part || ''} onChange={v => update(p.id, { injured_body_part: v })} options={BODY_PARTS} placeholder="Select" error={showErrors && injuryDetailsRequired && !p.injured_body_part} />
+                            </div>
+                          </BoolRow>
+                        )}
                         <BoolRow label="Transported to hospital?" required={injuryDetailsRequired} error={showErrors && injuryDetailsRequired && p.transported_to_hospital === undefined}>
                           <div className="w-full sm:w-60">
                             <CustomSelect

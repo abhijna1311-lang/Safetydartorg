@@ -94,7 +94,7 @@ export function OperatorPassengerPeopleImpactSection({ data, onUpdate, onNext, o
           </div>
           {data.people_involved === true && (
             <div className="pt-1">
-              <PersonListEditor people={people} onChange={people => onUpdate({ people })} showErrors={showErrors} injuryDetailsRequired={false} showFollowUpFields={false} showPassengerAction={false} showAge />
+              <PersonListEditor people={people} onChange={people => onUpdate({ people })} showErrors={showErrors} injuryDetailsRequired={false} showFollowUpFields={false} showPassengerAction={false} showInjuryBodyPart={false} showAge />
             </div>
           )}
           {showErrors && data.people_involved === true && people.length === 0 && <p className="text-xs font-medium text-red-600 font-['Poppins']">Add at least one passenger or pedestrian.</p>}
