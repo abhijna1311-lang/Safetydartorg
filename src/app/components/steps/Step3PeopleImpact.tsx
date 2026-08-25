@@ -214,7 +214,7 @@ export function Step3PeopleImpact({
     return <TrailSwitchPeopleImpactSection data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} workflowStage={workflowStage} activeSectionKey={activeSectionKey} showErrors={showErrors} />;
   }
   if (isOperatorPassengerEvent) {
-    return <OperatorPassengerPeopleImpactSection data={data} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} />;
+    return <OperatorPassengerPeopleImpactSection data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} onSaveDraft={onSaveDraft} />;
   }
   if (data.event_type === 'Fire') {
     return (

@@ -8,6 +8,7 @@ import type { Person } from '../types/accident-report';
 const opt = (arr: string[]) => arr.map(v => ({ value: v, label: v }));
 const ROLES = opt(['Passenger', 'Pedestrian']);
 const GENDERS = opt(['Female', 'Male']);
+const AGE_GROUPS = opt(['Child (12 and under)', 'Teen (13 to 18)', 'Adult (19 to 60)', 'Senior Citizen (61 and up)']);
 const YES_NO = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
 const YES_NO_NOT_SURE = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }, { value: 'not_sure', label: 'Not Sure' }];
 const BODY_PARTS = opt(['Head', 'Upper body', 'Lower body']);
@@ -52,10 +53,11 @@ interface Props {
   injuryDetailsRequired?: boolean;
   showFollowUpFields?: boolean;
   showPassengerAction?: boolean;
+  showAge?: boolean;
   variant?: 'default' | 'nearMiss';
 }
 
-export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true, variant = 'default' }: Props) {
+export function PersonListEditor({ people, onChange, showErrors = false, injuryDetailsRequired = true, showFollowUpFields = true, showPassengerAction = true, showAge = false, variant = 'default' }: Props) {
   const isNearMiss = variant === 'nearMiss';
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -143,6 +145,7 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
           if (pedTypeShort) details.push(pedTypeShort);
           if (p.pedestrian_action) details.push(p.pedestrian_action);
         }
+        if (showAge && p.age_group) details.push(p.age_group);
         if (p.injured && p.injured_body_part) details.push(p.injured_body_part);
         if (showFollowUpFields && p.fled_scene) details.push('Fled scene');
         if (showFollowUpFields && isPassenger && p.courtesy_card) details.push('Courtesy card');
@@ -193,9 +196,11 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                       {(() => {
                         // Uneven spans on a 12-col grid so the long "At the time of the event" label gets more room; short fields (Role, DART, Which door) shrink to keep everything on one line.
                         const equalPassengerLayout = isPassenger && !showPassengerAction;
-                        const roleSpan = equalPassengerLayout ? 'lg:col-span-4' : 'lg:col-span-2';
-                        const dartSpan = equalPassengerLayout ? 'lg:col-span-4' : 'lg:col-span-2';
-                        const genderSpan = equalPassengerLayout ? 'lg:col-span-4' : isPassenger && !showDoor ? 'lg:col-span-3' : 'lg:col-span-2';
+                        const compactWithAge = showAge && !showPassengerAction;
+                        const roleSpan = compactWithAge ? 'lg:col-span-3' : equalPassengerLayout ? 'lg:col-span-4' : 'lg:col-span-2';
+                        const dartSpan = compactWithAge ? 'lg:col-span-3' : equalPassengerLayout ? 'lg:col-span-4' : 'lg:col-span-2';
+                        const genderSpan = compactWithAge ? 'lg:col-span-3' : equalPassengerLayout ? 'lg:col-span-4' : isPassenger && !showDoor ? 'lg:col-span-3' : 'lg:col-span-2';
+                        const ageSpan = compactWithAge ? 'lg:col-span-3' : 'lg:col-span-2';
                         const actionSpan = isPassenger && !showDoor ? 'lg:col-span-5' : 'lg:col-span-4';
                         const doorSpan = 'lg:col-span-2';
                         const nearMissSpan = 'lg:col-span-3';
@@ -234,6 +239,11 @@ export function PersonListEditor({ people, onChange, showErrors = false, injuryD
                             <Field label="Gender" required className={genderSpan}>
                               <CustomSelect value={p.gender || ''} onChange={v => update(p.id, { gender: v as 'Female' | 'Male' })} options={GENDERS} placeholder="Select" error={showErrors && !p.gender} />
                             </Field>
+                            {showAge && (
+                              <Field label="Age" className={ageSpan}>
+                                <CustomSelect value={p.age_group || ''} onChange={v => update(p.id, { age_group: v as Person['age_group'] })} options={AGE_GROUPS} placeholder="Select" />
+                              </Field>
+                            )}
                           </>}
 
                           {isPassenger && showPassengerAction && (

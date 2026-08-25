@@ -1,112 +1,111 @@
-import { Info } from 'lucide-react';
+import { useState } from 'react';
+import { CustomSelect } from '../../CustomSelect';
+import { YesNoToggle } from '../../form/YesNoToggle';
 import { StepContainer } from '../../StepContainer';
 import { GlassButton } from '../../GlassButton';
-import type { AccidentReportData } from '../../../types/accident-report';
+import { PersonListEditor } from '../../PersonListEditor';
+import type { AccidentReportData, Person } from '../../../types/accident-report';
 
 interface Props {
   data: AccidentReportData;
+  onUpdate: (d: Partial<AccidentReportData>) => void;
   onNext: () => void;
   onBack: () => void;
   onSaveDraft: () => void;
 }
 
-function value(value: string | number | boolean | undefined) {
-  if (value === true) return 'Yes';
-  if (value === false) return 'No';
-  return value === undefined || value === '' ? 'Not provided' : String(value);
+const BODY_PARTS = ['Head', 'Upper body', 'Lower body'].map(value => ({ value, label: value }));
+
+function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
+      <div className="mb-6">
+        <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">{title}</h3>
+        {help && <p className="mt-1.5 text-xs leading-relaxed text-slate-500 font-['Poppins']">{help}</p>}
+      </div>
+      <div className="space-y-6">{children}</div>
+    </section>
+  );
 }
 
-export function OperatorPassengerPeopleImpactSection({ data, onNext, onBack, onSaveDraft }: Props) {
-  const isEmployee = data.operator_passenger_event_relating_to === 'DART Employee';
-  const hasInjuryDetails = data.operator_passenger_event_type && [
-    'Slip, Trips, Fall', 'Sprains and Strains', 'Fractures', 'Cuts and Lacerations',
-    'Bruises (Contusions)', 'Burns', 'Crush Injury', 'Puncture Wounds',
-    'Medical Emergency (e.g., fainting, seizure, heart attack)', 'Sickness/Occupational Illness',
-  ].includes(data.operator_passenger_event_type);
+function BoolRow({ label, required, error, children }: { label: string; required?: boolean; error?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3 ${error ? 'bg-red-50/50' : ''}`}>
+      <p className={`dart-field-label sm:flex-1 ${error ? 'text-red-600' : ''}`} style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <div className={`shrink-0 ${error ? 'dart-field-error' : ''}`}>{children}</div>
+    </div>
+  );
+}
+
+export function OperatorPassengerPeopleImpactSection({ data, onUpdate, onNext, onBack, onSaveDraft }: Props) {
+  const [showErrors, setShowErrors] = useState(false);
+  const people = data.people ?? [];
+  const employeeComplete = data.operator_passenger_employee_injured !== undefined
+    && (!data.operator_passenger_employee_injured || (!!data.operator_passenger_employee_body_part && data.operator_passenger_employee_transported !== undefined));
+  const personComplete = (person: Person) => {
+    const pedestrianComplete = person.role !== 'Pedestrian' || (!!person.pedestrian_type && !!person.pedestrian_action);
+    return pedestrianComplete
+      && !!person.gender
+      && person.is_dart_employee !== undefined;
+  };
+  const peopleComplete = data.people_involved !== undefined
+    && (data.people_involved === false || (people.length > 0 && people.every(personComplete)));
+  const canProceed = employeeComplete && peopleComplete;
+  const handleNext = () => {
+    if (canProceed) {
+      setShowErrors(false);
+      onNext();
+      return;
+    }
+    setShowErrors(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <StepContainer
       stepNumber={3}
       title="People And Impact"
-      description="Review the people and injury information recorded for this event."
+      description="Record the employee, other people, and injury information for this event."
     >
-      <div className="mb-5 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
-        <Info className="h-4 w-4 flex-shrink-0 text-slate-500" />
-        <p className="text-xs leading-5 text-slate-700 font-['Poppins']">
-          Injury and transport details for this event are captured in <strong>What Happened</strong>.
-        </p>
-      </div>
-
       <div className="dart-card dart-card--surface overflow-hidden">
-        <section className="px-6 py-6 md:px-7 md:py-7">
-          <div className="mb-6">
-            <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Event impact summary</h3>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 font-['Poppins']">These values come from the completed event details.</p>
+        <Section title="Employee Who Submitted The Report" help="Record the employee's injury status and response.">
+          <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && !employeeComplete ? 'border-red-300' : 'border-slate-200/70'}`}>
+            <BoolRow label="Was the employee injured?" required error={showErrors && data.operator_passenger_employee_injured === undefined}>
+              <YesNoToggle value={data.operator_passenger_employee_injured} onChange={value => onUpdate({ operator_passenger_employee_injured: value, operator_passenger_employee_body_part: value ? data.operator_passenger_employee_body_part : undefined, operator_passenger_employee_transported: value ? data.operator_passenger_employee_transported : undefined })} />
+            </BoolRow>
+            {data.operator_passenger_employee_injured === true && (
+              <>
+                <BoolRow label="Injured body part" required error={showErrors && !data.operator_passenger_employee_body_part}>
+                  <div className="w-full sm:w-60"><CustomSelect value={data.operator_passenger_employee_body_part || ''} onChange={value => onUpdate({ operator_passenger_employee_body_part: value })} options={BODY_PARTS} placeholder="Select" error={showErrors && !data.operator_passenger_employee_body_part} /></div>
+                </BoolRow>
+                <BoolRow label="Was the employee transported to hospital?" required error={showErrors && data.operator_passenger_employee_transported === undefined}>
+                  <YesNoToggle value={data.operator_passenger_employee_transported} onChange={value => onUpdate({ operator_passenger_employee_transported: value })} />
+                </BoolRow>
+              </>
+            )}
           </div>
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-            <div>
-              <dt className="dart-field-label">Event relates to</dt>
-              <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_event_relating_to)}</dd>
+        </Section>
+
+        <Section title="Other People Involved in the Event" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
+          <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.people_involved === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
+            <BoolRow label="Was anyone else involved in this event?" required error={showErrors && data.people_involved === undefined}>
+              <YesNoToggle value={data.people_involved} onChange={value => onUpdate({ people_involved: value, people: value ? people : [] })} />
+            </BoolRow>
+          </div>
+          {data.people_involved === true && (
+            <div className="pt-1">
+              <PersonListEditor people={people} onChange={people => onUpdate({ people })} showErrors={showErrors} injuryDetailsRequired={false} showFollowUpFields={false} showPassengerAction={false} showAge />
             </div>
-            <div>
-              <dt className="dart-field-label">Type of event</dt>
-              <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_event_type)}</dd>
-            </div>
-            {hasInjuryDetails && isEmployee && (
-              <>
-                <div>
-                  <dt className="dart-field-label">DART employee injured</dt>
-                  <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_employee_injured)}</dd>
-                </div>
-                {data.operator_passenger_employee_injured === true && (
-                  <>
-                    <div>
-                      <dt className="dart-field-label">Transported to hospital</dt>
-                      <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_employee_transported)}</dd>
-                    </div>
-                    <div>
-                      <dt className="dart-field-label">Body part</dt>
-                      <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_employee_body_part)}</dd>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-            {data.operator_passenger_event_type === 'Passenger Self-Evacuation' && (
-              <>
-                <div>
-                  <dt className="dart-field-label">Evacuation location</dt>
-                  <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_evacuation_location)}</dd>
-                </div>
-                <div>
-                  <dt className="dart-field-label">Reason for evacuation</dt>
-                  <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_evacuation_reason)}</dd>
-                </div>
-              </>
-            )}
-            {data.operator_passenger_event_type === 'Transit Equipment Defect' && (
-              <>
-                <div>
-                  <dt className="dart-field-label">Replacement vehicle used</dt>
-                  <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_defective_vehicle_exchanged)}</dd>
-                </div>
-                {data.operator_passenger_defective_vehicle_exchanged === true && (
-                  <div>
-                    <dt className="dart-field-label">Replacement vehicle number</dt>
-                    <dd className="mt-1 text-sm text-slate-900 font-['Poppins']">{value(data.operator_passenger_replacement_vehicle_number)}</dd>
-                  </div>
-                )}
-              </>
-            )}
-          </dl>
-        </section>
+          )}
+          {showErrors && data.people_involved === true && people.length === 0 && <p className="text-xs font-medium text-red-600 font-['Poppins']">Add at least one passenger or pedestrian.</p>}
+        </Section>
       </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-y-3 border-t border-slate-200 pt-6">
         <button type="button" onClick={onBack} className="dart-action-link min-h-[44px] rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]">← Back</button>
         <div className="flex items-center gap-4">
           <GlassButton variant="secondary" onClick={onSaveDraft}>Save as draft</GlassButton>
-          <GlassButton variant="primary" onClick={onNext}>Next</GlassButton>
+          <GlassButton variant="primary" onClick={handleNext}>Next</GlassButton>
         </div>
       </div>
     </StepContainer>

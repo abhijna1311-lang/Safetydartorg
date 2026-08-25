@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
 import { BusCollisionSection, BUS_ROUTE_STATUSES, BUS_STATUS_OPTIONS } from './sections/BusCollisionSection';
@@ -388,24 +388,6 @@ export function Step2VehicleLocation({
     }
   };
 
-  const contextTone = isSupervisorReview
-    ? {
-        container: 'border-[#0078AE]/30 bg-[#0078AE]/10',
-        icon: 'text-[#0078AE]',
-        text: 'text-[#00205B]',
-      }
-    : isInitiationStage
-    ? {
-        container: 'border-slate-300 bg-slate-50',
-        icon: 'text-slate-500',
-        text: 'text-slate-700',
-      }
-    : {
-        container: 'border-slate-200 bg-slate-50',
-        icon: 'text-slate-500',
-        text: 'text-slate-700',
-      };
-
   return (
     <StepContainer
       stepNumber={2}
@@ -418,18 +400,6 @@ export function Step2VehicleLocation({
           <p className="text-sm font-semibold text-red-800 font-['Poppins']">Please complete the required fields highlighted below to continue.</p>
         </div>
       )}
-      {/* Context banner */}
-      <div className={`mb-5 flex items-center gap-2 rounded-lg border px-4 py-2.5 ${contextTone.container}`}>
-        <Info className={`h-4 w-4 flex-shrink-0 ${contextTone.icon}`} />
-        <p className={`text-xs leading-5 font-['Poppins'] ${contextTone.text}`}>
-          {isInitiationStage
-            ? <>Showing the <strong>intake-only</strong> field set for a {initiatedBy === 'Program Manager' ? 'program manager' : 'supervisor'}-started case.</>
-            : isSupervisorReview
-            ? <>Complete supervisor fields and refer to the operator report when needed. The operator description is <strong>read-only</strong>.</>
-            : <>Showing <strong>{data.mode}</strong> {isCollision ? 'collision' : 'incident'} form for a <strong>{data.event_type}</strong> event.</>}
-        </p>
-      </div>
-
       {canOpenOperatorReport && (
         <div className="mb-4 flex justify-end">
           <button
@@ -442,7 +412,7 @@ export function Step2VehicleLocation({
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="-mt-3 space-y-5 md:-mt-4">
           {isInitiationStage ? (
             <>
             <IntakeCard title="Starter intake required before handoff">

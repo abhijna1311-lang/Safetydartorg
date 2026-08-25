@@ -2,6 +2,7 @@ export interface Person {
   id: string;
   role: 'Passenger' | 'Pedestrian';
   name?: string;
+  age_group?: SupervisorDemographicRecord['age_group'];
   gender?: 'Female' | 'Male';
   is_dart_employee?: boolean;
   injured?: boolean;
