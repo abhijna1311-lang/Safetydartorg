@@ -92,11 +92,24 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
           <BoolRow label="At the time of the event, how did the fire/smoke initially start?" required>
             <div className="w-full sm:w-72"><CustomSelect value={data.fire_started_how || ''} onChange={value => onUpdate({ fire_started_how: value, fire_responsible_for_starting: value === 'Arson' ? data.fire_responsible_for_starting : undefined })} options={FIRE_START_OPTIONS} placeholder="Select" /></div>
           </BoolRow>
-          {data.fire_started_how === 'Arson' && <BoolRow label="Who is responsible for starting the fire?" required><div className="w-full sm:w-72"><CustomSelect value={data.fire_responsible_for_starting || ''} onChange={value => onUpdate({ fire_responsible_for_starting: value })} options={canShowCustomersOnBoard ? FIRE_RESPONSIBLE_OPTIONS : FIRE_RESPONSIBLE_OPTIONS.filter(option => option.value !== 'Customer on Board')} placeholder="Select" /></div></BoolRow>}
-          <BoolRow label="Was the fire suppressed while you were on scene?" required><YesNoToggle value={data.fire_suppressed} onChange={value => onUpdate({ fire_suppressed: value, fire_responsible_for_suppressing: value ? data.fire_responsible_for_suppressing : undefined })} /></BoolRow>
-          {data.fire_suppressed === true && <BoolRow label="Who is responsible for suppressing the fire?" required><div className="w-full sm:w-72"><CustomSelect value={data.fire_responsible_for_suppressing || ''} onChange={value => onUpdate({ fire_responsible_for_suppressing: value })} options={FIRE_SUPPRESSOR_OPTIONS} placeholder="Select" /></div></BoolRow>}
+          {data.fire_started_how === 'Arson' && (
+            <div className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100">
+              <BoolRow label="Who is responsible for starting the fire?" required><div className="w-full sm:w-72"><CustomSelect value={data.fire_responsible_for_starting || ''} onChange={value => onUpdate({ fire_responsible_for_starting: value })} options={canShowCustomersOnBoard ? FIRE_RESPONSIBLE_OPTIONS : FIRE_RESPONSIBLE_OPTIONS.filter(option => option.value !== 'Customer on Board')} placeholder="Select" /></div></BoolRow>
+            </div>
+          )}
+          <BoolRow label="Was the fire suppressed while you were on scene?" required><YesNoToggle value={data.fire_suppressed} onChange={value => onUpdate({ fire_suppressed: value, fire_responsible_for_suppressing: value ? data.fire_responsible_for_suppressing : undefined, fire_extinguisher_used: value ? data.fire_extinguisher_used : undefined })} /></BoolRow>
+          {data.fire_suppressed === true && (
+            <div className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100">
+              <BoolRow label="Who is responsible for suppressing the fire?" required><div className="w-full sm:w-72"><CustomSelect value={data.fire_responsible_for_suppressing || ''} onChange={value => onUpdate({ fire_responsible_for_suppressing: value })} options={FIRE_SUPPRESSOR_OPTIONS} placeholder="Select" /></div></BoolRow>
+              <BoolRow label="Was a fire extinguisher used?" required><YesNoToggle value={data.fire_extinguisher_used} onChange={value => onUpdate({ fire_extinguisher_used: value })} /></BoolRow>
+            </div>
+          )}
           <BoolRow label="Did this event involve an evacuation for life safety reasons?" required><YesNoToggle value={data.evacuation_life_safety} onChange={value => onUpdate({ evacuation_life_safety: value, fire_evacuation_rail_right_of_way: value ? data.fire_evacuation_rail_right_of_way : undefined })} /></BoolRow>
-          {isRailMode && data.evacuation_life_safety === true && <BoolRow label="Was there an evacuation to the rail right of way?" required><YesNoToggle value={data.fire_evacuation_rail_right_of_way} onChange={value => onUpdate({ fire_evacuation_rail_right_of_way: value })} /></BoolRow>}
+          {isRailMode && data.evacuation_life_safety === true && (
+            <div className="overflow-hidden bg-slate-50/60 divide-y divide-slate-100">
+              <BoolRow label="Was there an evacuation to the rail right of way?" required><YesNoToggle value={data.fire_evacuation_rail_right_of_way} onChange={value => onUpdate({ fire_evacuation_rail_right_of_way: value })} /></BoolRow>
+            </div>
+          )}
         </div>
       </Section>
 

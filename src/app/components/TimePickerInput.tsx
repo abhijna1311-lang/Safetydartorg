@@ -1,11 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock } from 'lucide-react';
+import { isFutureDateTime } from '../utils/date-time';
 
 interface TimePickerInputProps {
   value: string; // HH:MM (24-hr)
   onChange: (value: string) => void;
   placeholder?: string;
+  dateValue?: string;
+  maxDateTime?: Date;
+  errorMessage?: string;
 }
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
@@ -112,15 +116,18 @@ export function TimePickerInput({
   value,
   onChange,
   placeholder = 'HH:MM AM',
+  dateValue,
+  maxDateTime,
+  errorMessage,
 }: TimePickerInputProps) {
+  const errorId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(formatDisplay(value));
-  const [inputError, setInputError] = useState(false);
+  const [inputError, setInputError] = useState<'invalid' | 'future' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+   const panelRef = useRef<HTMLDivElement>(null);
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number; width: number; openUpward: boolean }>({ top: 0, left: 0, width: 0, openUpward: false });
-
   const POPOVER_HEIGHT = 360;
 
   const calcPos = useCallback(() => {
@@ -160,7 +167,7 @@ export function TimePickerInput({
     setSelMinute(p.minute);
     setSelPeriod(p.period);
     setInputValue(formatDisplay(value));
-    setInputError(false);
+    setInputError(null);
   }, [value]);
 
   useEffect(() => {
@@ -178,51 +185,62 @@ export function TimePickerInput({
   const emit = useCallback(
     (h: number, m: number, p: 'AM' | 'PM') => {
       const nextValue = to24(h, m, p);
+      if (maxDateTime && isFutureDateTime(dateValue, nextValue, maxDateTime)) {
+        setInputError('future');
+        return false;
+      }
       onChange(nextValue);
       setInputValue(formatDisplay(nextValue));
-      setInputError(false);
+      setInputError(null);
+      return true;
     },
-    [onChange]
+    [dateValue, maxDateTime, onChange]
   );
 
   const handleHour = (item: string | number) => {
     const h = item as number;
-    setSelHour(h);
-    emit(h, selMinute, selPeriod);
+    if (emit(h, selMinute, selPeriod)) setSelHour(h);
   };
 
   const handleMinute = (item: string | number) => {
     const m = item as number;
-    setSelMinute(m);
-    emit(selHour, m, selPeriod);
+    if (emit(selHour, m, selPeriod)) setSelMinute(m);
   };
 
   const handlePeriod = (item: string | number) => {
     const p = item as 'AM' | 'PM';
-    setSelPeriod(p);
-    emit(selHour, selMinute, p);
+    if (emit(selHour, selMinute, p)) setSelPeriod(p);
   };
 
   const handleConfirm = () => {
-    emit(selHour, selMinute, selPeriod);
-    setIsOpen(false);
+    if (emit(selHour, selMinute, selPeriod)) setIsOpen(false);
   };
 
   const commitTypedTime = () => {
     if (!inputValue.trim()) {
-      setInputError(false);
+      setInputError(null);
       return true;
     }
     const parsed = parseTypedTime(inputValue);
     if (!parsed) {
-      setInputError(true);
+      setInputError('invalid');
+      return false;
+    }
+    if (maxDateTime && isFutureDateTime(dateValue, parsed, maxDateTime)) {
+      setInputError('future');
       return false;
     }
     onChange(parsed);
     setInputValue(formatDisplay(parsed));
-    setInputError(false);
+    setInputError(null);
     return true;
   };
+
+  const displayError = errorMessage || (inputError === 'future'
+    ? 'The time of the safety event cannot be in the future. Select a time at or before now.'
+    : inputError === 'invalid'
+      ? 'Enter a valid time, such as 2:47 PM.'
+      : undefined);
 
   const popover = isOpen ? (
     <div
@@ -237,6 +255,11 @@ export function TimePickerInput({
       }}
       className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_20px_48px_-8px_rgba(0,0,0,0.08)] p-4"
     >
+      {displayError && (
+        <div role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium leading-relaxed text-red-700 font-['Poppins']">
+          {displayError}
+        </div>
+      )}
       <div className="flex gap-1 items-start">
         <ScrollColumn
           items={HOURS}
@@ -305,7 +328,7 @@ export function TimePickerInput({
         className={[
           'w-full px-4 py-3 rounded-xl border bg-white shadow-sm transition-all min-h-[44px]',
           'flex items-center justify-between gap-2 font-[\'Poppins\'] text-sm text-left',
-          inputError
+          displayError
             ? 'border-red-400 ring-2 ring-red-100'
             : isOpen
             ? 'border-[#00205B] ring-2 ring-[rgba(0,32,91,0.16)]'
@@ -320,7 +343,7 @@ export function TimePickerInput({
           onChange={(event) => {
             const nextInput = event.target.value;
             setInputValue(nextInput);
-            setInputError(false);
+            setInputError(null);
             if (!nextInput.trim() && value) onChange('');
           }}
           onFocus={() => setIsOpen(true)}
@@ -332,14 +355,15 @@ export function TimePickerInput({
             }
             if (event.key === 'Escape') {
               setInputValue(formatDisplay(value));
-              setInputError(false);
+              setInputError(null);
               setIsOpen(false);
               event.currentTarget.blur();
             }
           }}
           placeholder={placeholder}
           aria-label="Time. Enter as hour, minute, AM or PM"
-          aria-invalid={inputError}
+          aria-invalid={displayError !== undefined}
+          aria-describedby={displayError ? errorId : undefined}
           className="min-w-0 flex-1 bg-transparent text-slate-900 placeholder:text-slate-400 outline-none"
         />
         <button
@@ -352,9 +376,9 @@ export function TimePickerInput({
           <Clock className={`h-[18px] w-[18px] ${isOpen ? 'text-[#00205B]' : ''}`} />
         </button>
       </div>
-      {inputError && (
-        <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">
-          Enter a valid time, such as 2:47 PM.
+      {displayError && (
+        <p id={errorId} className="mt-1.5 text-xs font-medium leading-relaxed text-red-600 font-['Poppins']">
+          {displayError}
         </p>
       )}
 

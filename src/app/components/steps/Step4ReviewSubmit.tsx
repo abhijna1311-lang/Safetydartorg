@@ -2178,6 +2178,7 @@ export function Step4ReviewSubmit({
               ...(data.fire_started_how === 'Arson' ? [{ label: 'Responsible for starting the fire', value: data.fire_responsible_for_starting || '—' }] : []),
               { label: 'Fire suppressed on scene', value: data.fire_suppressed === true ? 'Yes' : data.fire_suppressed === false ? 'No' : '—' },
               ...(data.fire_suppressed === true ? [{ label: 'Responsible for suppressing the fire', value: data.fire_responsible_for_suppressing || '—' }] : []),
+              ...(data.fire_suppressed === true ? [{ label: 'Fire extinguisher used', value: data.fire_extinguisher_used === true ? 'Yes' : data.fire_extinguisher_used === false ? 'No' : '—' }] : []),
               { label: 'Life-safety evacuation', value: data.evacuation_life_safety === true ? 'Yes' : data.evacuation_life_safety === false ? 'No' : '—' },
               ...(data.fire_evacuation_rail_right_of_way !== undefined ? [{ label: 'Evacuation to rail right of way', value: data.fire_evacuation_rail_right_of_way ? 'Yes' : 'No' }] : []),
               ...(data.fire_transit_vehicle_on ? [{ label: 'Transit vehicle ridden', value: [data.fire_transit_vehicle_on, data.fire_transit_vehicle_number, data.fire_transit_route_or_line].filter(Boolean).join(' · ') }] : []),

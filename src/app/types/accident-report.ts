@@ -384,6 +384,7 @@ export interface AccidentReportData {
   fire_responsible_for_starting?: string;
   fire_suppressed?: boolean;
   fire_responsible_for_suppressing?: string;
+  fire_extinguisher_used?: boolean;
   fire_transit_vehicle_on?: string;
   fire_transit_vehicle_number?: string;
   fire_transit_route_or_line?: string;

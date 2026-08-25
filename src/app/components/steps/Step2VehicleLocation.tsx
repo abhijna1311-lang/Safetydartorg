@@ -21,6 +21,7 @@ import { TimePickerInput } from '../TimePickerInput';
 import type { AccidentReportData } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
+import { isFutureDateTime } from '../../utils/date-time';
 
 interface Props {
   data: AccidentReportData;
@@ -260,6 +261,7 @@ export function Step2VehicleLocation({
     }
     if (data.fire_started_how === 'Arson' && !data.fire_responsible_for_starting) return false;
     if (data.fire_suppressed === true && !data.fire_responsible_for_suppressing) return false;
+    if (data.fire_suppressed === true && data.fire_extinguisher_used === undefined) return false;
     if (data.operating_dart_vehicle === false && data.fire_location === 'In or on Transit Vehicle') {
       if (!data.fire_transit_vehicle_on || !data.fire_transit_vehicle_number) return false;
       if (['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.fire_transit_vehicle_on) && !data.fire_transit_route_or_line) return false;
@@ -424,7 +426,7 @@ export function Step2VehicleLocation({
                   <DatePickerInput value={data.incident_date || ''} onChange={(value) => onUpdate({ incident_date: value })} maxDate={new Date()} />
                 </IntakeField>
                 <IntakeField label="Event time" required>
-                  <TimePickerInput value={data.incident_time || ''} onChange={(value) => onUpdate({ incident_time: value })} />
+                  <TimePickerInput value={data.incident_time || ''} dateValue={data.incident_date} maxDateTime={new Date()} onChange={(value) => onUpdate({ incident_time: value })} />
                 </IntakeField>
                 {isBus ? (
                   <>

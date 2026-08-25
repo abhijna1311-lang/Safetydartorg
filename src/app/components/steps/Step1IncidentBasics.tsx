@@ -10,6 +10,7 @@ import { YesNoToggle } from '../form/YesNoToggle';
 import type { AccidentReportData } from '../../types/accident-report';
 import { EMPLOYEE_DB } from '../../data/employeeDatabase';
 import { useUserRole } from '../../context/UserRoleContext';
+import { isFutureDateTime } from '../../utils/date-time';
 
 interface Props {
   data: AccidentReportData;
@@ -130,7 +131,8 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     && (!isSignalViolationEvent || SIGNAL_VIOLATION_MODES.includes(data.mode || ''));
   const hasMode = modeDisabledByPossession || (!!data.mode && modeIsAllowed);
   const hasIncidentDate = !!data.incident_date;
-  const hasIncidentTime = !!data.incident_time;
+  const incidentTimeIsFuture = isFutureDateTime(data.incident_date, data.incident_time);
+  const hasIncidentTime = !!data.incident_time && !incidentTimeIsFuture;
   const trailDerailmentAnswered = !isTrailSwitchEvent || data.trail_derailment_confirmed !== undefined;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
   // Schedule was moved to Step 2 — Step 1 no longer gates on it.
@@ -662,9 +664,14 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
                 Time of Safety Event <span className="dart-req">*</span>
               </label>
               <div className={errIncidentTime ? 'dart-field-error' : ''}>
-                <TimePickerInput value={data.incident_time || ''} onChange={v => onUpdate({ incident_time: v })} />
+                <TimePickerInput
+                  value={data.incident_time || ''}
+                  dateValue={data.incident_date}
+                  maxDateTime={new Date()}
+                  errorMessage={errIncidentTime ? (incidentTimeIsFuture ? 'The time of the safety event cannot be in the future. Select a time at or before now.' : 'Enter the incident time to continue.') : undefined}
+                  onChange={v => onUpdate({ incident_time: v })}
+                />
               </div>
-              {errIncidentTime && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Enter the incident time to continue.</p>}
             </div>
           </div>
 
