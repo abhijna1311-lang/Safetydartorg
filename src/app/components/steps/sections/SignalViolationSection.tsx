@@ -63,6 +63,18 @@ function BoolRow({ label, required, children }: { label: string; required?: bool
   );
 }
 
+function ShortFieldRow({ label, required, error, children }: { label: string; required?: boolean; error?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
+      <p className="dart-field-label sm:flex-1" style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
+      <div className="w-full shrink-0 sm:w-64">
+        <div className={error ? 'dart-field-error' : ''}>{children}</div>
+        {error && <p className="mt-1 text-xs font-medium text-red-600 font-['Poppins']">{label} is required.</p>}
+      </div>
+    </div>
+  );
+}
+
 export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = false, showErrors = false, headerSection }: Props) {
   const isStreetcar = data.mode === 'Streetcar';
   const isHiRail = data.mode === 'Hi-Rail';
@@ -107,8 +119,8 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
 
       {/* 2 — What happened */}
       <Section title="What Happened" help="Capture the signal details and describe what happened in your own words.">
-        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3">
-          <Field label="Signal number" required error={showErrors && !data.signal_number}>
+        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+          <ShortFieldRow label="Signal number" required error={showErrors && !data.signal_number}>
             <input
               type="text"
               value={data.signal_number || ''}
@@ -116,15 +128,18 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
               placeholder="e.g. S-142"
               className={inputCls}
             />
-          </Field>
-          <Field label="Signal displaying properly" required error={showErrors && !data.signal_displaying_properly}>
+          </ShortFieldRow>
+          <ShortFieldRow label="Signal displaying properly" required error={showErrors && !data.signal_displaying_properly}>
             <CustomSelect
               value={data.signal_displaying_properly || ''}
               onChange={v => onUpdate({ signal_displaying_properly: v as 'yes' | 'no' | 'not_observed' })}
               options={DISPLAY_OPTIONS}
               placeholder="Select"
             />
-          </Field>
+          </ShortFieldRow>
+          <BoolRow label="Did this event involve an evacuation for life safety reasons?">
+            <YesNoToggle value={data.evacuation_life_safety} onChange={v => onUpdate({ evacuation_life_safety: v })} />
+          </BoolRow>
         </div>
         <Field
           label="Description of event"
@@ -141,12 +156,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
             className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
           />
         </Field>
-
-        <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-          <BoolRow label="Did this event involve an evacuation for life safety reasons?">
-            <YesNoToggle value={data.evacuation_life_safety} onChange={v => onUpdate({ evacuation_life_safety: v })} />
-          </BoolRow>
-        </div>
       </Section>
 
       {/* 3 — Where it happened */}
