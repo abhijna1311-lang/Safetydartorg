@@ -30,20 +30,6 @@ const fade = {
   transition: { duration: 0.2 },
 };
 
-function fmtDate(value?: string) {
-  if (!value) return undefined;
-  const [year, month, day] = value.split('-');
-  return year && month && day ? `${month}/${day}/${year}` : value;
-}
-
-function fmtTime(value?: string) {
-  if (!value) return undefined;
-  const [hour, minute = '00'] = value.split(':');
-  const hour24 = parseInt(hour, 10);
-  if (Number.isNaN(hour24)) return value;
-  return `${hour24 % 12 || 12}:${minute.padStart(2, '0')} ${hour24 >= 12 ? 'PM' : 'AM'}`;
-}
-
 export function OperatorNonRailVehicleFields({
   data,
   onUpdate,
@@ -102,14 +88,6 @@ export function OperatorNonRailVehicleFields({
               <div className="dart-vehicle-item">
                 <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">{icon}</span></span>
                 <div className="dart-vehicle-text"><span className="dart-vehicle-label">{typeLabel}</span><span className="dart-vehicle-value">{selected.type || selected.fleetType || '\u2014'}</span></div>
-              </div>
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">calendar_month</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Pull-out date</span><span className="dart-vehicle-value dart-tabular">{fmtDate(data.employee_pullout_date) || '\u2014'}</span></div>
-              </div>
-              <div className="dart-vehicle-item">
-                <span className="dart-vehicle-icon"><span className="material-symbols-rounded" aria-hidden="true">schedule</span></span>
-                <div className="dart-vehicle-text"><span className="dart-vehicle-label">Pull-out time</span><span className="dart-vehicle-value dart-tabular">{fmtTime(data.employee_pullout_time) || '\u2014'}</span></div>
               </div>
             </div>
           </motion.div>
