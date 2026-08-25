@@ -73,6 +73,7 @@ export function ModeVehicleSection({
   const afterOptions = statusAfterOptions || defaultStatusOptions;
   const beforeField = statusBeforeField || (isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before');
   const afterField = statusAfterField || (isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after');
+  const showBlockForStatus = showBlock && (data[beforeField] as string | undefined) !== 'Not In Service';
   const title = 'The Vehicle';
   const defaultHelp = isBus
     ? 'Enter the bus number and Block ID. The route and assigned vehicle details are pulled in automatically.'
@@ -99,7 +100,7 @@ export function ModeVehicleSection({
         showRailLine={railLine}
         showStatusFields={shouldShowStatusFields}
         showVehicleDetails={showVehicleDetails}
-        showBlock={showBlock}
+        showBlock={showBlockForStatus}
         showLrvConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
         vehicleNumberField={vehicleNumberField}
@@ -141,6 +142,7 @@ export function ModeVehicleFields({
   const afterOptions = statusAfterOptions || defaultStatusOptions;
   const beforeField = statusBeforeField || (isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before');
   const afterField = statusAfterField || (isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after');
+  const showBlockForStatus = showBlock && (data[beforeField] as string | undefined) !== 'Not In Service';
   const railLine = (showRailLine ?? (isLRV && !isStreetcar))
     && (!isLRV || RAIL_LINE_STATUSES.has(data.train_status_before || ''));
 
@@ -155,7 +157,7 @@ export function ModeVehicleFields({
         statusOptions={beforeOptions}
         showStatusFields={shouldShowStatusFields}
         showVehicleDetails={showVehicleDetails}
-        showBlock={showBlock}
+        showBlock={showBlockForStatus}
         requiredVehicleNumber={requiredVehicleNumber}
       />
     );
@@ -176,7 +178,7 @@ export function ModeVehicleFields({
         showRailLine={railLine}
         showStatusFields={shouldShowStatusFields}
         showVehicleDetails={showVehicleDetails}
-        showBlock={showBlock}
+        showBlock={showBlockForStatus}
         showConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
       />

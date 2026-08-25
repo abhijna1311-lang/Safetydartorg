@@ -142,6 +142,7 @@ export function RailVehicleFields({
   const requiredRailLine = showVehicleDetails && requiredVehicleNumber && shouldShowRailLine;
   const updateStatus = (field: StatusField, value: string) => onUpdate({
     [field]: value,
+    ...(field === statusBeforeField && value === 'Not In Service' ? { block_number: undefined } : {}),
     ...((isLRV || isStreetcar) && field === statusBeforeField
       ? { rail_line: RAIL_LINE_STATUSES.has(value) ? selectedTrain?.railLine : undefined }
       : {}),

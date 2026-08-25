@@ -1,6 +1,6 @@
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
-import { DatePickerInput } from '../../DatePickerInput';
 import { YesNoToggle } from '../../form/YesNoToggle';
 import { FormField as Field } from '../../form/FormField';
 import { WeatherSection } from './WeatherSection';
@@ -24,7 +24,6 @@ const SIGNAL_TRAIN_STATUS_ALL = TRAIN_STATUS_OPTIONS.map(option => option.value)
 // Yard territory hides mainline-only statuses; Mainline hides In Yard.
 const YARD_HIDE = new Set(['In Service', 'Deadhead', 'Pull out', 'Pull in']);
 const MAINLINE_HIDE = new Set(['In Yard']);
-const TERRITORY_OPTIONS = toOptions(['Mainline Territory', 'Yard Territory']);
 const DISPLAY_OPTIONS = [
   { value: 'yes', label: 'Yes' },
   { value: 'no', label: 'No' },
@@ -79,18 +78,11 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
   const beforeOptions = toOptions(filteredBefore);
   const afterOptions = toOptions(SIGNAL_TRAIN_STATUS_ALL);
 
-  const handleTerritoryChange = (val: string) => {
-    const nextStatuses = SIGNAL_TRAIN_STATUS_ALL.filter(s =>
-      val === 'Yard Territory' ? !YARD_HIDE.has(s)
-      : val === 'Mainline Territory' ? !MAINLINE_HIDE.has(s)
-      : true,
-    );
-    const beforeValid = !data.train_status_before || nextStatuses.includes(data.train_status_before);
-    onUpdate({
-      signal_territory: val as 'Mainline Territory' | 'Yard Territory',
-      ...(beforeValid ? {} : { train_status_before: undefined }),
-    });
-  };
+  useEffect(() => {
+    if (!data.train_status_before) return;
+    const beforeValid = filteredBefore.includes(data.train_status_before);
+    if (!beforeValid) onUpdate({ train_status_before: undefined });
+  }, [data.train_status_before, filteredBefore, onUpdate]);
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
@@ -116,9 +108,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
       {/* 2 — What happened */}
       <Section title="What Happened" help="Capture the signal details and describe what happened in your own words.">
         <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3">
-          <Field label="Date of signal violation" required error={showErrors && !data.signal_date}>
-            <DatePickerInput value={data.signal_date || ''} onChange={v => onUpdate({ signal_date: v })} maxDate={new Date()} />
-          </Field>
           <Field label="Signal number" required error={showErrors && !data.signal_number}>
             <input
               type="text"
@@ -134,14 +123,6 @@ export function SignalViolationSection({ data, onUpdate, narrativeReadOnly = fal
               onChange={v => onUpdate({ signal_displaying_properly: v as 'yes' | 'no' | 'not_observed' })}
               options={DISPLAY_OPTIONS}
               placeholder="Select"
-            />
-          </Field>
-          <Field label="Where did the signal violation happen" required error={showErrors && !data.signal_territory}>
-            <CustomSelect
-              value={data.signal_territory || ''}
-              onChange={handleTerritoryChange}
-              options={TERRITORY_OPTIONS}
-              placeholder="Select territory"
             />
           </Field>
         </div>

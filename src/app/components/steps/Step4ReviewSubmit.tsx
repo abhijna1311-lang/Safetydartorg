@@ -1433,7 +1433,8 @@ export function Step4ReviewSubmit({
         .every(Boolean)
     );
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lrvDetailsComplete = !isLRV || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
+    const lrvDetailsComplete = !isLRV || data.train_status_before === 'Not In Service'
+      || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
     const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
     const trailPeople = data.people ?? [];
     const trailPeopleComplete = data.people_involved !== undefined

@@ -124,7 +124,8 @@ export function Step2VehicleLocation({
   const railStatusBefore = data.mode === 'Hi-Rail' ? data.vehicle_status_before : data.train_status_before;
   const railStatusAfter = data.mode === 'Hi-Rail' ? data.vehicle_status_after : data.train_status_after;
   const lrvDetailsComplete = data.mode !== 'Light Rail Vehicle'
-    || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
+    || (data.train_status_before === 'Not In Service'
+      || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line)));
   const streetcarDetailsComplete = data.mode !== 'Streetcar'
     || (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line);
   const requiredWeatherComplete = !!(
@@ -191,7 +192,7 @@ export function Step2VehicleLocation({
     data.train_number
     && lrvDetailsComplete
     && (data.mode !== 'Light Rail Vehicle' || lrvConsistComplete)
-    && data.signal_date && data.signal_number
+    && data.signal_number
     && data.signal_displaying_properly && data.signal_territory
     && (hideRailStatusFields || (data.train_status_before && data.train_status_after))
     && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
