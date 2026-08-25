@@ -89,7 +89,7 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
         : isNonRail && !!data.vehicle_number
   );
   const routeComplete = !isOperating || !activeStatus(data.mode, statusBefore) || (
-    isBus ? !!data.route_number && !!data.block_number && !!data.line_description : !!data.line_description
+    isBus ? !!data.route_number && !!data.block_number : !!data.line_description
   );
   const baseComplete = !!(
     data.operator_passenger_event_relating_to
@@ -134,22 +134,22 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
   const isLRV = data.mode === 'Light Rail Vehicle';
   const isStreetcar = data.mode === 'Streetcar';
   const isRail = isLRV || isStreetcar;
-  const isNonRail = data.mode === 'Hi-Rail' || data.mode === 'Non-Revenue Vehicle';
   const isInTransitVehicle = data.operator_passenger_location === 'In-Transit vehicle';
   const isPassengerEvent = data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee';
   const eventTypes = isPassengerEvent
     ? PASSENGER_EVENT_TYPES.filter(option => option.value !== 'Passenger Self-Evacuation' || isLRV)
     : DART_EMPLOYEE_EVENT_TYPES;
   const isInjuryEvent = INJURY_EVENT_TYPES.has(data.operator_passenger_event_type || '');
-  const shouldShowLine = isOperating && !isNonRail && activeStatus(data.mode, isBus ? data.bus_status_before : data.train_status_before);
+  const shouldShowLine = isOperating && isRail && activeStatus(data.mode, data.train_status_before);
 
   useEffect(() => {
     const updates: Partial<AccidentReportData> = {};
+    if (!isRail && data.line_description) updates.line_description = undefined;
     if (isStreetcar && data.line_description !== 'Streetcar') updates.line_description = 'Streetcar';
     if (isLRV && data.rail_line && data.line_description !== data.rail_line) updates.line_description = data.rail_line;
     if (data.operator_passenger_event_type === 'Passenger Self-Evacuation' && !isLRV) updates.operator_passenger_event_type = undefined;
     if (Object.keys(updates).length > 0) onUpdate(updates);
-  }, [data.line_description, data.operator_passenger_event_type, data.rail_line, isLRV, isStreetcar, onUpdate]);
+  }, [data.line_description, data.operator_passenger_event_type, data.rail_line, isLRV, isRail, isStreetcar, onUpdate]);
 
   const updateRelation = (value: string) => onUpdate({
     operator_passenger_event_relating_to: value as AccidentReportData['operator_passenger_event_relating_to'],

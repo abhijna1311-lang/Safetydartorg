@@ -20,6 +20,7 @@ type Props = {
   showRailLine?: boolean;
   showStatusFields?: boolean;
   showVehicleDetails?: boolean;
+  showBlock?: boolean;
   showLrvConsist?: boolean;
   requiredVehicleNumber?: boolean;
   help?: string;
@@ -52,6 +53,7 @@ export function ModeVehicleSection({
   showRailLine,
   showStatusFields = true,
   showVehicleDetails = true,
+  showBlock = true,
   showLrvConsist = true,
   requiredVehicleNumber = true,
   help,
@@ -97,6 +99,7 @@ export function ModeVehicleSection({
         showRailLine={railLine}
         showStatusFields={shouldShowStatusFields}
         showVehicleDetails={showVehicleDetails}
+        showBlock={showBlock}
         showLrvConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
         vehicleNumberField={vehicleNumberField}
@@ -119,6 +122,7 @@ export function ModeVehicleFields({
   showRailLine,
   showStatusFields = true,
   showVehicleDetails = true,
+  showBlock = true,
   showLrvConsist = true,
   requiredVehicleNumber = true,
   vehicleNumberField,
@@ -151,6 +155,7 @@ export function ModeVehicleFields({
         statusOptions={beforeOptions}
         showStatusFields={shouldShowStatusFields}
         showVehicleDetails={showVehicleDetails}
+        showBlock={showBlock}
         requiredVehicleNumber={requiredVehicleNumber}
       />
     );
@@ -171,6 +176,7 @@ export function ModeVehicleFields({
         showRailLine={railLine}
         showStatusFields={shouldShowStatusFields}
         showVehicleDetails={showVehicleDetails}
+        showBlock={showBlock}
         showConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
       />

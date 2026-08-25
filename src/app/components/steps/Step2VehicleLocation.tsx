@@ -124,13 +124,16 @@ export function Step2VehicleLocation({
   const railStatusAfter = data.mode === 'Hi-Rail' ? data.vehicle_status_after : data.train_status_after;
   const lrvDetailsComplete = data.mode !== 'Light Rail Vehicle'
     || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
+  const streetcarDetailsComplete = data.mode !== 'Streetcar'
+    || (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line);
   const requiredWeatherComplete = !!(
     data.weather && data.road_conditions && data.lighting_conditions
     && data.traffic_conditions && data.traffic_controls && data.roadway_configuration
   );
+  const busScheduleRequired = BUS_ROUTE_STATUSES.has(data.bus_status_before || '');
   const busCollisionComplete = !!(
-    data.vehicle_number && data.trip_id && data.block_number
-    && (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '') || data.route_number)
+    data.vehicle_number
+    && (!busScheduleRequired || (data.trip_id && data.block_number && data.route_number))
     && data.bus_status_before && data.bus_status_after
     && data.collision_type && data.bus_action && data.point_of_impact && answered(data.bus_speed)
     && data.street_on && data.cross_street && data.city && data.zip
@@ -147,6 +150,7 @@ export function Step2VehicleLocation({
   const railCollisionComplete = !!(
     railVehicleNumber && railVehicleComplete
     && lrvDetailsComplete
+    && streetcarDetailsComplete
     && (hideRailStatusFields || (railStatusBefore && railStatusAfter))
     && data.lrv_collision_type && data.train_action && data.lrv_point_of_impact && answered(data.train_speed)
     && data.location_category && (data.street_on || data.address_of_event) && data.cross_street && data.city && data.zip
@@ -249,7 +253,7 @@ export function Step2VehicleLocation({
             && (data.mode !== 'Light Rail Vehicle' || lrvDetailsComplete))) {
         return false;
       }
-      if (data.mode === 'Light Rail Vehicle' && !lrvDetailsComplete) return false;
+      if ((data.mode === 'Light Rail Vehicle' && !lrvDetailsComplete) || (data.mode === 'Streetcar' && !streetcarDetailsComplete)) return false;
       if (data.mode === 'Bus' && BUS_ROUTE_STATUSES.has(data.bus_status_before || '')) {
         if (data.mode === 'Bus' && (!data.route_number || !data.block_number)) return false;
       }
@@ -292,8 +296,9 @@ export function Step2VehicleLocation({
     if (!base || !experienced) return base;
     if (!data.near_miss_vehicle_number || !data.near_miss_speed) return false;
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
-    if (data.mode === 'Light Rail Vehicle') return !!data.near_miss_block && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_rail_line);
+    if (data.mode === 'Light Rail Vehicle') return (data.train_status_before === 'Not In Service' || !!data.near_miss_block) && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_rail_line);
     if (data.mode === 'Streetcar') return !!data.near_miss_rail_line;
+    if (data.bus_status_before === 'Not In Service') return true;
     return (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '') || !!data.near_miss_route) && !!data.near_miss_run && !!data.near_miss_block;
   })();
   const trailSwitchComplete = (() => {
@@ -331,7 +336,9 @@ export function Step2VehicleLocation({
   // Minimum required to proceed
   const hasSchedule = !showSchedule || hasScheduleAnswers(data);
   const nonRailPulloutComplete = (!isNRV && !isHiRail)
-    || (!!data.employee_pullout_date && !!data.employee_pullout_time);
+    || (isNearMiss
+      ? !!data.near_miss_pullout_date && !!data.near_miss_pullout_time
+      : !!data.employee_pullout_date && !!data.employee_pullout_time);
   const canProceedWithoutPullout = isInitiationStage
     ? !!(
         data.incident_date &&
@@ -366,7 +373,7 @@ export function Step2VehicleLocation({
               ? busCollisionComplete
               : isCollision && isNRV
                 ? nrvCollisionComplete
-                : isCollision && isLRV
+                : isCollision && (isLRV || data.mode === 'Streetcar')
                   ? railCollisionComplete
                   : isBus || isNRV ? data.street_on : data.train_number));
   const canProceed = nonRailPulloutComplete && canProceedWithoutPullout;

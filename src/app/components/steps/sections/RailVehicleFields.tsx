@@ -47,7 +47,7 @@ function fmtTime(value?: string) {
   return `${hour24 % 12 || 12}:${minute.padStart(2, '0')} ${hour24 >= 12 ? 'PM' : 'AM'}`;
 }
 
-export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber }: { data: AccidentReportData; showRailLine: boolean; showConsist: boolean; showCarNumber: boolean }) {
+export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber, showEndOfLineDestination = true }: { data: AccidentReportData; showRailLine: boolean; showConsist: boolean; showCarNumber: boolean; showEndOfLineDestination?: boolean }) {
   const additional = [data.lrv_consist_2, data.lrv_consist_3, data.lrv_consist_4].filter(Boolean) as string[];
   const consistCars = data.train_number ? [data.train_number, ...additional] : additional;
   const consistTotal = data.lrv_consist_count ?? consistCars.length;
@@ -57,7 +57,7 @@ export function TrainRecordCard({ data, showRailLine, showConsist, showCarNumber
     { label: 'Trip ID', value: data.train_number, glyph: 'route' },
     { label: 'Pull-out date', value: fmtDate(data.train_pullout_date), glyph: 'calendar_month' },
     { label: 'Pull-out time', value: fmtTime(data.train_pullout_time), glyph: 'schedule' },
-    { label: 'End of line destination', value: data.lrv_end_of_line, glyph: 'flag' },
+    ...(showEndOfLineDestination ? [{ label: 'End of line destination', value: data.lrv_end_of_line, glyph: 'flag' }] : []),
   ];
   return (
     <div className="dart-vehicle-strip">
@@ -105,6 +105,7 @@ interface RailVehicleFieldsProps {
   showRailLine?: boolean;
   showStatusFields?: boolean;
   showVehicleDetails?: boolean;
+  showBlock?: boolean;
   showConsist?: boolean;
   requiredVehicleNumber?: boolean;
 }
@@ -122,12 +123,13 @@ export function RailVehicleFields({
   showRailLine = RAIL_LINE_STATUSES.has(data.train_status_before || ''),
   showStatusFields = true,
   showVehicleDetails = true,
+  showBlock = true,
   showConsist = true,
   requiredVehicleNumber = true,
 }: RailVehicleFieldsProps) {
   const isStreetcar = data.mode === 'Streetcar';
   const isLRV = data.mode === 'Light Rail Vehicle';
-  const shouldShowRailLine = isLRV && showVehicleDetails && showRailLine;
+  const shouldShowRailLine = (isLRV || isStreetcar) && showVehicleDetails && showRailLine;
   const activeFleet = isStreetcar ? STREETCAR_FLEET : TRAIN_FLEET;
   const trainOptions: ComboboxOption[] = [...activeFleet]
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
@@ -136,11 +138,13 @@ export function RailVehicleFields({
   const hasTrainRecord = !!selectedTrain;
   const statusBefore = data[statusBeforeField] as string | undefined;
   const statusAfter = data[statusAfterField] as string | undefined;
-  const requiredLrvBlock = isLRV && showVehicleDetails && requiredVehicleNumber;
-  const requiredLrvRailLine = requiredLrvBlock && shouldShowRailLine;
+  const requiredLrvBlock = isLRV && showVehicleDetails && showBlock && requiredVehicleNumber;
+  const requiredRailLine = showVehicleDetails && requiredVehicleNumber && shouldShowRailLine;
   const updateStatus = (field: StatusField, value: string) => onUpdate({
     [field]: value,
-    ...(isLRV && field === statusBeforeField && !RAIL_LINE_STATUSES.has(value) ? { rail_line: undefined } : {}),
+    ...((isLRV || isStreetcar) && field === statusBeforeField
+      ? { rail_line: RAIL_LINE_STATUSES.has(value) ? selectedTrain?.railLine : undefined }
+      : {}),
   } as Partial<AccidentReportData>);
 
   const handleTrainChange = (value: string) => {
@@ -149,7 +153,7 @@ export function RailVehicleFields({
     onUpdate({
       train_number: value,
       lrv_fleet_type: train?.fleetType,
-      rail_line: train?.railLine,
+      rail_line: !statusBefore || RAIL_LINE_STATUSES.has(statusBefore) ? train?.railLine : undefined,
       block_number: undefined,
       lrv_end_of_line: train?.endOfLine,
       train_pullout_date: train?.pulloutDate,
@@ -168,7 +172,7 @@ export function RailVehicleFields({
       <AnimatePresence>
         {showVehicleDetails && hasTrainRecord && (
           <motion.div {...fade} key="train-record">
-            <TrainRecordCard data={data} showRailLine={showRailLine && !isStreetcar} showConsist={!isStreetcar} showCarNumber={false} />
+            <TrainRecordCard data={data} showRailLine={showRailLine && !isStreetcar} showConsist={!isStreetcar} showCarNumber={false} showEndOfLineDestination={showBlock} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -190,10 +194,10 @@ export function RailVehicleFields({
             emptyMessage={isStreetcar ? 'No streetcars found' : 'No LRVs found'}
           />
         </Field>
-        {isLRV && showVehicleDetails && <Field label="Block ID" required={requiredLrvBlock} error={showErrors && requiredLrvBlock && !data.block_number}>
+        {isLRV && showVehicleDetails && showBlock && <Field label="Block ID" required={requiredLrvBlock} error={showErrors && requiredLrvBlock && !data.block_number}>
           <CustomSelect value={data.block_number || ''} onChange={value => onUpdate({ block_number: value })} options={LRV_BLOCK_OPTIONS} placeholder="Select block" />
         </Field>}
-        {shouldShowRailLine && <Field label="Rail Line" required={requiredLrvRailLine} error={showErrors && requiredLrvRailLine && !data.rail_line}>
+        {shouldShowRailLine && <Field label="Rail Line" required={requiredRailLine} error={showErrors && requiredRailLine && !data.rail_line}>
           <CustomSelect value={data.rail_line || ''} onChange={value => onUpdate({ rail_line: value })} options={RAIL_LINE_OPTIONS} placeholder="Select line" />
         </Field>}
       </div>

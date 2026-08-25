@@ -185,13 +185,13 @@ function fmtTime(val?: string) {
 
 // Vehicle record pulled from the vehicle lookup — reads the live data fields each render, so
 // changing any identifier (bus number, Trip ID, Block ID) re-populates the matching values.
-export function VehicleRecordCard({ data }: { data: AccidentReportData }) {
+export function VehicleRecordCard({ data, showRouteDetails = true }: { data: AccidentReportData; showRouteDetails?: boolean }) {
   const cols = [
     { label: 'Fleet type', value: data.fleet_type, glyph: 'directions_bus' },
-    { label: 'Trip ID', value: data.trip_id, glyph: 'route' },
+    ...(showRouteDetails ? [{ label: 'Trip ID', value: data.trip_id, glyph: 'route' }] : []),
     { label: 'Pull-out date', value: fmtDate(data.employee_pullout_date), glyph: 'calendar_month' },
     { label: 'Pull-out time', value: fmtTime(data.employee_pullout_time), glyph: 'schedule' },
-    { label: 'End of line destination', value: data.end_of_line_destination, glyph: 'flag' },
+    ...(showRouteDetails ? [{ label: 'End of line destination', value: data.end_of_line_destination, glyph: 'flag' }] : []),
   ];
   return (
     <div className="dart-vehicle-strip">
@@ -219,6 +219,8 @@ export function BusVehicleFields({
   statusOptions = BUS_STATUS_OPTIONS,
   showStatusFields = true,
   showVehicleDetails = true,
+  showBlock = true,
+  showVehicleRecordOnSelection = false,
   requiredVehicleNumber = true,
 }: {
   data: AccidentReportData;
@@ -229,6 +231,8 @@ export function BusVehicleFields({
   statusOptions?: { value: string; label: string }[];
   showStatusFields?: boolean;
   showVehicleDetails?: boolean;
+  showBlock?: boolean;
+  showVehicleRecordOnSelection?: boolean;
   requiredVehicleNumber?: boolean;
 }) {
   const vehicleOptions: ComboboxOption[] = FLEET.map(bus => ({ value: bus.id, label: bus.id, description: bus.type }));
@@ -237,11 +241,12 @@ export function BusVehicleFields({
   const blockOptions = busBlocks
     .map(block => ({ value: block.block, label: block.block }))
     .sort((a, b) => a.value.localeCompare(b.value, undefined, { numeric: true }));
-  const hasVehicleRecord = !!(data.vehicle_number && data.trip_id?.trim() && data.block_number?.trim());
+  const hasVehicleRecord = !!data.vehicle_number && (showVehicleRecordOnSelection || !!(data.trip_id?.trim() && data.block_number?.trim()));
   const showRoute = BUS_ROUTE_STATUSES.has((data[statusBeforeField] as string) || '');
 
   const handleVehicleChange = (value: string) => {
     const bus = FLEET.find(item => item.id === value);
+    const defaultAssignment = bus?.trips[0]?.blocks[0];
     onUpdate({
       vehicle_number: value,
       fleet_type: bus?.type,
@@ -249,8 +254,8 @@ export function BusVehicleFields({
       route_number: undefined,
       end_of_line_destination: undefined,
       block_number: undefined,
-      employee_pullout_date: undefined,
-      employee_pullout_time: undefined,
+      employee_pullout_date: defaultAssignment?.pulloutDate,
+      employee_pullout_time: defaultAssignment?.pulloutTime,
     });
   };
   const handleBlockChange = (value: string) => {
@@ -268,7 +273,14 @@ export function BusVehicleFields({
     const match = busBlocks.find(block => block.block === data.block_number);
     onUpdate({
       [statusBeforeField]: value,
-      route_number: BUS_ROUTE_STATUSES.has(value) ? match?.trip.route : undefined,
+      ...(BUS_ROUTE_STATUSES.has(value)
+        ? { route_number: match?.trip.route }
+        : {
+            trip_id: undefined,
+            route_number: undefined,
+            end_of_line_destination: undefined,
+            block_number: undefined,
+          }),
     } as Partial<AccidentReportData>);
   };
 
@@ -277,7 +289,7 @@ export function BusVehicleFields({
       <AnimatePresence>
         {showVehicleDetails && hasVehicleRecord && (
           <motion.div {...fade} key="bus-record">
-            <VehicleRecordCard data={data} />
+            <VehicleRecordCard data={data} showRouteDetails={showBlock} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -291,7 +303,7 @@ export function BusVehicleFields({
         <Field label="Bus vehicle number" required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !data.vehicle_number}>
           <SearchableCombobox options={vehicleOptions} value={data.vehicle_number || ''} onChange={handleVehicleChange} placeholder="Search vehicle #" searchPlaceholder="Type vehicle number..." emptyMessage="No vehicles found" />
         </Field>
-        {showVehicleDetails && <>
+        {showVehicleDetails && showBlock && <>
           <Field label="Block ID" required error={showErrors && !data.block_number}>
             <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
           </Field>
@@ -338,6 +350,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
   };
 
   const hasVehicleRecord = !!(data.vehicle_number && data.trip_id?.trim() && data.block_number?.trim());
+  const showScheduleFields = BUS_ROUTE_STATUSES.has(data.bus_status_before || '');
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
@@ -345,7 +358,7 @@ export function BusCollisionSection({ data, onUpdate, compactMode = false, narra
 
       {/* 1 — The vehicle: bus number + Block ID drive the detail card; route can be adjusted when needed. */}
       <Section title="The Vehicle" help="Enter the bus number and Block ID — the route and the vehicle's assigned details are pulled in automatically. Adjust the route if needed.">
-        <BusVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} />
+        <BusVehicleFields data={data} onUpdate={onUpdate} showErrors={showErrors} showBlock={showScheduleFields} showVehicleRecordOnSelection />
       </Section>
 
       {/* 2 — What happened: the narrative + mechanics of the collision */}

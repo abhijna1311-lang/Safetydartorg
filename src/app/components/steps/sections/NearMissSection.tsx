@@ -91,6 +91,8 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
   const isObserved = data.near_miss_reason === 'Near-Miss Observed';
   const isRail = data.mode === 'Light Rail Vehicle' || data.mode === 'Streetcar';
   const nearMissStatusOptions = isRail ? NEAR_MISS_RAIL_STATUS_OPTIONS : NEAR_MISS_BUS_STATUS_OPTIONS;
+  const statusBefore = isRail ? data.train_status_before : data.bus_status_before;
+  const showBlock = statusBefore !== 'Not In Service';
   const vehicleData: AccidentReportData = {
     ...data,
     vehicle_number: data.near_miss_vehicle_number,
@@ -121,6 +123,13 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
     if ('train_status_after' in patch) nearMissPatch.train_status_after = patch.train_status_after;
     if ('bus_status_before' in patch) nearMissPatch.bus_status_before = patch.bus_status_before;
     if ('bus_status_after' in patch) nearMissPatch.bus_status_after = patch.bus_status_after;
+    const nextStatusBefore = patch.train_status_before ?? patch.bus_status_before;
+    if (nextStatusBefore === 'Not In Service') {
+      nearMissPatch.near_miss_route = undefined;
+      nearMissPatch.near_miss_run = undefined;
+      nearMissPatch.near_miss_block = undefined;
+      nearMissPatch.near_miss_end_of_line_destination = undefined;
+    }
     if ('rail_line' in patch) nearMissPatch.near_miss_rail_line = patch.rail_line;
     if ('route_number' in patch) nearMissPatch.near_miss_route = patch.route_number;
     if ('trip_id' in patch) nearMissPatch.near_miss_run = patch.trip_id;
@@ -146,6 +155,7 @@ function NearMissVehicleSection({ data, onUpdate, showErrors }: { data: Accident
       statusBeforeOptions={nearMissStatusOptions}
       statusAfterOptions={nearMissStatusOptions}
       showVehicleDetails
+      showBlock={showBlock}
       showLrvConsist={true}
       requiredVehicleNumber={!isObserved}
       help={`Select the ${data.mode || 'DART'} vehicle involved in the Near Miss. Assigned vehicle details are pulled in automatically.`}

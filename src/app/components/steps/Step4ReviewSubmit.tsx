@@ -4230,29 +4230,27 @@ export function Step4ReviewSubmit({
               )}
               {/* Classification decision */}
               <div className="border-t border-slate-100 first:border-t-0 px-6 py-6 md:px-7 md:py-7">
-                <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Classification</h3>
-                <p className="mb-5 mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Your judgment closes the case. This becomes part of the permanent record.</p>
+                <div className="mb-6">
+                  <h3 className="mb-1 text-[16px] font-semibold tracking-[-0.01em] text-[#00205B] font-['Poppins'] leading-tight">Classification</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500 font-['Poppins']">Your judgment closes the case. This becomes part of the permanent record.</p>
+                </div>
                 <div className="space-y-5">
-                  <div>
-                    <div className={FIELD_LABEL_CLASS}>Classification <span className="text-red-500">*</span></div>
-                    <CustomSelect
-                      value={data.program_manager_classification_value || ''}
-                      onChange={(value) => onUpdate({
-                        program_manager_classification_value: value as PMClassification,
-                        program_manager_classification: value,
-                      })}
-                      options={PROGRAM_MANAGER_CLASSIFICATION_OPTIONS}
-                      placeholder="Select classification decision"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.44fr)]">
+                    <div>
+                      <div className={FIELD_LABEL_CLASS}>Classification <span className="text-red-500">*</span></div>
+                      <CustomSelect
+                        value={data.program_manager_classification_value || ''}
+                        onChange={(value) => onUpdate({
+                          program_manager_classification_value: value as PMClassification,
+                          program_manager_classification: value,
+                        })}
+                        options={PROGRAM_MANAGER_CLASSIFICATION_OPTIONS}
+                        placeholder="Select classification decision"
+                      />
+                    </div>
                     <div>
                       <div className={FIELD_LABEL_CLASS}>Date classified <span className="text-red-500">*</span></div>
                       <DatePickerInput value={data.program_manager_classification_date || ''} onChange={(value) => onUpdate({ program_manager_classification_date: value })} />
-                    </div>
-                    <div>
-                      <div className={FIELD_LABEL_CLASS}>Program manager who classified</div>
-                      <p className="mt-1 text-sm font-medium text-slate-800 font-['Poppins']">{data.program_manager_classified_by_name || <span className="font-normal text-slate-400">Auto-filled on submit</span>}</p>
                     </div>
                   </div>
                   <div>
