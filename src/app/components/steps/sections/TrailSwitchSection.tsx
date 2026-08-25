@@ -67,13 +67,11 @@ export function TrailSwitchSection({ data, onUpdate, showErrors = false, headerS
 
   useEffect(() => {
     const updates: Partial<AccidentReportData> = {};
-    if (isLRV && data.trail_line_description !== data.rail_line) updates.trail_line_description = data.rail_line || undefined;
-    if (isStreetcar && data.trail_line_description !== 'Streetcar') updates.trail_line_description = 'Streetcar';
     if (isStreetcar && !data.trail_car_number && data.car_number) updates.trail_car_number = data.car_number;
     if (data.trail_employee_pullout_date !== pulloutDate) updates.trail_employee_pullout_date = pulloutDate || undefined;
     if (data.trail_employee_pullout_time !== pulloutTime) updates.trail_employee_pullout_time = pulloutTime || undefined;
     if (Object.keys(updates).length > 0) onUpdate(updates);
-  }, [data.car_number, data.employee_pullout_date, data.employee_pullout_time, data.rail_line, data.train_pullout_date, data.train_pullout_time, data.trail_employee_pullout_date, data.trail_employee_pullout_time, data.trail_line_description, isLRV, isStreetcar, onUpdate, pulloutDate, pulloutTime]);
+  }, [data.car_number, data.employee_pullout_date, data.employee_pullout_time, data.train_pullout_date, data.train_pullout_time, data.trail_employee_pullout_date, data.trail_employee_pullout_time, isStreetcar, onUpdate, pulloutDate, pulloutTime]);
 
   return (
     <div className="dart-card dart-card--surface overflow-hidden">
@@ -102,11 +100,6 @@ export function TrailSwitchSection({ data, onUpdate, showErrors = false, headerS
                 className={inputCls}
                 readOnly={!!data.car_number}
               />
-            </Field>
-          )}
-          {isStreetcar && (
-            <Field label="Line description" required>
-              <input type="text" value="Streetcar" className={inputCls} readOnly />
             </Field>
           )}
         </div>

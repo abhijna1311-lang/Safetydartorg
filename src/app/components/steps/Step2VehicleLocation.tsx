@@ -219,7 +219,7 @@ export function Step2VehicleLocation({
         if (data.assault_in_operator_driving_area === undefined) return false;
         if (data.assault_in_operator_driving_area === true && !data.operator_driving_area_security) return false;
       }
-      if (data.mode === 'Streetcar' && data.line_description !== 'Streetcar') return false;
+      if (data.mode === 'Streetcar' && data.rail_line !== 'Streetcar') return false;
       if (data.mode === 'Light Rail Vehicle' && !lrvConsistComplete) return false;
     }
     if (data.operating_dart_vehicle === false && data.assault_location === 'in_transit_vehicle' && !data.transit_vehicle_on) return false;
@@ -306,7 +306,7 @@ export function Step2VehicleLocation({
     const hasVehicle = isHiRail ? !!data.vehicle_number : !!data.train_number;
     const consistComplete = data.mode !== 'Light Rail Vehicle' || lrvConsistComplete;
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.trail_line_description));
+    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
     return !!(
       hasVehicle
       && consistComplete

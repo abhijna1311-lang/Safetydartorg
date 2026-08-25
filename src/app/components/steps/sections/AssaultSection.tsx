@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CustomSelect } from '../../CustomSelect';
 import { SearchableCombobox, type ComboboxOption } from '../../SearchableCombobox';
@@ -127,13 +127,6 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
   const isHiRail = data.mode === 'Hi-Rail';
   const isRailLike = isLRV || isStreetcar;
   const notInPossession = data.operating_dart_vehicle === false;
-
-  // Spec: Streetcar mode auto-fills Line Description to 'Streetcar' (read-only).
-  useEffect(() => {
-    if (isStreetcar && show('line_description') && data.line_description !== 'Streetcar') {
-      onUpdate({ line_description: 'Streetcar' });
-    }
-  }, [isStreetcar, data.line_description, show, onUpdate]);
 
   const vehicleStatusOptions = isLRV
     ? TRAIN_STATUS_OPTIONS

@@ -1434,7 +1434,7 @@ export function Step4ReviewSubmit({
     );
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
     const lrvDetailsComplete = !isLRV || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
-    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.trail_line_description));
+    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
     const trailPeople = data.people ?? [];
     const trailPeopleComplete = data.people_involved !== undefined
       && (data.people_involved === false || (trailPeople.length > 0 && trailPeople.every(person => (
@@ -1974,7 +1974,7 @@ export function Step4ReviewSubmit({
               { label: 'Mode', value: data.mode || '—' },
               { label: 'Vehicle number', value: data.vehicle_number || data.train_number || '—' },
               ...(data.mode === 'Streetcar' ? [{ label: 'Car number', value: data.trail_car_number || data.car_number || '—' }] : []),
-              { label: 'Line description', value: data.trail_line_description || '—' },
+              { label: 'Rail line', value: data.rail_line || '—' },
               { label: 'Switch configuration', value: data.trail_switch_configuration || '—' },
               { label: 'Switch number', value: data.trail_switch_number_known === true ? data.trail_switch_number || '—' : data.trail_switch_number_known === false ? 'Unknown' : '—' },
               { label: 'Street On', value: data.street_on || '—' },
@@ -2209,6 +2209,10 @@ export function Step4ReviewSubmit({
               { label: 'Type of event', value: data.operator_passenger_event_type || '—' },
               { label: 'Where it happened', value: data.operator_passenger_location || '—' },
               ...(data.operator_passenger_vehicle_location ? [{ label: 'Location in vehicle', value: data.operator_passenger_vehicle_location }] : []),
+              ...(data.operator_passenger_vehicle_location === 'On board' ? [
+                { label: 'Speed at time of event (mph)', value: data.operator_passenger_vehicle_speed || '—' },
+                { label: 'DART vehicle action', value: data.operator_passenger_vehicle_action || '—' },
+              ] : []),
               ...(data.operator_passenger_transit_vehicle_on ? [{ label: 'Transit vehicle ridden', value: [data.operator_passenger_transit_vehicle_on, data.operator_passenger_transit_vehicle_number, data.operator_passenger_transit_route_or_line].filter(Boolean).join(' · ') }] : []),
               { label: 'Street On', value: data.street_on || '—' },
               { label: 'Cross Street', value: data.cross_street || '—' },
@@ -2228,10 +2232,6 @@ export function Step4ReviewSubmit({
                   { label: 'Employee transported', value: data.operator_passenger_employee_transported === true ? 'Yes' : data.operator_passenger_employee_transported === false ? 'No' : '—' },
                   { label: 'Body part', value: data.operator_passenger_employee_body_part || '—' },
                 ] : []),
-              ] : []),
-              ...(data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee' && data.operator_passenger_injured_non_transit_employees !== undefined ? [
-                { label: 'Injured non-transit employees', value: formatReviewValue(data.operator_passenger_injured_non_transit_employees) },
-                { label: 'Non-transit employees transported', value: formatReviewValue(data.operator_passenger_non_transit_employees_transported) },
               ] : []),
               { label: 'Weather', value: data.weather || '—' },
               { label: 'Road / track conditions', value: data.road_conditions || '—' },

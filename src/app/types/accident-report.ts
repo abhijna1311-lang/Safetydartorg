@@ -359,6 +359,8 @@ export interface AccidentReportData {
   operator_passenger_replacement_vehicle_number?: string;
   operator_passenger_location?: string;
   operator_passenger_vehicle_location?: string;
+  operator_passenger_vehicle_speed?: string;
+  operator_passenger_vehicle_action?: string;
   operator_passenger_transit_vehicle_on?: string;
   operator_passenger_transit_vehicle_number?: string;
   operator_passenger_transit_route_or_line?: string;

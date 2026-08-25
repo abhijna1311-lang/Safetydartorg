@@ -72,18 +72,6 @@ export function OperatorPassengerPeopleImpactSection({ data, onNext, onBack, onS
                 )}
               </>
             )}
-            {hasInjuryDetails && !isEmployee && (
-              <>
-                <div>
-                  <dt className="dart-field-label">Injured non-transit employees</dt>
-                  <dd className="mt-1 text-sm text-slate-900 font-['Poppins'] dart-tabular">{value(data.operator_passenger_injured_non_transit_employees)}</dd>
-                </div>
-                <div>
-                  <dt className="dart-field-label">Non-transit employees transported</dt>
-                  <dd className="mt-1 text-sm text-slate-900 font-['Poppins'] dart-tabular">{value(data.operator_passenger_non_transit_employees_transported)}</dd>
-                </div>
-              </>
-            )}
             {data.operator_passenger_event_type === 'Passenger Self-Evacuation' && (
               <>
                 <div>
