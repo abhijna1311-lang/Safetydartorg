@@ -33,8 +33,9 @@ const PASSENGER_EVENT_TYPES = [
   'Bruises (Contusions)', 'Burns', 'Crush Injury', 'Puncture Wounds',
   'Medical Emergency (e.g., fainting, seizure, heart attack)', 'Sickness/Occupational Illness',
   'Assault on a non-employee', 'Vandalism of DART property', 'Lost Personal Item',
-  'Customer Complaint', 'Passenger Self-Evacuation',
+  'Customer Complaint',
 ].map(value => ({ value, label: value }));
+const PASSENGER_SELF_EVACUATION_OPTION = { value: 'Passenger Self-Evacuation', label: 'Passenger Self Evacuation' };
 const INJURY_EVENT_TYPES = new Set([
   'Slip, Trips, Fall', 'Sprains and Strains', 'Fractures', 'Cuts and Lacerations',
   'Bruises (Contusions)', 'Burns', 'Crush Injury', 'Puncture Wounds',
@@ -132,13 +133,12 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
   const isOnboardTransitVehicle = isInTransitVehicle && data.operator_passenger_vehicle_location === 'On board';
   const isPassengerEvent = data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee';
   const eventTypes = isPassengerEvent
-    ? PASSENGER_EVENT_TYPES.filter(option => option.value !== 'Passenger Self-Evacuation' || isLRV)
+    ? [...PASSENGER_EVENT_TYPES, PASSENGER_SELF_EVACUATION_OPTION]
     : DART_EMPLOYEE_EVENT_TYPES;
 
   useEffect(() => {
     const updates: Partial<AccidentReportData> = {};
     if (!isRail && data.line_description) updates.line_description = undefined;
-    if (data.operator_passenger_event_type === 'Passenger Self-Evacuation' && !isLRV) updates.operator_passenger_event_type = undefined;
     if (Object.keys(updates).length > 0) onUpdate(updates);
   }, [data.line_description, data.operator_passenger_event_type, isLRV, isRail, onUpdate]);
 
