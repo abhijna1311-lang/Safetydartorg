@@ -26,7 +26,7 @@ export const BUS_STATUS_OPTIONS = [
   'In Yard/Bus Lot', 'Road Test', 'Tow', 'Service Protection',
   'Special Events', 'Non-Revenue Training', 'Bus Bridge', 'Shuttle',
 ].map(v => ({ value: v, label: v }));
-export const BUS_ROUTE_STATUSES = new Set(['In Service', 'Pull In', 'Pull Out', 'Service Protection']);
+export const BUS_ROUTE_STATUSES = new Set(['In Service', 'Deadhead', 'Pull In', 'Pull Out', 'Service Protection']);
 
 const EVENT_TYPE_WITH = [
   'Collision – with Auto', 'Collision – with Pedestrian',
@@ -307,7 +307,7 @@ export function BusVehicleFields({
           <Field label="Block ID" required error={showErrors && !data.block_number}>
             <CustomSelect value={data.block_number || ''} onChange={handleBlockChange} options={blockOptions} placeholder={data.vehicle_number ? 'Select block' : 'Select bus first'} disabled={!data.vehicle_number} />
           </Field>
-          {showRoute && <Field label="Route">
+          {showRoute && <Field label="Route" required error={showErrors && !data.route_number}>
             <input type="text" value={data.route_number || ''} onChange={e => onUpdate({ route_number: e.target.value })} placeholder={data.block_number ? '—' : 'Auto-filled from block'} className="dart-input-base" />
           </Field>}
         </>}

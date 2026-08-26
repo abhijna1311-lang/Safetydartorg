@@ -93,17 +93,19 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
   const statusBefore = isBus ? data.bus_status_before : data.train_status_before;
   const lrvLineRequired = data.mode === 'Light Rail Vehicle' && RAIL_LINE_STATUSES.has(data.train_status_before || '');
   const busBlockRequired = data.bus_status_before !== 'Not In Service';
-  const lrvBlockRequired = data.train_status_before !== 'Not In Service';
+  const lrvBlockRequired = RAIL_LINE_STATUSES.has(data.train_status_before || '');
   const vehicleComplete = !isOperating || (
     isBus
       ? !!data.vehicle_number && (!busBlockRequired || !!data.block_number) && !!data.bus_status_before && !!data.bus_status_after
       : isRail
         ? !!data.train_number && !!data.train_status_before && !!data.train_status_after
-          && (data.mode === 'Streetcar' || ((!lrvBlockRequired || !!data.block_number) && (!lrvLineRequired || !!data.rail_line) && (data.lrv_consist_count ?? 0) > 0))
+          && (data.mode === 'Streetcar'
+            ? (!lrvBlockRequired || !!data.block_number)
+            : ((!lrvBlockRequired || !!data.block_number) && (!lrvLineRequired || !!data.rail_line) && (data.lrv_consist_count ?? 0) > 0))
         : isNonRail && !!data.vehicle_number
   );
   const routeComplete = !isOperating || !activeStatus(data.mode, statusBefore) || (
-    isBus ? !!data.route_number && !!data.block_number : !!data.rail_line
+    isBus ? !!data.route_number && !!data.block_number : data.mode === 'Light Rail Vehicle' ? !!data.rail_line : !!data.block_number
   );
   const baseComplete = !!(
     data.operator_passenger_event_relating_to

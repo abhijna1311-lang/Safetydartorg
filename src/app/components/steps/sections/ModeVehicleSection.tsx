@@ -1,4 +1,4 @@
-import { BusVehicleFields, BUS_STATUS_OPTIONS } from './BusCollisionSection';
+import { BusVehicleFields, BUS_ROUTE_STATUSES, BUS_STATUS_OPTIONS } from './BusCollisionSection';
 import { OperatorNonRailVehicleFields, type FleetVehicle, type StatusFieldConfig, type VehicleNumberField } from './OperatorNonRailVehicleFields';
 import { RailVehicleFields, RAIL_LINE_STATUSES, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { getVehicleStatusOptions } from './assault/assaultFlow';
@@ -73,15 +73,21 @@ export function ModeVehicleSection({
   const afterOptions = statusAfterOptions || defaultStatusOptions;
   const beforeField = statusBeforeField || (isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before');
   const afterField = statusAfterField || (isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after');
-  const showBlockForStatus = showBlock && (data[beforeField] as string | undefined) !== 'Not In Service';
+  const statusBefore = data[beforeField] as string | undefined;
+  const showBlockForStatus = showBlock && (isBus
+    ? BUS_ROUTE_STATUSES.has(statusBefore || '')
+    : isRail
+      ? RAIL_LINE_STATUSES.has(statusBefore || '')
+      : statusBefore !== 'Not In Service');
   const title = 'The Vehicle';
   const defaultHelp = isBus
     ? 'Enter the bus number and Block ID. The route and assigned vehicle details are pulled in automatically.'
     : isRail
       ? `Enter the ${isStreetcar ? 'streetcar' : 'LRV'} number. Its assigned fleet and schedule are pulled in automatically.`
       : 'Enter the vehicle number. Its assigned fleet and pull-out details are pulled in automatically.';
-  const railLine = (showRailLine ?? (isLRV && !isStreetcar))
-    && (!isLRV || RAIL_LINE_STATUSES.has(data.train_status_before || ''));
+  const railLine = isLRV
+    && (showRailLine ?? true)
+    && RAIL_LINE_STATUSES.has(statusBefore || '');
 
   if (!isBus && !isRail && !isHiRail && !isNRV) return null;
 
@@ -142,9 +148,15 @@ export function ModeVehicleFields({
   const afterOptions = statusAfterOptions || defaultStatusOptions;
   const beforeField = statusBeforeField || (isBus ? 'bus_status_before' : isRail ? 'train_status_before' : 'vehicle_status_before');
   const afterField = statusAfterField || (isBus ? 'bus_status_after' : isRail ? 'train_status_after' : 'vehicle_status_after');
-  const showBlockForStatus = showBlock && (data[beforeField] as string | undefined) !== 'Not In Service';
-  const railLine = (showRailLine ?? (isLRV && !isStreetcar))
-    && (!isLRV || RAIL_LINE_STATUSES.has(data.train_status_before || ''));
+  const statusBefore = data[beforeField] as string | undefined;
+  const showBlockForStatus = showBlock && (isBus
+    ? BUS_ROUTE_STATUSES.has(statusBefore || '')
+    : isRail
+      ? RAIL_LINE_STATUSES.has(statusBefore || '')
+      : statusBefore !== 'Not In Service');
+  const railLine = isLRV
+    && (showRailLine ?? true)
+    && RAIL_LINE_STATUSES.has(statusBefore || '');
 
   if (isBus) {
     return (

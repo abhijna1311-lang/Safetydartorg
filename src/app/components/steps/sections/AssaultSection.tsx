@@ -128,7 +128,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
   const isRailLike = isLRV || isStreetcar;
   const notInPossession = data.operating_dart_vehicle === false;
 
-  const vehicleStatusOptions = isLRV
+  const vehicleStatusOptions = isRailLike
     ? TRAIN_STATUS_OPTIONS
     : getVehicleStatusOptions(data.mode).map((s) => ({ value: s.value, label: s.label }));
   const vehicle2TypeOptions = getVehicle2TypeOptions(data.vehicle2_is_dart_vehicle);

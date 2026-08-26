@@ -13,6 +13,9 @@
  * route_number, run_number). Assault-specific fields use an assault_* prefix.
  */
 
+import { BUS_ROUTE_STATUSES } from '../BusCollisionSection';
+import { RAIL_LINE_STATUSES } from '../RailVehicleFields';
+
 // ---------- Option lists (labels match the spec verbatim) ----------
 
 export const ASSAULT_TYPES = [
@@ -88,11 +91,6 @@ export const VEHICLE_STATUSES = [
 export type VehicleStatus = (typeof VEHICLE_STATUSES)[number]['value'];
 
 /** Statuses that hide Route Number / Run Number / Line Description. */
-const NON_REVENUE_STATUSES: VehicleStatus[] = [
-  'Deadhead', 'Not In Service', 'In Yard', 'Road Test/ Test Train',
-  'Tow', 'Special Events', 'Bus Bridge', 'Shuttle',
-];
-
 export const ASSAULT_LOCATIONS = [
   { value: 'in_transit_vehicle', label: 'In transit vehicle' },
   { value: 'transit_property_revenue', label: 'On transit property (revenue train station, bus stop)' },
@@ -231,10 +229,14 @@ export function getVisibleAssaultFields(a: AssaultAnswers): Set<AssaultFieldKey>
       visible.delete('operator_driving_area_security');
     }
 
-    // Vehicle-status rule: non-revenue statuses hide route/run/line.
-    if (a.vehicle_status_before && NON_REVENUE_STATUSES.includes(a.vehicle_status_before as VehicleStatus)) {
-      (['route_number', 'run_number', 'line_description'] as const).forEach((f) => visible.delete(f));
+    // Schedule details appear only for the marked status values in each mode.
+    if (a.mode === 'Bus' && !BUS_ROUTE_STATUSES.has(a.vehicle_status_before || '')) {
+      (['route_number', 'run_number'] as const).forEach((f) => visible.delete(f));
     }
+    if (a.mode === 'Light Rail Vehicle' && !RAIL_LINE_STATUSES.has(a.vehicle_status_before || '')) {
+      visible.delete('line_description');
+    }
+    if (a.mode === 'Streetcar') visible.delete('line_description');
   }
 
   // Assault type: physical reveals Spat On + Assault Method; verbal hides them.

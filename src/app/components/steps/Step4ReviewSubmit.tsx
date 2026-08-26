@@ -1405,8 +1405,8 @@ export function Step4ReviewSubmit({
       const activeLrvStatus = RAIL_LINE_STATUSES.has(data.train_status_before || '');
       if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
       if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
-        if (data.mode === 'Light Rail Vehicle' && (!data.near_miss_block || (activeLrvStatus && !data.near_miss_rail_line))) return false;
-        if (data.mode === 'Streetcar' && !data.near_miss_rail_line) return false;
+        if (data.mode === 'Light Rail Vehicle' && (activeLrvStatus ? (!data.near_miss_block || !data.near_miss_rail_line) : false)) return false;
+        if (data.mode === 'Streetcar' && activeLrvStatus && !data.near_miss_block) return false;
       } else if ((BUS_ROUTE_STATUSES.has(data.bus_status_before || '') && !data.near_miss_route) || !data.near_miss_run || !data.near_miss_block) {
         return false;
       }
@@ -1433,9 +1433,11 @@ export function Step4ReviewSubmit({
         .every(Boolean)
     );
     const statusesComplete = isHiRail || !!(data.train_status_before && data.train_status_after);
-    const lrvDetailsComplete = !isLRV || data.train_status_before === 'Not In Service'
-      || (!!data.block_number && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
-    const lineComplete = !isLRV || (lrvDetailsComplete && (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.rail_line));
+    const lrvDetailsComplete = !isLRV
+      || (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || (!!data.block_number && !!data.rail_line));
+    const streetcarDetailsComplete = data.mode !== 'Streetcar'
+      || (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.block_number);
+    const lineComplete = lrvDetailsComplete && streetcarDetailsComplete;
     const trailPeople = data.people ?? [];
     const trailPeopleComplete = data.people_involved !== undefined
       && (data.people_involved === false || (trailPeople.length > 0 && trailPeople.every(person => (
