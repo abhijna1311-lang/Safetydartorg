@@ -294,7 +294,7 @@ export function BusVehicleFields({
         )}
       </AnimatePresence>
       <div style={{ marginTop: showVehicleDetails && hasVehicleRecord ? 26 : undefined }} className={showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5' : showVehicleDetails ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-3' : 'grid grid-cols-1 gap-[18px]'}>
-        {showStatusFields && <Field label="Status before event" required error={showErrors && !data[statusBeforeField]}>
+        {showStatusFields && <Field label="Bus Status Before Event" required error={showErrors && !data[statusBeforeField]}>
           <CustomSelect value={(data[statusBeforeField] as string) || ''} onChange={handleStatusBeforeChange} options={statusOptions} placeholder="Select status" />
         </Field>}
         {showStatusFields && <Field label="Status after event" required error={showErrors && !data[statusAfterField]}>

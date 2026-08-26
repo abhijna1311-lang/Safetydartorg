@@ -182,7 +182,7 @@ export function RailVehicleFields({
         )}
       </AnimatePresence>
 
-      <div style={{ marginTop: showVehicleDetails && hasTrainRecord ? 26 : undefined }} className={isLRV ? `grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${shouldShowRailLine ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
+      <div style={{ marginTop: showVehicleDetails && hasTrainRecord ? 26 : undefined }} className={isLRV ? `grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${shouldShowRailLine ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : isStreetcar && showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4' : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
         {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status Before Event' : 'Train status before event'} required>
           <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={statusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
         </Field>}
