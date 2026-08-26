@@ -2209,7 +2209,7 @@ export function Step4ReviewSubmit({
           <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
             {[
               { label: 'Operating a DART vehicle', value: data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—' },
-              { label: 'Event relates to', value: data.operator_passenger_event_relating_to || '—' },
+              { label: 'Event relates to', value: data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee' ? 'Non-DART Employee' : data.operator_passenger_event_relating_to || '—' },
               { label: 'Type of event', value: data.operator_passenger_event_type || '—' },
               { label: 'Where it happened', value: data.operator_passenger_location || '—' },
               ...(data.operator_passenger_vehicle_location ? [{ label: 'Location in vehicle', value: data.operator_passenger_vehicle_location }] : []),
@@ -2222,8 +2222,8 @@ export function Step4ReviewSubmit({
               { label: 'Cross Street', value: data.cross_street || '—' },
               { label: 'City', value: data.city || '—' },
               { label: 'ZIP Code', value: data.zip || '—' },
-              ...(data.operator_passenger_event_type === 'Passenger Self-Evacuation' ? [
-                { label: 'Evacuation location', value: data.operator_passenger_evacuation_location || '—' },
+              ...(data.operator_passenger_event_type === 'Passenger Self-Evacuation' && data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee' ? [
+                ...(['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '') ? [{ label: 'Evacuation location', value: data.operator_passenger_evacuation_location || '—' }] : []),
                 { label: 'Reason for evacuation', value: data.operator_passenger_evacuation_reason || '—' },
               ] : []),
               ...(data.operator_passenger_event_type === 'Transit Equipment Defect' ? [
@@ -2310,13 +2310,13 @@ export function Step4ReviewSubmit({
                 </div>
               ))}
             </div>
-            ) : <div className="mb-4">
+            ) : data.event_type === 'Operator/Passenger Events (non-collision)' && data.operator_passenger_event_relating_to === 'DART Employee' ? null : <div className="mb-4">
               <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Anyone involved?</div>
               <div className="text-sm text-slate-900 font-['Poppins']">
                 {data.people_involved === true ? 'Yes' : data.people_involved === false ? 'No' : '—'}
               </div>
             </div>}
-            {data.event_type !== 'Near Miss' && data.people_involved && data.people && data.people.length > 0 && (
+            {data.event_type !== 'Near Miss' && !(data.event_type === 'Operator/Passenger Events (non-collision)' && data.operator_passenger_event_relating_to === 'DART Employee') && data.people_involved && data.people && data.people.length > 0 && (
               <div>
                 <div className="text-xs text-slate-500 mb-2 font-['Poppins']">Other People Involved in the Event ({data.people.length})</div>
                 <div className="space-y-2">

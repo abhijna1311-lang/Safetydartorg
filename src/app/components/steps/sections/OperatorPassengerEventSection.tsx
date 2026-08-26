@@ -20,7 +20,7 @@ interface Props {
 const inputCls = 'dart-input-base';
 const RELATING_TO_OPTIONS = [
   { value: 'DART Employee', label: 'DART Employee' },
-  { value: 'Passenger/Non-Dart Employee', label: 'Passenger/Non-DART Employee' },
+  { value: 'Passenger/Non-Dart Employee', label: 'Non-DART Employee' },
 ];
 const DART_EMPLOYEE_EVENT_TYPES = [
   'Slip, Trips, Fall', 'Sprains and Strains', 'Fractures', 'Cuts and Lacerations',
@@ -46,6 +46,12 @@ const EVACUATION_REASONS = ['Safety reasons', 'Non-safety reasons'].map(value =>
 const EVENT_LOCATIONS = ['In-Transit vehicle', 'Outside/around the transit vehicle', 'Revenue facilities (Train station/Bus Stop/Transit centers)', 'Non-revenue facilities', 'Right of way', 'Street (All other locations)'].map(value => ({ value, label: value }));
 const VEHICLES_ON = ['Bus', 'Light Rail Vehicle', 'Streetcar', 'Non-Revenue Vehicle', '(Hi-Rail) On-Rail Mounted Maintenance Truck'].map(value => ({ value, label: value }));
 const VEHICLE_LOCATIONS = ['Boarding with stairs', 'Alighting with stairs', 'Boarding with a lift or ramp', 'Alighting with a lift or ramp', 'On board'].map(value => ({ value, label: value }));
+
+function isEventLocationAllowed(mode: string | undefined, location: string | undefined) {
+  if ((mode === 'Bus' || mode === 'Non-Revenue Vehicle') && location === 'Right of way') return false;
+  if (['Light Rail Vehicle', 'Streetcar', 'Hi-Rail'].includes(mode || '') && location === 'Street (All other locations)') return false;
+  return true;
+}
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
   return (
@@ -81,6 +87,9 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
   const isBus = data.mode === 'Bus';
   const isRail = data.mode === 'Light Rail Vehicle' || data.mode === 'Streetcar';
   const isNonRail = data.mode === 'Hi-Rail' || data.mode === 'Non-Revenue Vehicle';
+  const isPassengerEvent = data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee';
+  const canSelfEvacuate = isPassengerEvent;
+  const showEvacuationLocation = isPassengerEvent && isRail;
   const statusBefore = isBus ? data.bus_status_before : data.train_status_before;
   const lrvLineRequired = data.mode === 'Light Rail Vehicle' && RAIL_LINE_STATUSES.has(data.train_status_before || '');
   const busBlockRequired = data.bus_status_before !== 'Not In Service';
@@ -114,10 +123,12 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
     && vehicleComplete
     && routeComplete
   );
+  if (!isEventLocationAllowed(data.mode, data.operator_passenger_location)) return false;
   if (showVehicleSpeedAndAction && (!data.operator_passenger_vehicle_speed?.trim() || !data.operator_passenger_vehicle_action)) return false;
   if (!baseComplete) return false;
   const eventType = data.operator_passenger_event_type;
-  if (eventType === 'Passenger Self-Evacuation' && (!data.operator_passenger_evacuation_location || !data.operator_passenger_evacuation_reason)) return false;
+  if (eventType === 'Passenger Self-Evacuation' && !canSelfEvacuate) return false;
+  if (eventType === 'Passenger Self-Evacuation' && (!data.operator_passenger_evacuation_reason || (showEvacuationLocation && !data.operator_passenger_evacuation_location))) return false;
   if (eventType === 'Transit Equipment Defect' && (data.operator_passenger_defective_vehicle_exchanged === undefined || (data.operator_passenger_defective_vehicle_exchanged && !data.operator_passenger_replacement_vehicle_number?.trim()))) return false;
   if (data.operator_passenger_location === 'In-Transit vehicle' && !data.operator_passenger_vehicle_location) return false;
   if (!isOperating && data.operator_passenger_location === 'In-Transit vehicle') {
@@ -136,15 +147,35 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
   const isOnboardTransitVehicle = isInTransitVehicle && data.operator_passenger_vehicle_location === 'On board';
   const showVehicleSpeedAndAction = data.operator_passenger_event_type === 'Slip, Trips, Fall' && isOnboardTransitVehicle;
   const isPassengerEvent = data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee';
+  const canSelfEvacuate = isPassengerEvent;
+  const showEvacuationLocation = isPassengerEvent && (isLRV || isStreetcar);
+  const eventLocationOptions = EVENT_LOCATIONS.filter(({ value }) => isEventLocationAllowed(data.mode, value));
   const eventTypes = isPassengerEvent
-    ? [...PASSENGER_EVENT_TYPES, PASSENGER_SELF_EVACUATION_OPTION]
+    ? [...PASSENGER_EVENT_TYPES, ...(canSelfEvacuate ? [PASSENGER_SELF_EVACUATION_OPTION] : [])]
     : DART_EMPLOYEE_EVENT_TYPES;
 
   useEffect(() => {
     const updates: Partial<AccidentReportData> = {};
     if (!isRail && data.line_description) updates.line_description = undefined;
+    if (!showEvacuationLocation && data.operator_passenger_event_type === 'Passenger Self-Evacuation' && data.operator_passenger_evacuation_location) {
+      updates.operator_passenger_evacuation_location = undefined;
+    }
+    if (!isEventLocationAllowed(data.mode, data.operator_passenger_location)) {
+      updates.operator_passenger_location = undefined;
+      updates.operator_passenger_vehicle_location = undefined;
+      updates.operator_passenger_vehicle_speed = undefined;
+      updates.operator_passenger_vehicle_action = undefined;
+      updates.operator_passenger_transit_vehicle_on = undefined;
+      updates.operator_passenger_transit_vehicle_number = undefined;
+      updates.operator_passenger_transit_route_or_line = undefined;
+    }
+    if (!canSelfEvacuate && data.operator_passenger_event_type === 'Passenger Self-Evacuation') {
+      updates.operator_passenger_event_type = undefined;
+      updates.operator_passenger_evacuation_location = undefined;
+      updates.operator_passenger_evacuation_reason = undefined;
+    }
     if (Object.keys(updates).length > 0) onUpdate(updates);
-  }, [data.line_description, data.operator_passenger_event_type, isLRV, isRail, onUpdate]);
+  }, [canSelfEvacuate, data.line_description, data.operator_passenger_event_type, isRail, onUpdate, showEvacuationLocation]);
 
   const updateRelation = (value: string) => onUpdate({
     operator_passenger_event_relating_to: value as AccidentReportData['operator_passenger_event_relating_to'],
@@ -154,6 +185,7 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
     operator_passenger_employee_transported: undefined,
     operator_passenger_injured_non_transit_employees: undefined,
     operator_passenger_non_transit_employees_transported: undefined,
+    ...(value === 'DART Employee' ? { people_involved: undefined, people: [] } : {}),
     operator_passenger_vehicle_speed: undefined,
     operator_passenger_vehicle_action: undefined,
   });
@@ -191,19 +223,28 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
       )}
 
       <Section title="What Happened" help="Describe who the event relates to and what occurred.">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Who is this event relating to" required error={showErrors && !data.operator_passenger_event_relating_to}>
-            <CustomSelect value={data.operator_passenger_event_relating_to || ''} onChange={updateRelation} options={RELATING_TO_OPTIONS} placeholder="Select person" />
-          </Field>
-          <Field label="Type of event" required error={showErrors && !data.operator_passenger_event_type}>
-            <CustomSelect value={data.operator_passenger_event_type || ''} onChange={updateEventType} options={eventTypes} placeholder="Select event type" />
-          </Field>
-        </div>
-
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-          <BoolRow label="Where did the event take place" required error={showErrors && !data.operator_passenger_location}>
-          <CustomSelect value={data.operator_passenger_location || ''} onChange={value => onUpdate({ operator_passenger_location: value, operator_passenger_vehicle_location: undefined, operator_passenger_vehicle_speed: undefined, operator_passenger_vehicle_action: undefined, operator_passenger_transit_vehicle_on: undefined, operator_passenger_transit_vehicle_number: undefined, operator_passenger_transit_route_or_line: undefined })} options={EVENT_LOCATIONS} placeholder="Select location" />
+          <BoolRow label="Who is this event relating to" required error={showErrors && !data.operator_passenger_event_relating_to}>
+            <CustomSelect value={data.operator_passenger_event_relating_to || ''} onChange={updateRelation} options={RELATING_TO_OPTIONS} placeholder="Select person" />
           </BoolRow>
+          <BoolRow label="Where did the event take place" required error={showErrors && !data.operator_passenger_location}>
+            <CustomSelect value={data.operator_passenger_location || ''} onChange={value => onUpdate({ operator_passenger_location: value, operator_passenger_vehicle_location: undefined, operator_passenger_vehicle_speed: undefined, operator_passenger_vehicle_action: undefined, operator_passenger_transit_vehicle_on: undefined, operator_passenger_transit_vehicle_number: undefined, operator_passenger_transit_route_or_line: undefined })} options={eventLocationOptions} placeholder="Select location" />
+          </BoolRow>
+          <BoolRow label="Non-Collision Event Type" required error={showErrors && !data.operator_passenger_event_type}>
+            <CustomSelect value={data.operator_passenger_event_type || ''} onChange={updateEventType} options={eventTypes} placeholder="Select event type" />
+          </BoolRow>
+          {data.operator_passenger_event_type === 'Passenger Self-Evacuation' && (
+            <div className="divide-y divide-slate-100 bg-slate-50/60">
+              <BoolRow label="Reason for evacuation" required error={showErrors && !data.operator_passenger_evacuation_reason}>
+                <CustomSelect value={data.operator_passenger_evacuation_reason || ''} onChange={value => onUpdate({ operator_passenger_evacuation_reason: value })} options={EVACUATION_REASONS} placeholder="Select reason" />
+              </BoolRow>
+              {showEvacuationLocation && (
+                <BoolRow label="Evacuation location" required error={showErrors && !data.operator_passenger_evacuation_location}>
+                  <CustomSelect value={data.operator_passenger_evacuation_location || ''} onChange={value => onUpdate({ operator_passenger_evacuation_location: value })} options={EVACUATION_LOCATIONS} placeholder="Select location" />
+                </BoolRow>
+              )}
+            </div>
+          )}
           {isInTransitVehicle && (
             <div className="divide-y divide-slate-100 bg-slate-50/60">
               {!isOperating && (
@@ -240,35 +281,23 @@ export function OperatorPassengerEventSection({ data, onUpdate, narrativeReadOnl
               )}
             </div>
           )}
+          {data.operator_passenger_event_type === 'Transit Equipment Defect' && (
+            <div className="divide-y divide-slate-100 bg-slate-50/60">
+              <BoolRow label="Was the defective transit vehicle exchanged for a replacement vehicle?" required error={showErrors && data.operator_passenger_defective_vehicle_exchanged === undefined}>
+                <YesNoToggle value={data.operator_passenger_defective_vehicle_exchanged} onChange={value => onUpdate({ operator_passenger_defective_vehicle_exchanged: value, operator_passenger_replacement_vehicle_number: value ? data.operator_passenger_replacement_vehicle_number : undefined })} />
+              </BoolRow>
+              {data.operator_passenger_defective_vehicle_exchanged === true && (
+                <BoolRow label="What is the replacement vehicle number?" required error={showErrors && !data.operator_passenger_replacement_vehicle_number?.trim()}>
+                  <input type="text" value={data.operator_passenger_replacement_vehicle_number || ''} onChange={event => onUpdate({ operator_passenger_replacement_vehicle_number: event.target.value })} placeholder="Enter vehicle number" className={inputCls} />
+                </BoolRow>
+              )}
+            </div>
+          )}
         </div>
 
         <Field label="Description of event" required error={showErrors && !narrativeReadOnly && !data.description_of_event} helper={narrativeReadOnly ? 'Operator-owned narrative is read-only in this section.' : undefined}>
           <textarea rows={4} value={data.description_of_event || ''} onChange={narrativeReadOnly ? undefined : event => onUpdate({ description_of_event: event.target.value })} readOnly={narrativeReadOnly} placeholder="Describe what happened in your own words..." className={`${inputCls} resize-none ${narrativeReadOnly ? 'bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`} />
         </Field>
-
-        {data.operator_passenger_event_type === 'Passenger Self-Evacuation' && (
-          <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-            <BoolRow label="Evacuation location" required error={showErrors && !data.operator_passenger_evacuation_location}>
-              <CustomSelect value={data.operator_passenger_evacuation_location || ''} onChange={value => onUpdate({ operator_passenger_evacuation_location: value })} options={EVACUATION_LOCATIONS} placeholder="Select location" />
-            </BoolRow>
-            <BoolRow label="Reason for evacuation" required error={showErrors && !data.operator_passenger_evacuation_reason}>
-              <CustomSelect value={data.operator_passenger_evacuation_reason || ''} onChange={value => onUpdate({ operator_passenger_evacuation_reason: value })} options={EVACUATION_REASONS} placeholder="Select reason" />
-            </BoolRow>
-          </div>
-        )}
-
-        {data.operator_passenger_event_type === 'Transit Equipment Defect' && (
-          <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
-            <BoolRow label="Was the defective transit vehicle exchanged for a replacement vehicle?" required error={showErrors && data.operator_passenger_defective_vehicle_exchanged === undefined}>
-              <YesNoToggle value={data.operator_passenger_defective_vehicle_exchanged} onChange={value => onUpdate({ operator_passenger_defective_vehicle_exchanged: value, operator_passenger_replacement_vehicle_number: value ? data.operator_passenger_replacement_vehicle_number : undefined })} />
-            </BoolRow>
-            {data.operator_passenger_defective_vehicle_exchanged === true && (
-              <BoolRow label="What is the replacement vehicle number?" required error={showErrors && !data.operator_passenger_replacement_vehicle_number?.trim()}>
-                <input type="text" value={data.operator_passenger_replacement_vehicle_number || ''} onChange={event => onUpdate({ operator_passenger_replacement_vehicle_number: event.target.value })} placeholder="Enter vehicle number" className={inputCls} />
-              </BoolRow>
-            )}
-          </div>
-        )}
 
       </Section>
 
