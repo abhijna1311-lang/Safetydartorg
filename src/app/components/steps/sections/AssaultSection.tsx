@@ -67,7 +67,7 @@ function BoolRow({ label, required, error, children }: { label: string; required
   return (
     <div className={`flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3 ${error ? 'bg-red-50/50' : ''}`}>
       <p className={`dart-field-label sm:flex-1 ${error ? 'text-red-600' : ''}`} style={{ marginBottom: 0 }}>{label}{required && <span className="dart-req ml-1">*</span>}</p>
-      <div className={`w-full shrink-0 sm:w-72 ${error ? 'dart-field-error' : ''}`}>{children}</div>
+      <div className={`w-full shrink-0 sm:w-72 [&_.dart-seg]:grid [&_.dart-seg]:w-full ${error ? 'dart-field-error' : ''}`}>{children}</div>
     </div>
   );
 }
@@ -166,7 +166,15 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
       <Section title="What Happened" help="What happened, what led to it, and who was involved.">
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
           <BoolRow label="Where did the assault take place?" required error={showErrors && !data.assault_location}>
-            <CustomSelect value={data.assault_location || ''} onChange={(v) => onUpdate({ assault_location: v as AccidentReportData['assault_location'] })} options={ASSAULT_LOCATIONS.map((o) => ({ value: o.value, label: o.label }))} placeholder="Select" />
+            <CustomSelect
+              value={data.assault_location || ''}
+              onChange={(v) => onUpdate({
+                assault_location: v as AccidentReportData['assault_location'],
+                ...(v !== 'in_transit_vehicle' ? { assault_in_operator_driving_area: undefined, operator_driving_area_security: undefined, driver_window_assault: undefined } : {}),
+              })}
+              options={ASSAULT_LOCATIONS.map((o) => ({ value: o.value, label: o.label }))}
+              placeholder="Select"
+            />
           </BoolRow>
           <Show when={show('transit_vehicle_on')}>
             <div className="divide-y divide-slate-100 bg-slate-50/60">
@@ -196,21 +204,8 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
               </Show>
             </div>
           </Show>
-        </div>
-
-        <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
-          <textarea
-            value={data.assault_description || ''}
-            onChange={(e) => onUpdate({ assault_description: e.target.value })}
-            placeholder="Describe what happened in your own words"
-            readOnly={narrativeReadOnly}
-            rows={4}
-            className={inputCls}
-          />
-        </Field>
-
         {(show('operator_driving_area') || show('operator_driving_area_security') || show('driver_window_assault')) && (
-          <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+          <>
             {show('operator_driving_area') && (
               <BoolRow label="Did the assault take place in the operator driving area?" required>
                 <YesNoToggle
@@ -224,7 +219,7 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
             )}
             {show('operator_driving_area_security') && (
               <BoolRow label="Was the operator driving area secured from passenger access?" required>
-                <div className="w-full max-w-full sm:w-[360px]">
+                <div className="w-full">
                   <CustomSelect
                     value={data.operator_driving_area_security || ''}
                     onChange={(value) => onUpdate({ operator_driving_area_security: value as AccidentReportData['operator_driving_area_security'] })}
@@ -239,8 +234,20 @@ export function AssaultSection({ data, onUpdate, narrativeReadOnly = false, show
                 <YesNoToggle value={data.driver_window_assault} onChange={(v) => onUpdate({ driver_window_assault: v })} />
               </BoolRow>
             )}
-          </div>
+          </>
         )}
+        </div>
+
+        <Field label="Description of assault" required error={showErrors && !data.assault_description?.trim()}>
+          <textarea
+            value={data.assault_description || ''}
+            onChange={(e) => onUpdate({ assault_description: e.target.value })}
+            placeholder="Describe what happened in your own words"
+            readOnly={narrativeReadOnly}
+            rows={4}
+            className={inputCls}
+          />
+        </Field>
 
       </Section>
 

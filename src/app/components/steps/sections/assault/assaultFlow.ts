@@ -219,12 +219,17 @@ export function getVisibleAssaultFields(a: AssaultAnswers): Set<AssaultFieldKey>
     }
     if (a.mode === 'Hi-Rail' || a.mode === 'Non-Revenue Vehicle') {
       (['vehicle_status_before', 'vehicle_status_after', 'car_number', 'lrv_consist',
-        'route_number', 'run_number', 'line_description', 'operator_driving_area',
-        'operator_driving_area_security'] as const)
+        'route_number', 'run_number', 'line_description'] as const)
         .forEach((f) => visible.delete(f));
     }
 
-    if (a.assault_in_operator_driving_area !== true) visible.delete('operator_driving_area_security');
+    if (a.assault_location !== 'in_transit_vehicle') {
+      visible.delete('operator_driving_area');
+      visible.delete('operator_driving_area_security');
+      visible.delete('driver_window_assault');
+    } else if (a.assault_in_operator_driving_area !== true) {
+      visible.delete('operator_driving_area_security');
+    }
 
     // Vehicle-status rule: non-revenue statuses hide route/run/line.
     if (a.vehicle_status_before && NON_REVENUE_STATUSES.includes(a.vehicle_status_before as VehicleStatus)) {

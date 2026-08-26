@@ -211,13 +211,13 @@ export function Step2VehicleLocation({
     );
     if (!base) return false;
     if (inPossession) {
-      if (!((hideRailStatusFields || (data.vehicle_status_before && data.vehicle_status_after)) && answered(data.driver_window_assault))) return false;
+      if (data.assault_location === 'in_transit_vehicle' && !answered(data.driver_window_assault)) return false;
       if (data.mode === 'Bus' && !data.vehicle_number) return false;
       if (isLRV && data.mode !== 'Hi-Rail' && !data.train_number) return false;
       if (isLRV && !lrvDetailsComplete) return false;
       if (data.mode === 'Hi-Rail' && !data.vehicle_number) return false;
       if (isNRV && !data.vehicle_number) return false;
-      if (['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
+      if (data.assault_location === 'in_transit_vehicle' && ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
         if (data.assault_in_operator_driving_area === undefined) return false;
         if (data.assault_in_operator_driving_area === true && !data.operator_driving_area_security) return false;
       }

@@ -2110,11 +2110,13 @@ export function Step4ReviewSubmit({
                     {[data.vehicle_number, data.vehicle_status_before && `before: ${data.vehicle_status_before}`, data.vehicle_status_after && `after: ${data.vehicle_status_after}`].filter(Boolean).join(' · ') || '—'}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assaulted through driver's window</div>
-                  <div className="text-sm text-slate-900 font-['Poppins']">{data.driver_window_assault === true ? 'Yes' : data.driver_window_assault === false ? 'No' : '—'}</div>
-                </div>
-                {['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '') && (
+                {data.assault_location === 'in_transit_vehicle' && (
+                  <div>
+                    <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assaulted through driver's window</div>
+                    <div className="text-sm text-slate-900 font-['Poppins']">{data.driver_window_assault === true ? 'Yes' : data.driver_window_assault === false ? 'No' : '—'}</div>
+                  </div>
+                )}
+                {data.assault_location === 'in_transit_vehicle' && ['Bus', 'Light Rail Vehicle', 'Streetcar'].includes(data.mode || '') && (
                   <div>
                     <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assault in operator driving area</div>
                     <div className="text-sm text-slate-900 font-['Poppins']">
