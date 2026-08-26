@@ -5,7 +5,7 @@ import { ChevronDown, Check, Lock } from 'lucide-react';
 interface CustomSelectProps {
   value: string;
   onChange: (value: string) => void;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; group?: string }[];
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -29,7 +29,14 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
 
-  const sortedOptions = [...options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+  const groupOrder = new Map<string, number>();
+  options.forEach(option => {
+    if (option.group && !groupOrder.has(option.group)) groupOrder.set(option.group, groupOrder.size);
+  });
+  const sortedOptions = [...options].sort((a, b) => {
+    const groupDifference = (groupOrder.get(a.group || '') ?? -1) - (groupOrder.get(b.group || '') ?? -1);
+    return groupDifference || a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' });
+  });
   const selectedOption = sortedOptions.find(opt => opt.value === value);
 
   // Calculate portal position from the trigger button rect
@@ -81,7 +88,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
   // Scroll focused item into view
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && panelRef.current) {
-      const el = panelRef.current.children[focusedIndex] as HTMLElement;
+      const el = panelRef.current.querySelector(`[data-option-index="${focusedIndex}"]`) as HTMLElement | null;
       el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   }, [focusedIndex, isOpen]);
@@ -127,31 +134,39 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select..
           const isSelected = option.value === value;
           const isFocused  = index === focusedIndex;
           return (
-            <button
-              key={option.value}
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              onMouseEnter={() => setFocusedIndex(index)}
-              onMouseDown={e => {
-                e.preventDefault(); // prevent blur before click
-                onChange(option.value);
-                close();
-                buttonRef.current?.focus();
-              }}
-              className={`
-                w-full px-3.5 py-2.5 min-h-[38px] flex items-start gap-2.5
-                text-sm font-['Poppins'] text-left transition-colors
-                ${isSelected ? 'text-[#00205B] font-semibold bg-[#EAF1F8]' : 'text-slate-700'}
-                ${isFocused && !isSelected ? 'bg-slate-50' : ''}
-                hover:bg-slate-50
-              `}
-            >
-              <div className="w-4 h-5 flex items-center justify-center flex-shrink-0">
-                {isSelected && <Check className="w-4 h-4 text-[#00205B]" strokeWidth={2.5} />}
-              </div>
-              <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{option.label}</span>
-            </button>
+            <div key={option.value}>
+              {(index === 0 || option.group !== sortedOptions[index - 1]?.group) && option.group && (
+                <div role="presentation" className="flex items-center gap-2 px-3.5 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0078AE]">
+                  <span>{option.group}</span>
+                  <span className="h-px flex-1 bg-[#dbe4ee]" />
+                </div>
+              )}
+              <button
+                data-option-index={index}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setFocusedIndex(index)}
+                onMouseDown={e => {
+                  e.preventDefault(); // prevent blur before click
+                  onChange(option.value);
+                  close();
+                  buttonRef.current?.focus();
+                }}
+                className={`
+                  w-full px-3.5 py-2.5 min-h-[38px] flex items-start gap-2.5
+                  text-sm font-['Poppins'] text-left transition-colors
+                  ${isSelected ? 'text-[#00205B] font-semibold bg-[#EAF1F8]' : 'text-slate-700'}
+                  ${isFocused && !isSelected ? 'bg-slate-50' : ''}
+                  hover:bg-slate-50
+                `}
+              >
+                <div className="w-4 h-5 flex items-center justify-center flex-shrink-0">
+                  {isSelected && <Check className="w-4 h-4 text-[#00205B]" strokeWidth={2.5} />}
+                </div>
+                <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{option.label}</span>
+              </button>
+            </div>
           );
         })}
       </div>

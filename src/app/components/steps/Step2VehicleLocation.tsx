@@ -301,8 +301,8 @@ export function Step2VehicleLocation({
     if (['Non-Revenue Vehicle', 'Hi-Rail'].includes(data.mode || '')) return true;
     if (data.mode === 'Light Rail Vehicle') return (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || (!!data.near_miss_block && !!data.near_miss_rail_line));
     if (data.mode === 'Streetcar') return (!RAIL_LINE_STATUSES.has(data.train_status_before || '') || !!data.near_miss_block);
-    if (data.bus_status_before === 'Not In Service') return true;
-    return (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '') || !!data.near_miss_route) && !!data.near_miss_run && !!data.near_miss_block;
+    if (!BUS_ROUTE_STATUSES.has(data.bus_status_before || '')) return true;
+    return !!data.near_miss_route && !!data.near_miss_run && !!data.near_miss_block;
   })();
   const trailSwitchComplete = (() => {
     if (!isTrailSwitch) return true;

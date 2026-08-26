@@ -12,7 +12,7 @@ interface LeftNavigationProps {
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'new-report', label: 'New Safety Event', icon: FileText },
-  { id: 'drafts', label: 'Draft Cases', icon: Clock, badge: 3 },
+  { id: 'drafts', label: 'DRAFT Reports', icon: Clock, badge: 3 },
   { id: 'submissions', label: 'Safety Events History', icon: CheckCircle },
 ] as const;
 

@@ -34,7 +34,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
   const navItems = [
     { id: 'home',        label: 'Home' },
     { id: 'new-report',  label: 'New Safety Event' },
-    { id: 'drafts',      label: 'Draft Cases' },
+    { id: 'drafts',      label: 'DRAFT Reports' },
     { id: 'submissions', label: 'Safety Events History' },
   ];
 
@@ -247,7 +247,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
               <img src={dartLogo} alt="DART Logo" className="h-11 w-auto object-contain" />
               <div className="hidden sm:block w-px h-6 flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.32)' }} />
               <h1 className="hidden sm:block text-base text-[#073366] font-semibold font-['Poppins'] whitespace-nowrap">
-                DART Accident Reporting
+                DART Safety Events Reporting
               </h1>
             </div>
 

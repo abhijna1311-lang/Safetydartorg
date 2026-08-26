@@ -92,7 +92,7 @@ export function operatorPassengerEventComplete(data: AccidentReportData) {
   const showEvacuationLocation = isPassengerEvent && isRail;
   const statusBefore = isBus ? data.bus_status_before : data.train_status_before;
   const lrvLineRequired = data.mode === 'Light Rail Vehicle' && RAIL_LINE_STATUSES.has(data.train_status_before || '');
-  const busBlockRequired = data.bus_status_before !== 'Not In Service';
+  const busBlockRequired = BUS_ROUTE_STATUSES.has(data.bus_status_before || '');
   const lrvBlockRequired = RAIL_LINE_STATUSES.has(data.train_status_before || '');
   const vehicleComplete = !isOperating || (
     isBus

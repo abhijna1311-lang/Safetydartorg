@@ -109,7 +109,7 @@ export function FirePeopleImpactSection({ data, onUpdate, onNext, onBack, onSave
         </div>
       </Section>
 
-      <Section title="Other People Involved in the Event" help="Record each passenger or pedestrian involved so injury and hospital transport details are captured consistently.">
+      <Section title="DART Passengers and Pedestrians" help="Were any passengers on the DART vehicle or pedestrians injured as a result of collision?">
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
           {hasVehicleMode && (
             <BoolRow label="How many passengers were on board?">

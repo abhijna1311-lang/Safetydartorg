@@ -22,10 +22,20 @@ interface Props {
 
 // ── option lists ──────────────────────────────────────────────────────────────
 export const BUS_STATUS_OPTIONS = [
-  'In Service', 'Deadhead', 'Not In Service', 'Pull In', 'Pull Out',
-  'In Yard/Bus Lot', 'Road Test', 'Tow', 'Service Protection',
-  'Special Events', 'Non-Revenue Training', 'Bus Bridge', 'Shuttle',
-].map(v => ({ value: v, label: v }));
+  ['In Service', 'Block + Route required'],
+  ['Deadhead', 'Block + Route required'],
+  ['Not In Service', 'No Block or Route'],
+  ['Pull In', 'Block + Route required'],
+  ['Pull Out', 'Block + Route required'],
+  ['In Yard/Bus Lot', 'No Block or Route'],
+  ['Road Test', 'No Block or Route'],
+  ['Tow', 'No Block or Route'],
+  ['Service Protection', 'Block + Route required'],
+  ['Special Events', 'No Block or Route'],
+  ['Non-Revenue Training', 'No Block or Route'],
+  ['Bus Bridge', 'No Block or Route'],
+  ['Shuttle', 'No Block or Route'],
+].map(([value, group]) => ({ value, label: value, group }));
 export const BUS_ROUTE_STATUSES = new Set(['In Service', 'Deadhead', 'Pull In', 'Pull Out', 'Service Protection']);
 
 const EVENT_TYPE_WITH = [

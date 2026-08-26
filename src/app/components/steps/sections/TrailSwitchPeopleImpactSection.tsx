@@ -114,7 +114,7 @@ export function TrailSwitchPeopleImpactSection({ data, onUpdate, onNext, onBack,
           </div>
         </Section>
 
-        <Section title="Other People Involved in the Event" help="Record each passenger or pedestrian involved so injury and hospital transport details are captured consistently.">
+        <Section title="DART Passengers and Pedestrians" help="Were any passengers on the DART vehicle or pedestrians injured as a result of collision?">
           <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
             <BoolRow label="How many passengers were on board?">
               <input type="number" min={0} inputMode="numeric" value={data.passengers_on_board ?? ''} onChange={event => onUpdate({ passengers_on_board: event.target.value === '' ? undefined : Math.max(0, Number(event.target.value) || 0) })} placeholder="Enter count" className="dart-input-base w-full text-center sm:w-24" />

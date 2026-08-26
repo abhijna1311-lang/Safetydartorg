@@ -1407,7 +1407,8 @@ export function Step4ReviewSubmit({
       if (['Light Rail Vehicle', 'Streetcar'].includes(data.mode || '')) {
         if (data.mode === 'Light Rail Vehicle' && (activeLrvStatus ? (!data.near_miss_block || !data.near_miss_rail_line) : false)) return false;
         if (data.mode === 'Streetcar' && activeLrvStatus && !data.near_miss_block) return false;
-      } else if ((BUS_ROUTE_STATUSES.has(data.bus_status_before || '') && !data.near_miss_route) || !data.near_miss_run || !data.near_miss_block) {
+      } else if (BUS_ROUTE_STATUSES.has(data.bus_status_before || '')
+        && (!data.near_miss_route || !data.near_miss_run || !data.near_miss_block)) {
         return false;
       }
     }

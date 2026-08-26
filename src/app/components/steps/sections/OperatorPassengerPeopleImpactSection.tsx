@@ -91,7 +91,7 @@ export function OperatorPassengerPeopleImpactSection({ data, onUpdate, onNext, o
         )}
 
         {!isDartEmployee && (
-          <Section title="Other People Involved in the Event" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
+          <Section title="DART Passengers and Pedestrians" help="Were any passengers on the DART vehicle or pedestrians injured as a result of collision?">
             <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.people_involved === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
               <BoolRow label="Was anyone else involved in this event?" required error={showErrors && data.people_involved === undefined}>
                 <YesNoToggle value={data.people_involved} onChange={value => onUpdate({ people_involved: value, people: value ? people : [] })} />

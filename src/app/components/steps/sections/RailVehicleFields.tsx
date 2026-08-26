@@ -19,6 +19,15 @@ export const RAIL_LINE_STATUSES = new Set(['In Service', 'Deadhead', 'Pull in', 
 const RAIL_LINE_OPTIONS = toOptions(['Blue', 'Green', 'Orange', 'Red']);
 const LRV_BLOCK_OPTIONS = toOptions(['BLK-101', 'BLK-102', 'BLK-103', 'BLK-104', 'BLK-105']);
 
+function groupedRailStatusOptions(options: { value: string; label: string }[], isStreetcar: boolean) {
+  return options.map(option => ({
+    ...option,
+    group: RAIL_LINE_STATUSES.has(option.value)
+      ? isStreetcar ? 'Block required' : 'Block + Rail Line required'
+      : isStreetcar ? 'No Block' : 'No Block or Rail Line',
+  }));
+}
+
 export const TRAIN_FLEET = [
   { id: 'T-2045', fleetType: 'KIN – Kinki Sharyo USA 1996', railLine: 'Blue', endOfLine: 'UNT Dallas', pulloutDate: '2026-07-24', pulloutTime: '05:10', cars: ['2101', '2102'] },
   { id: 'T-2088', fleetType: 'KIN – Kinki Sharyo USA 2005', railLine: 'Red', endOfLine: 'Westmoreland', pulloutDate: '2026-07-24', pulloutTime: '04:55', cars: ['2140'] },
@@ -142,6 +151,8 @@ export function RailVehicleFields({
   const shouldShowBlock = (isLRV || isStreetcar) && showVehicleDetails && showBlock && statusShowsScheduleDetails;
   const requiredRailBlock = shouldShowBlock && requiredVehicleNumber;
   const requiredRailLine = isLRV && showVehicleDetails && requiredVehicleNumber && shouldShowRailLine && statusShowsScheduleDetails;
+  const groupedStatusBeforeOptions = groupedRailStatusOptions(statusBeforeOptions, isStreetcar);
+  const groupedStatusAfterOptions = groupedRailStatusOptions(statusAfterOptions, isStreetcar);
   const updateStatus = (field: StatusField, value: string) => onUpdate({
     [field]: value,
     ...(field === statusBeforeField && !RAIL_LINE_STATUSES.has(value) ? { block_number: undefined } : {}),
@@ -184,10 +195,10 @@ export function RailVehicleFields({
 
       <div style={{ marginTop: showVehicleDetails && hasTrainRecord ? 26 : undefined }} className={isLRV ? `grid grid-cols-1 gap-[18px] sm:grid-cols-2 ${shouldShowRailLine ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : isStreetcar && showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4' : showStatusFields ? 'grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-[18px] sm:grid-cols-2'}>
         {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status Before Event' : 'Train status before event'} required>
-          <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={statusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
+          <CustomSelect value={statusBefore || ''} onChange={value => updateStatus(statusBeforeField, value)} options={groupedStatusBeforeOptions} placeholder={statusBeforePlaceholder} disabled={statusBeforeDisabled} />
         </Field>}
         {showStatusFields && <Field label={isStreetcar ? 'Streetcar Status After Event' : 'Train status after event'} required>
-          <CustomSelect value={statusAfter || ''} onChange={value => updateStatus(statusAfterField, value)} options={statusAfterOptions} placeholder="Select status" />
+          <CustomSelect value={statusAfter || ''} onChange={value => updateStatus(statusAfterField, value)} options={groupedStatusAfterOptions} placeholder="Select status" />
         </Field>}
         <Field label={isStreetcar ? 'Streetcar Number Involved in the Event' : 'LRV number involved in event'} required={requiredVehicleNumber} error={showErrors && requiredVehicleNumber && !data.train_number}>
           <SearchableCombobox

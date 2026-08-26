@@ -400,7 +400,7 @@ export function Step3PeopleImpact({
               </Section>
 
               {/* 2 — Other people involved in the event */}
-              <Section title="Other People Involved in the Event" help="Record passengers and pedestrians involved so follow-up and care can be handled properly.">
+              <Section title="DART Passengers and Pedestrians" help="Were any passengers on the DART vehicle or pedestrians injured as a result of collision?">
                 <div className={`overflow-hidden rounded-xl border bg-white divide-y divide-slate-100 ${showErrors && data.people_involved === undefined ? 'border-red-300' : 'border-slate-200/70'}`}>
                   {(
                     <BoolRow label="How many passengers were on board?">
