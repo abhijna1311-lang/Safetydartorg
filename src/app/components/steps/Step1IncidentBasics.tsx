@@ -414,6 +414,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (!hasEventType) missing.push('event type');
   if (!hasIncidentDate) missing.push('incident date');
   if (!hasIncidentTime) missing.push('incident time');
+  if (!hasEmployee) missing.push('employee information');
   if (isTrailSwitchEvent && !trailDerailmentAnswered) missing.push('derailment question');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
