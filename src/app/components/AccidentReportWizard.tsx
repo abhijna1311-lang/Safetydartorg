@@ -1021,7 +1021,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
 
   // Station Supervisor: read-only acknowledgment view. Runs in parallel with
   // Field Supervisor / SPM review and does not gate the workflow.
-  if (roleConfig.role === 'Station Supervisor') {
+  if (roleConfig.role === 'Station Supervisor' && initialReport) {
     const ackAlreadyOnFile = stationSupervisorAck?.status === 'acknowledged';
     const handleStationSupervisorAcknowledge = (note: string) => {
       const timestamp = new Date().toISOString();
@@ -1064,7 +1064,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       {/* Assistant Manager Review — a lightweight "middle reviewer" flow.
           AM has no form fields of their own; they read what the Field Supervisor
           (and Operator) filed, then pick one of three CSV-defined actions. */}
-      {roleConfig.role === 'Assistant Manager' ? (
+      {roleConfig.role === 'Assistant Manager' && initialReport ? (
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 flex-1 w-full">
           <div className="max-w-[1600px] mx-auto">
             <div className="mb-8">
