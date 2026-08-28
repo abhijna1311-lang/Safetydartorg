@@ -155,17 +155,25 @@ export function Step3PeopleImpact({
       && (person.role !== 'Passenger' || !person.injured || person.courtesy_card !== undefined));
     return passengerComplete && pedestrianComplete && genderComplete && injuryComplete && followUpComplete;
   };
-  const vehicleComplete = (vehicle: NonNullable<AccidentReportData['other_vehicles']>[number]) => (
-    vehicle.occupants !== undefined
-    && ((vehicle.occupants || 0) < 1 || (
-      vehicle.fatalities !== undefined
-      && (isHiRail || (vehicle.injuries !== undefined && vehicle.fled !== undefined
-      && ((vehicle.injuries || 0) < 1 || vehicle.transported !== undefined)))
-    ))
-    && vehicle.dart_dart !== undefined && !!vehicle.vehicle_type && !!vehicle.action
-    && !!vehicle.point_of_impact && !!vehicle.direction && vehicle.damage !== undefined
-    && (!vehicle.damage || (Array.isArray(vehicle.damage_area) && vehicle.damage_area.length > 0))
-  );
+  const vehicleComplete = (vehicle: NonNullable<AccidentReportData['other_vehicles']>[number]) => {
+    const injuries = vehicle.injuries ?? 0;
+    const injuredOccupants = vehicle.injured_occupants ?? [];
+    const injuredOccupantsComplete = injuries < 1 || (
+      injuredOccupants.length === injuries
+      && injuredOccupants.every(occupant => !!occupant.gender && !!occupant.transported)
+    );
+    const occupantsComplete = (vehicle.occupants ?? 0) < 1 || isHiRail || (
+      vehicle.injuries !== undefined
+      && vehicle.fled !== undefined
+      && injuredOccupantsComplete
+    );
+
+    return vehicle.occupants !== undefined
+      && occupantsComplete
+      && vehicle.dart_dart !== undefined && !!vehicle.vehicle_type && !!vehicle.action
+      && !!vehicle.point_of_impact && !!vehicle.direction && vehicle.damage !== undefined
+      && (!vehicle.damage || (Array.isArray(vehicle.damage_area) && vehicle.damage_area.length > 0));
+  };
   const operatorAnswered = isHiRail || (data.operator_injured !== undefined
     && (!data.operator_injured || (!!data.operator_injured_body_part && data.operator_transported !== undefined)));
   // Assault: employee injury/response plus the complete per-perpetrator card list.

@@ -78,6 +78,12 @@ const INITIATING_SUPERVISOR_STEPS = [
   { number: 4, title: 'Review' },
 ];
 
+const SIGNAL_VIOLATION_STEPS = [
+  { number: 1, title: 'Incident Basics' },
+  { number: 2, title: 'Incident Details' },
+  { number: 3, title: 'Review' },
+];
+
 function getWorkflowStageForSection(sectionKey: WorkflowSectionKey): WorkflowStage {
   switch (sectionKey) {
     case 'supervisor':
@@ -188,6 +194,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   // A PM who INITIATES a case fills the case intake (Incident Basics) only; their own section is
   // completed on the return trip after the operator/supervisor sections are done.
   const isInitiatingPM = roleConfig.role === 'Program Manager' && !isAssignedSectionFlow && activeSectionKey === 'programManager';
+  const isSignalViolationEvent = formData.event_type === 'Signal Violation';
   const operatorSectionStatus = sections.operator.status;
   const isOperatorSectionEditableByCurrentRole = activeSectionKey === 'operator' && ['pending', 'in-progress', 'returned'].includes(operatorSectionStatus);
   const isOperatorNarrativeLocked = !isOperatorSectionEditableByCurrentRole;
@@ -232,8 +239,12 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     Boolean(assignedSectionSteps && assignedSectionSteps.length > 1)
     && !isCaseRejected
   ));
-  const currentStepperStep = isAssignedSectionFlow ? Math.min(currentStep, assignedSectionSteps?.length || 1) : currentStep;
-  const sectionStepperSteps = isInitiatingSupervisor ? INITIATING_SUPERVISOR_STEPS : assignedSectionSteps;
+  const currentStepperStep = isAssignedSectionFlow
+    ? Math.min(currentStep, assignedSectionSteps?.length || 1)
+    : isSignalViolationEvent && currentStep >= 4 ? 3 : currentStep;
+  const sectionStepperSteps = isInitiatingSupervisor
+    ? INITIATING_SUPERVISOR_STEPS
+    : assignedSectionSteps || (isSignalViolationEvent ? SIGNAL_VIOLATION_STEPS : undefined);
   const activeAssignedStepTitle = assignedSectionSteps?.find((step) => step.number === currentStepperStep)?.title;
   // Return-for-correction routing:
   // - Operator sections lock on submit; no reviewer can send them back.
@@ -306,6 +317,18 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
       setReturnTargetSection(returnableSections[0]);
     }
   }, [returnTargetSection, returnableSections]);
+
+  useEffect(() => {
+    if (!isAssignedSectionFlow && isSignalViolationEvent && currentStep === 3) {
+      setCurrentStep(4);
+    }
+  }, [currentStep, isAssignedSectionFlow, isSignalViolationEvent]);
+
+  useEffect(() => {
+    if (!isAssignedSectionFlow && isSignalViolationEvent && currentStep === 3) {
+      setCurrentStep(4);
+    }
+  }, [currentStep, isAssignedSectionFlow, isSignalViolationEvent]);
 
   const persistReport = ({
     nextSections,
@@ -414,21 +437,22 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
     if (!guardAgainstPossibleDuplicate()) return;
     const maxStep = 4;
     if (currentStep < maxStep) {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep((prev) => !isAssignedSectionFlow && isSignalViolationEvent && prev === 2 ? 4 : prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep((prev) => !isAssignedSectionFlow && isSignalViolationEvent && prev === 4 ? 2 : prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleStepClick = (step: number) => {
-    if (step <= currentStep) {
-      setCurrentStep(step);
+    const targetStep = !isAssignedSectionFlow && isSignalViolationEvent && step === 3 ? 4 : step;
+    if (targetStep <= currentStep) {
+      setCurrentStep(targetStep);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -1307,7 +1331,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                 />
               )}
 
-              {!isAssignedSectionFlow && !isInitiatingSupervisor && currentStep === 3 && (
+              {!isAssignedSectionFlow && !isInitiatingSupervisor && currentStep === 3 && !isSignalViolationEvent && (
                 <Step3PeopleImpact
                   data={formData}
                   onUpdate={handleUpdate}
@@ -1321,7 +1345,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                 />
               )}
 
-              {!isAssignedSectionFlow && !isInitiatingSupervisor && currentStep === 4 && (
+              {!isAssignedSectionFlow && !isInitiatingSupervisor && (currentStep === 4 || (isSignalViolationEvent && currentStep === 3)) && (
                 <Step4ReviewSubmit
                   data={formData}
                   onUpdate={handleUpdate}
@@ -1340,6 +1364,8 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   initiatedBy={initiatedBy}
                   handoffNote={handoffNote}
                   canReturn={false}
+                  stepNumber={isSignalViolationEvent ? 3 : 4}
+                  totalSteps={isSignalViolationEvent ? 3 : 4}
                   onJumpToStep={(step) => {
                     setCurrentStep(step);
                     window.scrollTo({ top: 0, behavior: 'smooth' });

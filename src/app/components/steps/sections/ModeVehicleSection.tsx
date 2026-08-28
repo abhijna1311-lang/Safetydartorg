@@ -23,6 +23,7 @@ type Props = {
   showBlock?: boolean;
   showLrvConsist?: boolean;
   requiredVehicleNumber?: boolean;
+  fluidLayout?: boolean;
   help?: string;
   vehicleNumberField?: VehicleNumberField;
   nonRailFleet?: FleetVehicle[];
@@ -56,6 +57,7 @@ export function ModeVehicleSection({
   showBlock = true,
   showLrvConsist = true,
   requiredVehicleNumber = true,
+  fluidLayout = false,
   help,
   vehicleNumberField,
   nonRailFleet,
@@ -109,6 +111,7 @@ export function ModeVehicleSection({
         showBlock={showBlockForStatus}
         showLrvConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
+        fluidLayout={fluidLayout}
         vehicleNumberField={vehicleNumberField}
         nonRailFleet={nonRailFleet}
       />
@@ -132,6 +135,7 @@ export function ModeVehicleFields({
   showBlock = true,
   showLrvConsist = true,
   requiredVehicleNumber = true,
+  fluidLayout = false,
   vehicleNumberField,
   nonRailFleet,
 }: Omit<Props, 'help'>) {
@@ -193,6 +197,7 @@ export function ModeVehicleFields({
         showBlock={showBlockForStatus}
         showConsist={showLrvConsist}
         requiredVehicleNumber={requiredVehicleNumber}
+        fluidLayout={fluidLayout}
       />
     );
   }

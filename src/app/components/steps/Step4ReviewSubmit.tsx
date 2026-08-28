@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Bus, Car, CheckCircle2, ChevronDown, Download, Edit, FileText, PauseCircle, ShieldCheck, Train, TramFront, Truck, Upload, X } from 'lucide-react';
+import { AlertTriangle, Bus, CalendarDays, Car, CheckCircle2, ChevronDown, ClipboardCheck, Download, Edit, FileText, MapPin, Paperclip, PauseCircle, ShieldCheck, Train, TramFront, Truck, Upload, Users, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepContainer } from '../StepContainer';
 import { GlassButton } from '../GlassButton';
@@ -565,6 +565,73 @@ function formatReviewValue(value: string | number | boolean | null | undefined) 
   }
 
   return String(value);
+}
+
+type ReviewDataItem = {
+  label: string;
+  value: string | number | boolean | null | undefined;
+  wide?: boolean;
+};
+
+function ReviewSectionCard({
+  section,
+  title,
+  icon,
+  onEdit,
+  children,
+}: {
+  section: string;
+  title: string;
+  icon: ReactNode;
+  onEdit?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="dart-card dart-card--surface overflow-hidden">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 bg-white px-5 py-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+            {icon}
+          </span>
+          <div className="min-w-0">
+            <p className="dart-eyebrow mb-0.5">{section}</p>
+            <h3 className="dart-h3 truncate">{title}</h3>
+          </div>
+        </div>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            title={`Edit ${title}`}
+            className="dart-action-link dart-press inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
+          >
+            <Edit className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ReviewDataGrid({ items }: { items: ReviewDataItem[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200/70 sm:grid-cols-2">
+      {items.map((item) => {
+        const value = formatReviewValue(item.value);
+        const isEmpty = value === 'Not entered';
+        return (
+          <div key={item.label} className={`min-h-[76px] bg-white px-4 py-3.5 ${item.wide ? 'sm:col-span-2' : ''}`}>
+            <div className="mb-1 text-[11px] font-semibold text-slate-500 font-['Poppins']">{item.label}</div>
+            <div className={`text-sm leading-relaxed font-['Poppins'] whitespace-pre-line ${isEmpty ? 'text-slate-400' : 'font-medium text-slate-900'}`}>
+              {value}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function railLocationShowsStation(category: string) {
@@ -1838,99 +1905,92 @@ export function Step4ReviewSubmit({
           </div>
         )}
 
+        {showInlineReferenceSummaries && (
+          <section className="dart-card dart-card--primary overflow-hidden">
+            <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="flex min-w-0 items-center gap-4">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
+                  <FileText className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="dart-eyebrow mb-1">Report Snapshot</p>
+                  <h3 className="dart-h2 truncate">{data.event_type || 'Safety Event'}</h3>
+                  <p className="dart-caption mt-1">Review the report details before choosing the next workflow action.</p>
+                </div>
+              </div>
+              <span className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 font-['Poppins']">
+                <ClipboardCheck className="h-3.5 w-3.5" />
+                Final Check
+              </span>
+            </div>
+            <div className="grid border-t border-slate-200/80 bg-slate-50/70 sm:grid-cols-3">
+              {[
+                { label: 'Vehicle Mode', value: data.mode, icon: data.mode === 'Bus' ? <Bus className="h-4 w-4" /> : data.mode === 'Streetcar' ? <TramFront className="h-4 w-4" /> : data.mode === 'Hi-Rail' ? <Truck className="h-4 w-4" /> : data.mode === 'Non-Revenue Vehicle' ? <Car className="h-4 w-4" /> : <Train className="h-4 w-4" /> },
+                { label: 'Date And Time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : undefined, icon: <CalendarDays className="h-4 w-4" /> },
+                { label: 'Location', value: data.event_type === 'Near Miss' ? [data.near_miss_street_on, data.near_miss_city].filter(Boolean).join(', ') || undefined : [data.street_on || data.address_of_event || data.fire_address, data.city].filter(Boolean).join(', ') || undefined, icon: <MapPin className="h-4 w-4" /> },
+              ].map((item) => (
+                <div key={item.label} className="flex min-w-0 items-start gap-3 border-b border-slate-200/80 px-5 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+                  <span className="mt-0.5 text-slate-500">{item.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-slate-500 font-['Poppins']">{item.label}</p>
+                    <p className={`mt-0.5 truncate text-sm font-medium font-['Poppins'] ${item.value ? 'text-slate-900' : 'text-slate-400'}`}>{item.value || 'Not entered'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Incident Basics Summary */}
         {showInlineReferenceSummaries && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Incident basics</h4>
-            <button
-              onClick={() => onJumpToStep(1)}
-              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-            >
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
+        <ReviewSectionCard section="Section 01" title="Incident Basics" icon={<ClipboardCheck className="h-4 w-4" />} onEdit={() => onJumpToStep(1)}>
+          <div className="p-5 sm:p-6">
+            <ReviewDataGrid items={[
+              { label: 'Vehicle Mode', value: data.mode },
+              { label: 'Event Type', value: data.event_type },
+              { label: 'Service Status', value: data.service_status_at_time },
+              { label: 'Incident Date And Time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : undefined },
+            ]} />
           </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Mode</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.mode || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Event type</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.event_type || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Service status</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.service_status_at_time || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Incident date & time</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">
-                {data.incident_date && data.incident_time
-                    ? `${data.incident_date} at ${data.incident_time}`
-                  : '—'
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {/* Incident Details Summary */}
-        {showInlineReferenceSummaries && data.event_type !== 'Near Miss' && !isTrailSwitch && !isOperatorPassengerEvent && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Incident details</h4>
-            <button
-              onClick={() => onJumpToStep(2)}
-              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-            >
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
+        {showInlineReferenceSummaries && !['Near Miss', 'Assault (Verbal or Physical)', 'Fire'].includes(data.event_type || '') && !isTrailSwitch && !isOperatorPassengerEvent && (
+        <ReviewSectionCard section="Section 02" title={data.event_type === 'Signal Violation' ? 'Signal Violation Details' : 'Incident Details'} icon={<MapPin className="h-4 w-4" />} onEdit={() => onJumpToStep(2)}>
+          <div className="p-5 sm:p-6">
+            {data.event_type === 'Signal Violation' ? (
+              <ReviewDataGrid items={[
+                { label: 'Territory', value: data.signal_territory },
+                { label: 'Location', value: [data.street_on || data.address_of_event, data.cross_street, data.city, data.zip].filter(Boolean).join(', ') || undefined },
+                { label: data.mode === 'Streetcar' ? 'Streetcar Number' : 'LRV Number', value: data.train_number || data.car_number },
+                { label: 'Fleet Type', value: data.lrv_fleet_type || data.fleet_type },
+                { label: data.mode === 'Streetcar' ? 'Streetcar Status Before Event' : 'Train Status Before Event', value: data.train_status_before },
+                { label: data.mode === 'Streetcar' ? 'Streetcar Status After Event' : 'Train Status After Event', value: data.train_status_after },
+                ...(data.block_number ? [{ label: 'Block ID', value: data.block_number }] : []),
+                ...(data.rail_line ? [{ label: 'Rail Line', value: data.rail_line }] : []),
+                { label: 'Signal Number', value: data.signal_number },
+                { label: 'Signal Displaying Properly', value: data.signal_displaying_properly === 'yes' ? 'Yes' : data.signal_displaying_properly === 'no' ? 'No' : data.signal_displaying_properly === 'not_observed' ? 'Not Observed' : undefined },
+                { label: 'Life-Safety Evacuation', value: data.evacuation_life_safety },
+                { label: 'Description Of Event', value: data.description_of_event, wide: true },
+              ]} />
+            ) : (
+              <ReviewDataGrid items={[
+                { label: 'Vehicle Number', value: data.vehicle_number || data.train_number || data.car_number },
+                { label: 'Fleet Type', value: data.fleet_type || data.lrv_fleet_type },
+                { label: 'Assigned Route', value: data.assigned_route || data.route_number || data.rail_line },
+                { label: 'Operating Route', value: data.operating_route || data.route_number || data.rail_line },
+                { label: 'Location Type', value: data.location_type || data.location_category },
+                { label: 'City / County', value: data.city || data.county ? `${data.city || ''}${data.city && data.county ? ', ' : ''}${data.county || ''}` : undefined },
+              ]} />
+            )}
           </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Vehicle number</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.vehicle_number || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Fleet type</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.fleet_type || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Assigned route</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.assigned_route || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Operating route</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.operating_route || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Location type</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">{data.location_type || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1 font-['Poppins']">City / County</div>
-              <div className="text-sm text-slate-900 font-['Poppins']">
-                {data.city || data.county 
-                  ? `${data.city || ''}${data.city && data.county ? ', ' : ''}${data.county || ''}`
-                  : '—'
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {showInlineReferenceSummaries && isNearMiss && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Near Miss details</h4>
-            <button onClick={() => onJumpToStep(2)} className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"><Edit className="w-3 h-3" />Edit</button>
-          </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+        <ReviewSectionCard section="Section 02" title="Near Miss Details" icon={<MapPin className="h-4 w-4" />} onEdit={() => onJumpToStep(2)}>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 sm:p-6">
             {[
               { label: 'Description of Near Miss', value: data.near_miss_description || '—', wide: true },
               { label: 'Date / time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : '—' },
@@ -1960,18 +2020,14 @@ export function Step4ReviewSubmit({
               { label: 'Traffic conditions', value: data.near_miss_traffic_conditions || '—' },
               { label: 'Traffic controls', value: data.near_miss_traffic_controls || '—' },
               { label: 'Roadway configuration', value: data.near_miss_roadway_configuration || '—' },
-            ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
+            ].map(item => <div key={item.label} className={item.wide ? 'sm:col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {showInlineReferenceSummaries && isTrailSwitch && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Trail a Switch details</h4>
-            <button onClick={() => onJumpToStep(2)} className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"><Edit className="w-3 h-3" />Edit</button>
-          </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+        <ReviewSectionCard section="Section 02" title="Trail A Switch Details" icon={<MapPin className="h-4 w-4" />} onEdit={() => onJumpToStep(2)}>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 sm:p-6">
             {[
               { label: 'Description of event', value: data.trail_description || '—', wide: true },
               { label: 'Date / time', value: data.incident_date && data.incident_time ? `${data.incident_date} at ${data.incident_time}` : '—' },
@@ -1994,26 +2050,16 @@ export function Step4ReviewSubmit({
               { label: 'Road / track conditions', value: data.road_conditions || '—' },
               { label: 'Lighting conditions', value: data.lighting_conditions || '—' },
               { label: 'Traffic controls', value: data.traffic_controls || '—' },
-            ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
+            ].map(item => <div key={item.label} className={item.wide ? 'sm:col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {/* Assault summary — replaces the collision-shaped "Incident details" block for assault events,
             so the review shows what the operator actually answered. */}
         {showInlineReferenceSummaries && data.event_type === 'Assault (Verbal or Physical)' && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Assault details</h4>
-            <button
-              onClick={() => onJumpToStep(2)}
-              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-            >
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
-          </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+        <ReviewSectionCard section="Section 02" title="Assault Details" icon={<MapPin className="h-4 w-4" />} onEdit={() => onJumpToStep(2)}>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 sm:p-6">
             <div>
               <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Operating a DART vehicle</div>
               <div className="text-sm text-slate-900 font-['Poppins']">{data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—'}</div>
@@ -2034,13 +2080,13 @@ export function Step4ReviewSubmit({
               </div>
             </div>
             {data.assault_involves === 'customer_assaulted_worker' && (
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <div className="text-xs text-slate-500 mb-3 font-['Poppins']">Perpetrators</div>
                 <div className="space-y-3">
                   {(data.assault_perpetrators ?? []).map((perpetrator, index) => (
                     <div key={perpetrator.id} className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
                       <div className="mb-3 text-sm font-semibold text-slate-900 font-['Poppins']">Perpetrator {index + 1}</div>
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                         <div>
                           <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Who assaulted the employee</div>
                           <div className="text-sm text-slate-900 font-['Poppins']">
@@ -2150,27 +2196,17 @@ export function Step4ReviewSubmit({
                 ].filter(Boolean).join(' · ') || '—'}
               </div>
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <div className="text-xs text-slate-500 mb-1 font-['Poppins']">Description of assault</div>
               <div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{data.assault_description || '—'}</div>
             </div>
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {showInlineReferenceSummaries && data.event_type === 'Fire' && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Fire details</h4>
-            <button
-              onClick={() => onJumpToStep(2)}
-              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-            >
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
-          </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+        <ReviewSectionCard section="Section 02" title="Fire Details" icon={<MapPin className="h-4 w-4" />} onEdit={() => onJumpToStep(2)}>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 sm:p-6">
             {[
               { label: 'Operating a DART vehicle', value: data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—' },
               { label: 'Type of event', value: data.fire_type || '—' },
@@ -2194,22 +2230,18 @@ export function Step4ReviewSubmit({
               { label: 'Streetlights', value: data.streetlights || '—' },
               { label: 'Description of fire', value: data.description_of_event || '—' },
             ].map(item => (
-              <div key={item.label} className={item.label === 'Description of fire' ? 'col-span-2' : undefined}>
+              <div key={item.label} className={item.label === 'Description of fire' ? 'sm:col-span-2' : undefined}>
                 <div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div>
                 <div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div>
               </div>
             ))}
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {showInlineReferenceSummaries && isOperatorPassengerEvent && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Operator / passenger event details</h4>
-            <button onClick={() => onJumpToStep(2)} className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"><Edit className="w-3 h-3" />Edit</button>
-          </div>
-          <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
+        <ReviewSectionCard section="Section 02" title="Operator / Passenger Event Details" icon={<MapPin className="h-4 w-4" />} onEdit={() => onJumpToStep(2)}>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 sm:p-6">
             {[
               { label: 'Operating a DART vehicle', value: data.operating_dart_vehicle === true ? 'Yes' : data.operating_dart_vehicle === false ? 'No' : '—' },
               { label: 'Event relates to', value: data.operator_passenger_event_relating_to === 'Passenger/Non-Dart Employee' ? 'Non-DART Employee' : data.operator_passenger_event_relating_to || '—' },
@@ -2247,24 +2279,14 @@ export function Step4ReviewSubmit({
               { label: 'Traffic controls', value: data.traffic_controls || '—' },
               { label: 'Roadway configuration', value: data.roadway_configuration || '—' },
               { label: 'Description of event', value: data.description_of_event || '—', wide: true },
-            ].map(item => <div key={item.label} className={item.wide ? 'col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
+            ].map(item => <div key={item.label} className={item.wide ? 'sm:col-span-2' : undefined}><div className="text-xs text-slate-500 mb-1 font-['Poppins']">{item.label}</div><div className="text-sm text-slate-900 font-['Poppins'] whitespace-pre-line">{item.value}</div></div>)}
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {/* People and Impact Summary */}
-        {showInlineReferenceSummaries && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">People and impact</h4>
-            <button
-              onClick={() => onJumpToStep(3)}
-              className="dart-action-link flex min-h-[44px] items-center gap-1 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#FFCD00]"
-            >
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
-          </div>
+        {showInlineReferenceSummaries && data.event_type !== 'Signal Violation' && (
+        <ReviewSectionCard section="Section 03" title="People And Impact" icon={<Users className="h-4 w-4" />} onEdit={() => onJumpToStep(3)}>
           <div className="p-6">
             {data.event_type === 'Near Miss' ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -2346,21 +2368,18 @@ export function Step4ReviewSubmit({
               </div>
             )}
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {/* Attachments */}
         {showInlineReferenceSummaries && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-            <h4 className="text-sm text-slate-900 font-medium font-['Poppins']">Attachments</h4>
-            <p className="text-xs text-slate-600 mt-1 font-['Poppins']">
+        <ReviewSectionCard section={data.event_type === 'Signal Violation' ? 'Section 03' : 'Section 04'} title="Supporting Documents" icon={<Paperclip className="h-4 w-4" />}>
+          <div className="p-5 sm:p-6">
+            <p className="dart-caption mb-4">
               {isSupervisorReview
                 ? 'Upload completed supervisor support documents, diagrams, and evidence files for this case.'
-                : 'Add photos, documents, or supporting reports related to this incident'}
+                : 'Add photos, documents, or supporting reports related to this incident.'}
             </p>
-          </div>
-          <div className="p-6">
             {isSupervisorReview && (
               <div className="mb-4 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Supervisor templates</p>
@@ -2386,10 +2405,10 @@ export function Step4ReviewSubmit({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={`
-                border-2 border-dashed rounded-xl p-8 text-center transition-all
+                rounded-xl border border-dashed p-6 text-center transition-all sm:p-8
                 ${isDragging 
                   ? 'border-emerald-400 bg-emerald-50' 
-                  : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+                  : 'border-slate-300 bg-slate-50/80 hover:border-slate-400 hover:bg-slate-50'
                 }
               `}
             >
@@ -2457,7 +2476,7 @@ export function Step4ReviewSubmit({
               </div>
             )}
           </div>
-        </div>
+        </ReviewSectionCard>
         )}
 
         {/* Operator "choose next action" screen — mirrors the Field Supervisor and PM pattern.
@@ -4567,21 +4586,25 @@ export function Step4ReviewSubmit({
         {/* Confirmation — hidden for Program Manager (their Approve action already requires a note),
             and hidden for the Operator once they've moved into the actions screen. */}
         {(!isSupervisorReview || (supervisorReviewStep === 3 && !fsInActionsMode)) && !isProgramManagerReview && !(isOperatorFinalReview && operatorInActionsMode) && (
-        <div className="rounded-xl border border-slate-300 bg-slate-50 p-6">
-          <label className="flex items-start gap-3 cursor-pointer">
+        <div className="dart-card dart-card--primary overflow-hidden p-5 sm:p-6">
+          <label className="flex cursor-pointer items-start gap-4">
             <input
               type="checkbox"
               checked={confirmationChecked}
               onChange={(e) => handleConfirmationChange(e.target.checked)}
-              className="mt-1 w-5 h-5 text-[#0078AE] rounded focus:ring-2 focus:ring-[#FFCD00] cursor-pointer"
+              className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded text-[#0078AE] focus:ring-2 focus:ring-[#FFCD00]"
             />
-            <div className="flex-1">
-              <div className="text-sm text-slate-900 font-medium font-['Poppins']">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="dart-eyebrow mb-1">Final Confirmation</p>
+              <div className="text-sm font-semibold text-slate-900 font-['Poppins']">
                 {isSupervisorReview
                   ? 'I confirm that the supervisor review section is complete and ready for program manager review'
                   : 'I confirm that my section is accurate to the best of my knowledge'}
               </div>
-              <div className="text-xs text-slate-600 mt-1 font-['Poppins']">
+              <div className="mt-1 text-xs leading-relaxed text-slate-600 font-['Poppins']">
                 {isSupervisorReview
                   ? 'This Field Supervisor section will be available in the shared case for classification.'
                   : 'This information joins the shared case and may be used for safety analysis and reporting'}

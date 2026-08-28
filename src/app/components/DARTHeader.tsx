@@ -1,6 +1,6 @@
 import { Bell, Check, ChevronDown, Users, Shield, Briefcase, ClipboardCheck, MapPin, Menu, X } from 'lucide-react';
 import { NotificationPanel, Notification } from './NotificationPanel';
-import dartLogo from 'figma:asset/596faef70915e56e9eb4660104f6daec380e23d0.png';
+import dartLogo from '../../assets/DART-Logo.png';
 import { useState, useRef, useEffect } from 'react';
 import { useUserRole, ROLE_CONFIGS, type UserRole } from '../context/UserRoleContext';
 import { createPortal } from 'react-dom';
@@ -247,7 +247,7 @@ export function DARTHeader({ activeNav = 'home', onNavigate, onMobileMenuToggle,
               <img src={dartLogo} alt="DART Logo" className="h-11 w-auto object-contain" />
               <div className="hidden sm:block w-px h-6 flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.32)' }} />
               <h1 className="hidden sm:block text-base text-[#073366] font-semibold font-['Poppins'] whitespace-nowrap">
-                DART Safety Events Reporting
+                Safety Events Reporting
               </h1>
             </div>
 

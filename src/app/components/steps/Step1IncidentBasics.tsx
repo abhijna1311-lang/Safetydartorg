@@ -133,7 +133,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const hasIncidentDate = !!data.incident_date;
   const incidentTimeIsFuture = isFutureDateTime(data.incident_date, data.incident_time);
   const hasIncidentTime = !!data.incident_time && !incidentTimeIsFuture;
-  const hasSignalTerritory = !isSignalViolationEvent || !!data.signal_territory;
   const trailDerailmentAnswered = !isTrailSwitchEvent || data.trail_derailment_confirmed !== undefined;
   const hasEmployee = !!(data.employee_badge_number && data.employee_name);
   // Schedule was moved to Step 2 — Step 1 no longer gates on it.
@@ -145,7 +144,7 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
     || data.operator_availability_confirmed === true
     || (data.operator_availability_confirmed === false && !!data.operator_unavailable_reason?.trim());
 
-  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && trailDerailmentAnswered && (!needsDrivingQ || data.operating_dart_vehicle !== undefined) && hasSignalTerritory;
+  const canProceed = hasFilingChoice && hasEventType && hasMode && hasIncidentDate && hasIncidentTime && hasEmployee && hasOperatorAvailability && trailDerailmentAnswered && (!needsDrivingQ || data.operating_dart_vehicle !== undefined);
 
 
   // Restored drafts can contain a legacy Derailment + non-rail mode combination. Enforce the
@@ -418,7 +417,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   if (isTrailSwitchEvent && !trailDerailmentAnswered) missing.push('derailment question');
   if (needsDrivingQ && data.operating_dart_vehicle === undefined) missing.push('vehicle question');
   if (!hasMode) missing.push('vehicle mode');
-  if (!hasSignalTerritory) missing.push('signal territory');
 
   const errFilingChoice = showErrors && canFileOnBehalf && !hasFilingChoice;
   const errEmployee = showErrors && data.is_on_behalf === true && !hasEmployee;
@@ -429,7 +427,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
   const errTrailDerailment = showErrors && isTrailSwitchEvent && hasIncidentDate && hasIncidentTime && !trailDerailmentAnswered;
   const errDriving = showErrors && needsDrivingQ && data.operating_dart_vehicle === undefined;
   const errMode = showErrors && !hasMode;
-  const errSignalTerritory = showErrors && isSignalViolationEvent && !data.signal_territory;
 
   const handleNextClick = () => {
     if (canProceed) {
@@ -725,31 +722,6 @@ export function Step1IncidentBasics({ data, onUpdate, onNext, onSaveDraft, nextL
             )}
           </AnimatePresence>
         </Section>
-
-        {isSignalViolationEvent && (
-          <div className="border-t border-slate-100 px-6 py-6 md:px-7 md:py-7">
-            <div className="flex flex-col gap-3.5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-4 md:flex-row md:items-center md:justify-between md:gap-6">
-              <div className="min-w-0 md:flex-1">
-                <label className="dart-field-label mb-0">
-                  Where did the signal violation happen? <span className="dart-req">*</span>
-                </label>
-              </div>
-              <div className="w-full shrink-0 md:w-[min(100%,360px)]">
-                <CustomSelect
-                  value={data.signal_territory || ''}
-                  onChange={value => onUpdate({ signal_territory: value as AccidentReportData['signal_territory'] })}
-                  options={[
-                    { value: 'Mainline Territory', label: 'Mainline Territory' },
-                    { value: 'Yard Territory', label: 'Yard Territory' },
-                  ]}
-                  placeholder="Select territory"
-                  error={errSignalTerritory}
-                />
-                {errSignalTerritory && <p className="mt-1.5 text-xs font-medium text-red-600 font-['Poppins']">Select the signal violation territory to continue.</p>}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Vehicle mode */}
         <Section

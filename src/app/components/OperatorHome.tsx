@@ -18,6 +18,9 @@ import {
 
 function getQueuePresentation(role: UserRole, report: WorkflowReport, section: WorkflowSectionState, wasReturned: boolean) {
   const isLeaderStartedForOperator = section.key === 'operator' && report.initiatedBy !== 'Operator';
+  const operatorNextStep = report.initiatedBy === 'Supervisor'
+    ? 'The Field Supervisor has completed their section. The Safety Program Manager completes the final review after you submit.'
+    : 'The Field Supervisor completes their section next. The Safety Program Manager completes the final review after both sections are complete.';
 
   // Assistant Manager: they don't own a section — they review the Field Supervisor's
   // submission. Show a card that reflects "case is ready for your review" rather
@@ -56,11 +59,11 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
 
   if (section.key === 'operator' && isLeaderStartedForOperator) {
     return {
-      title: 'Operator section pending',
-      contextLabel: 'Why you are seeing this',
-      contextValue: `${report.initiatedBy} opened the case. Complete the operator facts while other assigned sections move in parallel.`,
+      title: 'Safety Event Report',
+      contextLabel: 'Next',
+      contextValue: operatorNextStep,
       ownerLabel: 'Started by',
-      priorityLabel: 'Your section',
+      priorityLabel: 'Operator Section Required',
     };
   }
 
@@ -95,11 +98,13 @@ function getQueuePresentation(role: UserRole, report: WorkflowReport, section: W
   }
 
   return {
-    title: 'Continue operator section',
-    contextLabel: 'Why you are seeing this',
-    contextValue: 'Complete the operator facts. Submitting will notify supervisor and program manager sections in parallel.',
+    title: section.key === 'operator' ? 'Safety Event Report' : 'Continue operator section',
+    contextLabel: section.key === 'operator' ? 'What happens next' : 'Why you are seeing this',
+    contextValue: section.key === 'operator'
+      ? operatorNextStep
+      : 'Complete the operator facts. Submitting will notify supervisor and program manager sections in parallel.',
     ownerLabel: 'Started by',
-    priorityLabel: role === 'Operator' ? 'Your section' : 'In progress',
+    priorityLabel: section.key === 'operator' ? 'Operator Section Required' : 'In progress',
   };
 }
 
@@ -115,7 +120,7 @@ function getSectionCtaLabel(section: WorkflowSectionState, role: UserRole) {
   }
 
   if (section.key === 'operator') {
-    return 'Continue Operator Section';
+    return 'Continue Report';
   }
 
   if (section.key === 'supervisor') {
@@ -123,6 +128,33 @@ function getSectionCtaLabel(section: WorkflowSectionState, role: UserRole) {
   }
 
   return section.status === 'in-progress' ? 'Continue Safety Program Manager Section' : 'Open Safety Program Manager Section';
+}
+
+function getQueueReportDetails(savedData: Record<string, unknown>) {
+  const step1 = typeof savedData.step1 === 'object' && savedData.step1 !== null ? savedData.step1 as Record<string, unknown> : {};
+  const step2 = typeof savedData.step2 === 'object' && savedData.step2 !== null ? savedData.step2 as Record<string, unknown> : {};
+  const mode = savedData.mode || step1.vehicleMode;
+  const eventType = savedData.event_type || step1.eventType;
+  const incidentDate = savedData.incident_date || step1.incidentDate;
+  const vehicleNumber = savedData.vehicle_number || step2.vehicleNumber;
+  const location = savedData.city || step2.location;
+
+  return {
+    summary: [mode, eventType, incidentDate ? formatShortDate(String(incidentDate)) : undefined, vehicleNumber ? `Vehicle ${vehicleNumber}` : undefined]
+      .filter((detail): detail is string => typeof detail === 'string' && detail.length > 0)
+      .join(' · '),
+    location: typeof location === 'string' ? location : undefined,
+  };
+}
+
+function getInitiatorLabel(role: UserRole) {
+  if (role === 'Supervisor') {
+    return 'Field Supervisor';
+  }
+  if (role === 'Program Manager') {
+    return 'Safety Program Manager';
+  }
+  return role;
 }
 
 interface OperatorHomeProps {
@@ -148,12 +180,15 @@ interface HomeQueueReport {
   eventId: string;
   title: string;
   ownerLabel: string;
+  initiatedByLabel?: string;
   ownerValue: string;
   contextLabel: string;
   contextValue: string;
   dueBy: string;
   priorityLabel: string;
   reportFor?: string;
+  reportSummary?: string;
+  reportLocation?: string;
   requiredSection?: string;
   ctaLabel?: string;
   currentStep: number;
@@ -185,9 +220,9 @@ const HOME_COPY: Record<UserRole, {
 }> = {
   Operator: {
     intro: 'Finish case sections that were assigned to you, or start a case yourself when reporting directly from the field.',
-    heroTitle: 'Start a new Safety Event',
-    heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
-    heroButtonLabel: 'Start New Case',
+    heroTitle: 'Report a Safety Event',
+    heroDescription: 'Provide the details of what happened and complete the information required for your section. Save your progress as you work.',
+    heroButtonLabel: 'Start Report',
     queueMetricLabel: 'Awaiting your action',
     queueMetricHelper: 'Your section tasks',
     completedMetricLabel: 'Closed this month',
@@ -200,9 +235,9 @@ const HOME_COPY: Record<UserRole, {
   },
   Supervisor: {
     intro: 'Start cases when operators cannot, then complete Field Supervisor collision sections assigned to you.',
-    heroTitle: 'Start a new Safety Event',
-    heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
-    heroButtonLabel: 'Start New Case',
+    heroTitle: 'Report a Safety Event',
+    heroDescription: 'Provide the details of what happened and complete the information required for your section. Save your progress as you work.',
+    heroButtonLabel: 'Start Report',
     queueMetricLabel: 'Awaiting your section',
     queueMetricHelper: 'Supervisor action',
     completedMetricLabel: 'Forwarded this month',
@@ -215,9 +250,9 @@ const HOME_COPY: Record<UserRole, {
   },
   'Program Manager': {
     intro: 'Complete classification sections, request targeted corrections, and close cases when all role sections are in.',
-    heroTitle: 'Start a new Safety Event',
-    heroDescription: 'Record what happened and fill in your section. Your progress saves automatically as you go.',
-    heroButtonLabel: 'Start New Case',
+    heroTitle: 'Report a Safety Event',
+    heroDescription: 'Provide the details of what happened and complete the information required for your section. Save your progress as you work.',
+    heroButtonLabel: 'Start Report',
     queueMetricLabel: 'Awaiting your section',
     queueMetricHelper: 'Classification action',
     completedMetricLabel: 'Closed this month',
@@ -230,9 +265,9 @@ const HOME_COPY: Record<UserRole, {
   },
   'Assistant Manager': {
     intro: 'Review Field Supervisor reports and route them to the Safety Program Manager for classification.',
-    heroTitle: 'Start a new Safety Event',
-    heroDescription: 'Cases sent by a Field Supervisor land here for your review. Approve to move the report along, return for rework, or reassign.',
-    heroButtonLabel: 'Start New Case',
+    heroTitle: 'Report a Safety Event',
+    heroDescription: 'Provide the details of what happened and complete the information required for your section. Save your progress as you work.',
+    heroButtonLabel: 'Start Report',
     queueMetricLabel: 'Awaiting your review',
     queueMetricHelper: 'Field Supervisor submissions',
     completedMetricLabel: 'Reviewed this month',
@@ -245,9 +280,9 @@ const HOME_COPY: Record<UserRole, {
   },
   'Station Supervisor': {
     intro: 'Confirm receipt of operator submissions. Your acknowledgment is recorded on the case — no workflow action needed.',
-    heroTitle: 'Acknowledgments only',
-    heroDescription: 'This role is receipt-only. Reports appear here after the operator submits. Field Supervisor and Safety Program Manager review continues in parallel.',
-    heroButtonLabel: 'Start New Case',
+    heroTitle: 'Report a Safety Event',
+    heroDescription: 'Provide the details of what happened and complete the information required for your section. Save your progress as you work.',
+    heroButtonLabel: 'Start Report',
     queueMetricLabel: 'Awaiting your acknowledgment',
     queueMetricHelper: 'Operator submissions',
     completedMetricLabel: 'Acknowledged this month',
@@ -317,13 +352,19 @@ const QUEUE_REPORTS_BY_ROLE: Record<UserRole, HomeQueueReport[]> = {
   Operator: [
     {
       eventId: 'AR-2025-0010',
-      title: 'Started on your behalf',
+      title: 'Safety Event Report',
+      initiatedByLabel: 'Field Supervisor',
       ownerLabel: 'Started by',
       ownerValue: 'Aitana Bonmati (Supervisor)',
-      contextLabel: 'Why you are seeing this',
-      contextValue: 'Control center called this in. Finish the operator details before supervisor review.',
+      contextLabel: 'Next',
+      contextValue: 'The Field Supervisor has completed their section. The Safety Program Manager completes the final review after you submit.',
       dueBy: '11/20/2025',
-      priorityLabel: 'High priority',
+      priorityLabel: 'Operator Section Required',
+      reportFor: 'Employee pending',
+      reportSummary: 'Bus · Collision · 11/18/2025',
+      reportLocation: 'Control center call-in',
+      requiredSection: 'Complete your Operator Section',
+      ctaLabel: 'Continue Report',
       currentStep: 1,
       savedData: {
         step1: { vehicleMode: 'Bus', eventType: 'Collision', incidentDate: '2025-11-18', incidentTime: '14:30' },
@@ -429,12 +470,16 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
 
     return reports
       .map((report) => ({ report, section: getActionableSectionForRole(report, roleConfig.role) }))
-      .filter((item): item is { report: WorkflowReport; section: WorkflowSectionState } => Boolean(item.section) && item.report.workflowStage !== 'closed' && isRoleTurnForReport(item.report, roleConfig.role))
+      .filter((item): item is { report: WorkflowReport; section: WorkflowSectionState } => Boolean(item.section)
+        && item.report.workflowStage !== 'closed'
+        && isRoleTurnForReport(item.report, roleConfig.role)
+        && (roleConfig.role !== 'Operator' || item.report.initiatedBy !== 'Operator' || item.section.status === 'returned'))
       .sort((a, b) => b.report.lastSavedAt.localeCompare(a.report.lastSavedAt))
       .map(({ report, section }) => {
         const latestHandoff = getLatestHandoff(report);
         const wasReturned = latestHandoff?.action === 'returned' || latestHandoff?.action === 'section-returned' || section.status === 'returned';
         const presentation = getQueuePresentation(roleConfig.role, report, section, wasReturned);
+        const reportDetails = getQueueReportDetails(report.formData);
 
         return {
           eventId: report.id,
@@ -448,7 +493,10 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
             ? 'On hold'
             : section.status === 'returned' ? 'Correction needed' : presentation.priorityLabel,
           reportFor: report.formData.employee_name || 'Employee pending',
-          requiredSection: section.label,
+          initiatedByLabel: getInitiatorLabel(report.initiatedBy),
+          requiredSection: section.key === 'operator' ? 'Complete your Operator Section' : section.label,
+          reportSummary: reportDetails.summary,
+          reportLocation: reportDetails.location,
           ctaLabel: getSectionCtaLabel(section, roleConfig.role),
           currentStep: report.currentStep,
           savedData: report.formData,
@@ -599,47 +647,61 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
 
         <div className="border-t border-[#E5ECF5] mb-8" />
 
-        <div className="bg-[#FEFEFE] rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(0,0,0,0.06)] p-5 mb-10" data-section="work-queue">
-          <div className="mb-5 pb-4 border-b border-[#EDF1F7] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-gradient-to-br from-amber-50/60 to-amber-100/40 backdrop-blur-sm rounded-full flex items-center justify-center shrink-0 border border-amber-200/30 shadow-[0_2px_8px_rgba(251,191,36,0.15)]">
-                <MdNotifications className="w-5 h-5 text-[#C57311]" />
+        <div className="bg-[#F5F9FD] rounded-[18px] border border-[#E5EDF6] p-3 sm:p-4 mb-8" data-section="work-queue">
+          <div className="mb-4 pb-4 border-b border-[#DEE8F2] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#EAF6FA] rounded-xl flex items-center justify-center shrink-0 border border-[#BFE6EF]">
+                <MdNotifications className="w-5 h-5 text-[#007DBA]" />
               </div>
               <div>
-                <h2 className="text-base text-[#00205B] font-semibold">{copy.queueSectionTitle}</h2>
+                <p className="text-[10px] text-[#007DBA] uppercase tracking-[0.16em] font-semibold mb-1">Work queue</p>
+                <h2 className="text-lg text-[#00205B] font-semibold leading-tight">{copy.queueSectionTitle}</h2>
                 <p className="text-xs text-slate-600 mt-0.5">{copy.queueSectionDescription}</p>
               </div>
             </div>
             {queueReports.length > 5 && (
-              <button onClick={() => onNavigate?.('submissions')} className="text-sm text-[#007DBA] hover:text-[#00549F] font-medium transition-colors shrink-0">
-                View more →
+              <button onClick={() => onNavigate?.('submissions')} className="text-sm text-[#007DBA] hover:text-[#00549F] font-semibold transition-colors shrink-0">
+                View more <MdArrowForward className="inline w-4 h-4 ml-1 align-[-2px]" />
               </button>
             )}
           </div>
 
           {queueReports.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {queueReports.slice(0, 5).map((report) => (
                 <div
                   key={report.eventId}
-                  className="w-full bg-[#FFF9F1] rounded-2xl border border-[#E3E7EE] shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-200 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-6"
+                  className="w-full bg-white rounded-xl border border-[#CEDDEA] border-l-[3px] border-l-[#D9821F] shadow-[0_5px_14px_rgba(23,55,92,0.09)] hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(23,55,92,0.13)] transition-all duration-200 px-4 py-4 sm:px-5 sm:py-5 md:px-6 relative overflow-hidden"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 mb-5">
-                    <div className="flex items-center gap-6">
-                      <div>
-                        <h3 className="text-[15px] text-[#00205B] font-semibold mb-1">{report.title}</h3>
-                        <div className="flex items-baseline gap-2">
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">Case ID</p>
-                          <p className="text-sm text-[#007DBA] font-semibold dart-tabular">{report.eventId}</p>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-start gap-4 md:gap-6">
+                    <div className="min-w-0">
+                      <h3 className="text-base text-[#00205B] font-semibold leading-tight">{report.title}</h3>
+                      <p className="text-[13px] leading-5 text-slate-600 mt-1 flex flex-wrap items-center gap-x-1.5" aria-label="Report identity">
+                        Case <span className="text-[#007DBA] font-semibold dart-tabular">{report.eventId}</span>
+                        <span className="text-[#A5B5C5]" aria-hidden="true">·</span>
+                        Report for {report.reportFor || 'Employee pending'}
+                        {report.initiatedByLabel && (
+                          <>
+                            <span className="text-[#A5B5C5]" aria-hidden="true">·</span>
+                            Initiated by {report.initiatedByLabel}
+                          </>
+                        )}
+                      </p>
+                      {report.reportSummary && (
+                        <p className="text-xs text-slate-500 mt-1" aria-label="Report details">
+                          {report.reportSummary}{report.reportLocation ? ` · ${report.reportLocation}` : ''}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 gap-y-2">
-                      <span className={`inline-flex px-3 py-1.5 text-[11px] rounded-full font-medium ${report.priorityLabel === 'On hold' ? 'text-indigo-700 bg-indigo-100' : 'text-[#C57311] bg-[#FFE6C4]'}`}>{report.priorityLabel}</span>
+                    <div className="flex items-center justify-start md:justify-end gap-2">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border font-medium whitespace-nowrap ${report.priorityLabel === 'On hold' ? 'text-indigo-700 bg-indigo-100 border-indigo-200' : 'text-[#9A5B12] bg-[#FFF2DE] border-[#F3D7AA]'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full shadow-[0_0_0_2px_rgba(217,130,31,0.1)] ${report.priorityLabel === 'On hold' ? 'bg-indigo-500' : 'bg-[#D9821F]'}`} />
+                        {report.priorityLabel}
+                      </span>
                       <button
                         onClick={() => openReport(report.eventId)}
-                        className="group/btn relative w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-br from-[#005A8F] to-[#007DBA] hover:from-[#006BA0] hover:to-[#0088CC] rounded-xl shadow-md hover:shadow-lg ease-in-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#005A8F] focus:ring-offset-2"
+                        className="group/btn relative w-auto min-h-11 px-3.5 text-sm font-semibold text-white bg-[#007DBA] hover:bg-[#006BA0] active:translate-y-px active:shadow-[0_2px_4px_rgba(0,90,143,0.18)] rounded-xl shadow-[0_3px_8px_rgba(0,90,143,0.18)] hover:shadow-[0_5px_12px_rgba(0,90,143,0.24)] transition-all ease-in-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#005A8F] focus:ring-offset-2"
                       >
                         <span className="relative flex items-center gap-2">
                           {report.ctaLabel || 'Open case'}
@@ -649,23 +711,10 @@ export function OperatorHome({ onNavigate, onStartNewReport, onOpenReport, onDel
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1.5">{report.ownerLabel}</p>
-                      <p className="text-sm text-slate-900">{report.ownerValue}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1.5">Case for</p>
-                      <p className="text-sm text-slate-900">{report.reportFor || 'Employee pending'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1.5">Your required section</p>
-                      <p className="text-sm text-slate-900">{report.requiredSection || 'Assigned section'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1.5">{report.contextLabel}</p>
-                      <p className="text-sm text-slate-700">{report.contextValue}</p>
-                    </div>
+                  <div className="border-t border-[#E1EAF3] mt-3.5 pt-2.5">
+                    <p className="text-xs leading-5 text-slate-500">
+                      <span className="font-semibold text-slate-600">{report.contextLabel}:</span> {report.contextValue}
+                    </p>
                   </div>
                 </div>
               ))}
