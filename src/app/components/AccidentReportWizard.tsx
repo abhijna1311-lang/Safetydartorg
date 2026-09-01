@@ -56,7 +56,7 @@ interface AccidentReportWizardProps {
 
 const ASSIGNED_SECTION_STEPS: Record<Exclude<WorkflowSectionKey, 'operator'>, { number: number; title: string }[]> = {
   supervisor: [
-    { number: 1, title: 'Incident Basics' },
+    { number: 1, title: 'Investigation Details' },
     { number: 2, title: 'Injuries And Police' },
     { number: 3, title: 'Review' },
   ],
