@@ -1569,7 +1569,7 @@ export function Step4ReviewSubmit({
   const canSubmit = Boolean(
     isRoleAllowedToAdvance &&
     confirmationChecked &&
-    (data.mode || ((data.event_type === 'Fire' || isOperatorPassengerEvent) && data.operating_dart_vehicle === false)) &&
+    (data.mode || ((data.event_type === 'Assault (Verbal or Physical)' || data.event_type === 'Fire' || isOperatorPassengerEvent) && data.operating_dart_vehicle === false)) &&
     data.event_type &&
     data.employee_badge_number &&
     data.employee_name &&
@@ -1582,7 +1582,7 @@ export function Step4ReviewSubmit({
         ? operatorPassengerEventComplete(data)
       : data.incident_date &&
         data.incident_time &&
-        (data.description_of_event || data.incident_description))
+        (data.description_of_event || data.incident_description || data.assault_description))
   );
 
   const reviewCanSubmit = Boolean(
