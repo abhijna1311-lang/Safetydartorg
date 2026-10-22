@@ -7,11 +7,37 @@
    the app keeps its utility classes while sharing ONE design-system file with
    the developer hand-off. Do NOT add tokens or .dart-* classes here — add
    them to dart-design-system.css so nothing drifts.
+
+   Load this AFTER `@import "tailwindcss"` (index.css does that here; in
+   Next.js, import it after Tailwind in app/globals.css).
    ========================================================================== */
 
-@import "tailwindcss";
 @import "./dart-design-system.css";
 
 @theme {
   --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+/* Tailwind names for DART tokens, e.g. bg-dart-navy, text-dart-accent-blue, ring-dart-focus, shadow-dart-2. */
+@theme inline {
+  --color-dart-navy: var(--dart-brand-navy);
+  --color-dart-blue: var(--dart-brand-blue);
+  --color-dart-blue-hover: var(--color-primary-bg-hover);
+  --color-dart-accent-blue: var(--dart-accent-blue);
+  --color-dart-teal: var(--dart-brand-teal);
+  --color-dart-gray: var(--dart-brand-gray);
+  --color-dart-focus: var(--dart-focus-yellow);
+  --color-dart-control-navy: var(--ctl-navy);
+  --color-dart-required: var(--ctl-accent);
+  --color-dart-surface-soft: var(--dart-surface-soft);
+  --color-dart-surface-muted: var(--dart-surface-muted);
+  --color-dart-selected: var(--color-selected-bg);
+  --color-dart-text-strong: var(--color-text-strong);
+  --color-dart-text: var(--color-text-default);
+  --color-dart-text-muted: var(--color-text-muted);
+
+  --shadow-dart-1: var(--dart-elevation-1);
+  --shadow-dart-2: var(--dart-elevation-2);
+  --shadow-dart-3: var(--dart-elevation-3);
+  --shadow-dart-brand: var(--dart-elevation-brand);
 }

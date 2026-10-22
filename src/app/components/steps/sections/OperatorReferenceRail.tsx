@@ -1157,8 +1157,7 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#39;');
 }
 
-function buildPrintableReportHtml(entries: OperatorFieldEntry[], status: string, attachmentNames: string[]) {
-  const generatedAt = new Date().toLocaleString();
+function buildPrintableReportHtml(entries: OperatorFieldEntry[], attachmentNames: string[]) {
   const entryRows = entries
     .map((entry) => `<tr><td>${escapeHtml(entry.section)}</td><td>${escapeHtml(entry.label)}</td><td>${escapeHtml(entry.value).replace(/\n/g, '<br />')}</td></tr>`)
     .join('');
@@ -1186,7 +1185,6 @@ function buildPrintableReportHtml(entries: OperatorFieldEntry[], status: string,
   </head>
   <body>
     <h1>Operator report</h1>
-    <div class="meta">Section status: ${escapeHtml(status)}<br />Generated: ${escapeHtml(generatedAt)}</div>
     <table>
       <thead>
         <tr>
@@ -1316,7 +1314,6 @@ export function OperatorReferenceRail({ data, operatorStatus, className = '', sh
     printWindow.document.write(
       buildPrintableReportHtml(
         operatorFieldEntries,
-        operatorStatusText,
         reportAttachments.map((attachment) => attachment.name),
       ),
     );

@@ -571,7 +571,7 @@ Not currently implemented, but reserved for future PDF generation of submitted r
 
 ### CSS Framework
 - **Tailwind CSS v4.0** - Utility-first framework
-- Custom theme tokens in `/src/styles/theme.css`
+- Design tokens + `.dart-*` classes in `/src/styles/dart-design-system.css`; Tailwind token classes registered in `/src/styles/globals.css`
 - Font imports in `/src/styles/fonts.css`
 
 ### Component Library
@@ -614,7 +614,8 @@ Not currently implemented, but reserved for future PDF generation of submitted r
   │   │       ├── BasicIncidentSection.tsx
   │   │       └── ...
   ├── styles/
-  │   ├── theme.css               # Tailwind v4 theme tokens
+  │   ├── dart-design-system.css  # Design tokens + .dart-* classes (source of truth)
+  │   ├── globals.css             # Tailwind glue + token classes
   │   └── fonts.css               # Font imports (Poppins)
   ├── context/
   │   └── UserRoleContext.tsx     # Role-based access control

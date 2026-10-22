@@ -1,4 +1,3 @@
-import '../styles/globals.css';
 import { useState } from 'react';
 import { OperatorHome } from './components/OperatorHome';
 import { AccidentReportWizard } from './components/AccidentReportWizard';

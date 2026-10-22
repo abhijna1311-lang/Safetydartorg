@@ -35,7 +35,7 @@ lives in **one framework-agnostic file** — copy it as-is:
 | Source (this repo) | What it is |
 |---|---|
 | `src/styles/dart-design-system.css` | **The design system — the one file that matters most.** All `--dart-*` / `--ctl-*` tokens + every `.dart-*` class + the `.dart-btn` buttons. Pure CSS, no Tailwind required — works in Next.js, Vite, or a plain `.html`. |
-| `src/styles/globals.css` | Thin Tailwind glue: imports the design system + registers the `font-sans` utility. Keep it if you use Tailwind; otherwise you can skip it and load `dart-design-system.css` directly. |
+| `src/styles/globals.css` | Tailwind glue: imports the design system and registers the DART tokens as Tailwind classes (`bg-dart-navy`, `text-dart-accent-blue`, `ring-dart-focus`, …). Load it **after** `@import "tailwindcss"`; import Tailwind only once in the app. Skip it if you don't use Tailwind and load `dart-design-system.css` directly. |
 | `src/styles/default_theme.css` | shadcn/ui base theme variables |
 | `src/styles/fonts.css` | Poppins `@import` |
 | `tw-animate-css` | animation utilities (npm install it) |

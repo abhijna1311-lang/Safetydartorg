@@ -24,7 +24,11 @@
 
   --dart-brand-navy: #00205B;
   --dart-brand-blue: #0078AE;
+  /* Distinct from --dart-brand-blue: links, icons, stats, highlights. */
+  --dart-accent-blue: #007DBA;
+  --dart-brand-teal: #00A4B5;
   --dart-brand-gray: #A7A8AA;
+  --dart-focus-yellow: #FFCD00;
   --dart-surface-soft: #F5F7FB;
   --dart-surface-muted: #EEF3F7;
   --dart-text-strong: #0F172A;

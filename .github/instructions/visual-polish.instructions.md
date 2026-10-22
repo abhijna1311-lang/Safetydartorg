@@ -20,7 +20,11 @@ marketing-site theatrics.
   nothing else. Teal (`#00A4B5`) is a supporting glow, used sparingly.
 
 ## Use the existing system — never invent tokens
-The app already has a mature system in `src/styles/globals.css`. Always reuse it:
+The app already has a mature system in `src/styles/dart-design-system.css`, exposed to Tailwind by
+`src/styles/globals.css`. Always reuse it:
+- **Colors**: use the token classes (`bg-dart-navy`, `text-dart-accent-blue`, `ring-dart-focus`, …;
+  full list in `design-system/STYLE-GUIDE.md`). Never write a raw hex value in new or edited code.
+  `dart-blue` (#0078AE) and `dart-accent-blue` (#007DBA) are two different, required colors.
 - **Canvas**: `.dart-canvas` for full-page backgrounds (ambient, not flat). Never leave a
   screen on flat `bg-white` or a single solid `bg-[#F5F7FB]` — that reads as wireframe.
 - **Cards**: `.dart-card` + one modifier (`--surface`, `--primary`, `--floating`,

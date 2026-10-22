@@ -46,7 +46,9 @@ You are matching an existing design system. Follow these rules in order:
 ```
 
 In **Next.js**, load Poppins via `next/font/google` and add the Material Symbols `<link>` in the root
-layout `<head>`; import `dart-design-system.css` in `app/layout.tsx` (or `globals.css`).
+layout `<head>`. In `app/globals.css`, import Tailwind **first**, then this repo's `globals.css`
+(which pulls in `dart-design-system.css` and registers the Tailwind token classes). Import Tailwind
+only once in the whole app.
 
 Icons render as: `<span class="material-symbols-rounded">directions_bus</span>` (any Material Symbols name).
 
@@ -61,7 +63,10 @@ These live in `:root`. Use a **class** where one exists; use these tokens only w
 | Token | Value | Use |
 |---|---|---|
 | `--dart-brand-navy` | `#00205B` | Primary action, **selected**, key headings |
-| `--dart-brand-blue` | `#0078AE` | Links, accents, primary fill (`#007DBA` appears in some legacy inline styles — treat `#0078AE` as canonical) |
+| `--dart-brand-blue` | `#0078AE` | Primary action fill (buttons) |
+| `--dart-accent-blue` | `#007DBA` | Links, icons, stat numbers, highlights. **A different color from `--dart-brand-blue` — both are required; do not merge them.** |
+| `--dart-brand-teal` | `#00A4B5` | Supporting glow, used sparingly |
+| `--dart-focus-yellow` | `#FFCD00` | Focus rings (ADA) |
 | `--dart-brand-gray` | `#A7A8AA` | Neutral brand gray |
 | `--color-text-strong` | `#0F172A` | Values, key text |
 | `--color-text-default` | `#334155` | Body |
@@ -89,6 +94,30 @@ These live in `:root`. Use a **class** where one exists; use these tokens only w
 
 **Semantic** (Tailwind palette, used for state — not brand): success `emerald-500/600`,
 warning `amber-`, error `red-400` border / `red-600` text, info `blue-500`.
+
+### Tailwind classes for the tokens
+
+`globals.css` registers the tokens with Tailwind, so you can write `bg-dart-navy` instead of
+`bg-[#00205B]`. Opacity modifiers work (`bg-dart-accent-blue/10`). **In new or edited code, use these —
+never a raw hex value.** Existing screens still contain hardcoded hex; leave them unless you are
+already editing that line.
+
+| Token | Tailwind name (use with `bg-`, `text-`, `border-`, `ring-`, …) |
+|---|---|
+| `--dart-brand-navy` `#00205B` | `dart-navy` |
+| `--dart-brand-blue` `#0078AE` | `dart-blue` (hover: `dart-blue-hover`) |
+| `--dart-accent-blue` `#007DBA` | `dart-accent-blue` |
+| `--dart-brand-teal` `#00A4B5` | `dart-teal` |
+| `--dart-brand-gray` `#A7A8AA` | `dart-gray` |
+| `--dart-focus-yellow` `#FFCD00` | `dart-focus` (e.g. `focus:ring-dart-focus`) |
+| `--ctl-navy` `#112458` | `dart-control-navy` |
+| `--ctl-accent` `#6C1B7E` | `dart-required` |
+| `--dart-surface-soft` / `-muted` | `dart-surface-soft` / `dart-surface-muted` |
+| `--color-selected-bg` | `dart-selected` |
+| `--color-text-strong` / `-default` / `-muted` | `dart-text-strong` / `dart-text` / `dart-text-muted` |
+| `--dart-elevation-1/2/3/brand` | `shadow-dart-1` / `shadow-dart-2` / `shadow-dart-3` / `shadow-dart-brand` |
+
+shadcn/ui components (`ui/`) use `primary`, which is mapped to `--dart-brand-blue`.
 
 ### Elevation, spacing, motion
 
