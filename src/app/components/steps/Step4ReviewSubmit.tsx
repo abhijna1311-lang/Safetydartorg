@@ -33,6 +33,10 @@ import { ActionSelectionScreen } from '../actions/ActionSelectionScreen';
 import { buildSpmActions, buildFsActions, buildOperatorActions } from '../actions/actionConfigs';
 import { operatorPassengerEventComplete } from './sections/OperatorPassengerEventSection';
 import { getNearMissOtherVehicles } from './sections/NearMissSection';
+import { ClassificationCompleteCard } from '../ClassificationCompleteCard';
+import { LocationMapPreview } from '../location/LocationMapPreview';
+import { AddressLocationFields } from '../location/AddressLocationFields';
+import { SUPERVISOR_LOCATION, SUPERVISOR_RAIL_LOCATION, eventLocationLabel, supervisorLocationLabel } from '../location/locationFields';
 
 interface Step4Props {
   data: AccidentReportData;
@@ -67,6 +71,10 @@ interface Step4Props {
   showBackButton?: boolean;
   showSuccessState?: boolean;
   submittedEventId?: string | null;
+  /** Case ID for in-flow records (e.g. the SPM classification PDF). */
+  caseId?: string;
+  /** Fires after the SPM confirms a workflow action, so the wizard can update its header. */
+  onProgramManagerActionConfirmed?: (actionId: string) => void;
   onBackToHome?: () => void;
   onNavigate?: (view: 'home' | 'new-report' | 'drafts' | 'submissions') => void;
   supervisorSectionStep?: number;
@@ -679,6 +687,8 @@ export function Step4ReviewSubmit({
   showBackButton = true,
   showSuccessState = false,
   submittedEventId = null,
+  caseId,
+  onProgramManagerActionConfirmed,
   onBackToHome,
   onNavigate,
   supervisorSectionStep,
@@ -2284,6 +2294,15 @@ export function Step4ReviewSubmit({
         </ReviewSectionCard>
         )}
 
+        {/* Pinned event location (any event type) */}
+        {showInlineReferenceSummaries && (
+          <LocationMapPreview
+            lat={data.location_lat}
+            lng={data.location_lng}
+            label={eventLocationLabel(data)}
+          />
+        )}
+
         {/* People and Impact Summary */}
         {showInlineReferenceSummaries && data.event_type !== 'Signal Violation' && (
         <ReviewSectionCard section="Section 03" title="People And Impact" icon={<Users className="h-4 w-4" />} onEdit={() => onJumpToStep(3)}>
@@ -2744,24 +2763,7 @@ export function Step4ReviewSubmit({
                   <div className="space-y-5">
                     {supervisorLocationUsesStreet && (
                       <>
-                        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                        <div>
-                          <div className={FIELD_LABEL_CLASS}>Street on <span className="text-red-500">*</span></div>
-                          <input type="text" value={data.supervisor_street_on || ''} onChange={(e) => onUpdate({ supervisor_street_on: e.target.value })} placeholder="e.g. Main St" className={INPUT_CLASS} />
-                        </div>
-                        <div>
-                          <div className={FIELD_LABEL_CLASS}>Cross street</div>
-                          <input type="text" value={data.supervisor_cross_street || ''} onChange={(e) => onUpdate({ supervisor_cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={INPUT_CLASS} />
-                        </div>
-                        <div>
-                          <div className={FIELD_LABEL_CLASS}>City <span className="text-red-500">*</span></div>
-                          <input type="text" value={data.supervisor_city || ''} onChange={(e) => onUpdate({ supervisor_city: e.target.value })} placeholder="e.g. Dallas" className={INPUT_CLASS} />
-                        </div>
-                        <div>
-                          <div className={FIELD_LABEL_CLASS}>ZIP code</div>
-                          <input type="text" maxLength={5} value={data.supervisor_zip || ''} onChange={(e) => onUpdate({ supervisor_zip: e.target.value })} placeholder="e.g. 75201" className={INPUT_CLASS} />
-                        </div>
-                        </div>
+                        <AddressLocationFields data={data} onUpdate={onUpdate} config={SUPERVISOR_LOCATION} requiredRoles={['street', 'city']} />
                         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
                           <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-3">
                             <div className={FIELD_LABEL_CLASS} style={{ marginBottom: 0 }}>Did the event occur at a bus stop? <span className="text-red-500">*</span></div>
@@ -2825,8 +2827,7 @@ export function Step4ReviewSubmit({
                           )}
                         </AnimatePresence>
                         <div className="md:col-span-2">
-                          <div className={FIELD_LABEL_CLASS}>Address of event</div>
-                          <input type="text" value={data.supervisor_address_of_event || ''} onChange={(e) => onUpdate({ supervisor_address_of_event: e.target.value })} placeholder="Street address" className={INPUT_CLASS} />
+                          <AddressLocationFields data={data} onUpdate={onUpdate} config={SUPERVISOR_RAIL_LOCATION} required={false} singleFieldLabel="Address of event" />
                         </div>
                       </div>
                     )}
@@ -3690,6 +3691,13 @@ export function Step4ReviewSubmit({
                       </div>
                     </dl>
 
+                    <LocationMapPreview
+                      lat={data.location_lat ?? data.supervisor_location_lat}
+                      lng={data.location_lng ?? data.supervisor_location_lng}
+                      label={data.location_lat != null ? eventLocationLabel(data) : supervisorLocationLabel(data)}
+                      className="mt-5"
+                    />
+
                     <div className="my-5 h-px w-full bg-slate-200/70" />
 
                     <div className="space-y-5">
@@ -4446,7 +4454,9 @@ export function Step4ReviewSubmit({
               </>)}
 
               {isPmStep5 && pmInActionsMode && pmReviewEnabled && pmSupervisorSection && (
-                pmConfirmedAction ? (
+                pmConfirmedAction?.actionId === 'approve' ? (
+                  <ClassificationCompleteCard data={data} caseId={caseId || submittedEventId || 'Pending'} onBackToHome={onBackToHome} />
+                ) : pmConfirmedAction ? (
                   <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/80 via-teal-50/50 to-white p-6 md:p-8 shadow-[0_2px_12px_-2px_rgba(16,185,129,0.10)] animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex items-start gap-4">
                       <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-500 shadow-[0_4px_12px_-2px_rgba(16,185,129,0.35)]">
@@ -4494,11 +4504,15 @@ export function Step4ReviewSubmit({
                     let confirmationTitle = 'Action confirmed';
                     let confirmationDescription = 'The next step will be handled by the workflow engine.';
                     switch (actionId) {
-                      case 'approve':
+                      case 'approve': {
                         pmOnApproveAndClose?.(payload.comment ?? '');
-                        confirmationTitle = 'Report closed';
-                        confirmationDescription = 'This accident report has been reviewed and closed. No further assignment will be created.';
+                        const classificationLabel = data.program_manager_classification_value || data.program_manager_classification;
+                        confirmationTitle = 'Classification finalized';
+                        confirmationDescription = classificationLabel
+                          ? `This safety event has been classified as ${classificationLabel} and the case is now closed. Download the classification record to share with the employee and their manager for signature.`
+                          : 'Your classification has been recorded and the case is now closed. Download the classification record to share with the employee and their manager for signature.';
                         break;
+                      }
                       case 'rework':
                         pmOnReturn?.(payload.comment ?? '');
                         confirmationTitle = 'Sent for rework';
@@ -4536,6 +4550,7 @@ export function Step4ReviewSubmit({
                         break;
                     }
                     setPmConfirmedAction({ actionId, title: confirmationTitle, description: confirmationDescription });
+                    onProgramManagerActionConfirmed?.(actionId);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 />

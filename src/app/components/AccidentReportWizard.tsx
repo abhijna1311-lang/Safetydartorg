@@ -216,6 +216,7 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
   const [referenceDrawerOpen, setReferenceDrawerOpen] = useState(false);
   const [referenceDrawerTab, setReferenceDrawerTab] = useState<ReferenceReportTab>('operator');
   const [programManagerInActionsMode, setProgramManagerInActionsMode] = useState(false);
+  const [programManagerClassificationFinalized, setProgramManagerClassificationFinalized] = useState(false);
   const [operatorInActionsMode, setOperatorInActionsMode] = useState(false);
   const [supervisorInActionsMode, setSupervisorInActionsMode] = useState(false);
   const [submitResult, setSubmitResult] = useState<null | {
@@ -1218,8 +1219,10 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   }}
                   stepNumber={1}
                   totalSteps={assignedSectionSteps?.length || 1}
-                  title={programManagerInActionsMode || operatorInActionsMode || supervisorInActionsMode ? 'Choose next action' : (activeAssignedStepTitle || stageMeta.label)}
-                  description={activeSectionKey === 'supervisor' && !supervisorInActionsMode
+                  title={programManagerClassificationFinalized ? 'Classification complete' : programManagerInActionsMode || operatorInActionsMode || supervisorInActionsMode ? 'Choose next action' : (activeAssignedStepTitle || stageMeta.label)}
+                  description={programManagerClassificationFinalized
+                    ? 'Your classification is recorded and this case is closed.'
+                    : activeSectionKey === 'supervisor' && !supervisorInActionsMode
                     ? 'Complete the Field Supervisor investigation fields for this case. The operator report is available as read-only reference.'
                     : programManagerInActionsMode || operatorInActionsMode || supervisorInActionsMode
                     ? 'Select what should happen next. Your choice will update the workflow status and assignment.'
@@ -1269,6 +1272,8 @@ export function AccidentReportWizard({ onNavigate, onBackToHome, initialStep, in
                   pmOnReassign={handleReassignSupervisorFromDecision}
                   pmOnReject={handleRejectCase}
                   pmOnApproveAndClose={handleApproveAndCloseCase}
+                  caseId={reportId}
+                  onProgramManagerActionConfirmed={(actionId) => setProgramManagerClassificationFinalized(actionId === 'approve')}
                   pmOnResume={handleResumeFromHold}
                 />
               )}

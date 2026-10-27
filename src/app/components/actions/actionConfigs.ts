@@ -226,7 +226,7 @@ export function buildSpmActions(params: {
       icon: CheckCircle2,
       tone: 'emerald',
       title: 'I have reviewed this accident report.',
-      description: 'Closes the accident report. No further assignment will be created.',
+      description: 'Finalizes your classification and closes the case. The classification record will be ready to download.',
       disabled: !canApprove,
       disabledReason: approveDisabledReason,
     },
