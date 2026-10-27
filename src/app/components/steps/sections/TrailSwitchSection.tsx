@@ -5,6 +5,8 @@ import { ModeVehicleFields } from './ModeVehicleSection';
 import { TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { WeatherSection } from './WeatherSection';
 import type { AccidentReportData } from '../../../types/accident-report';
+import { AddressLocationFields } from '../../location/AddressLocationFields';
+import { OPERATOR_LOCATION } from '../../location/locationFields';
 
 interface Props {
   data: AccidentReportData;
@@ -132,20 +134,7 @@ export function TrailSwitchSection({ data, onUpdate, showErrors = false, headerS
       </Section>
 
       <Section title="Where It Happened" help="Record the switch location and the conditions at the time of the Trail a Switch event.">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Field label="Street On" required error={showErrors && !data.street_on?.trim()}>
-            <input type="text" value={data.street_on || ''} onChange={event => onUpdate({ street_on: event.target.value })} placeholder="e.g. Main St" className={inputCls} />
-          </Field>
-          <Field label="Cross Street" required error={showErrors && !data.cross_street?.trim()}>
-            <input type="text" value={data.cross_street || ''} onChange={event => onUpdate({ cross_street: event.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
-          </Field>
-          <Field label="City" required error={showErrors && !data.city?.trim()}>
-            <input type="text" value={data.city || ''} onChange={event => onUpdate({ city: event.target.value })} placeholder="e.g. Dallas" className={inputCls} />
-          </Field>
-          <Field label="ZIP Code" required error={showErrors && !data.zip?.trim()}>
-            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={event => onUpdate({ zip: event.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
-          </Field>
-        </div>
+        <AddressLocationFields data={data} onUpdate={onUpdate} config={OPERATOR_LOCATION} showErrors={showErrors} />
 
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
           <InlineField label="Location of Trail a Switch event" required error={showErrors && !data.trail_location_category}>

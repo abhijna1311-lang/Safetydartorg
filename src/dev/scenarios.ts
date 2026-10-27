@@ -103,6 +103,9 @@ const busCollisionBase: AccidentReportData = {
   cross_street: '7th St',
   city: 'Dallas',
   zip: '75203',
+  // Demo pin in Oak Cliff (75203); street names in this scenario are illustrative.
+  location_lat: 32.7489,
+  location_lng: -96.8275,
   event_at_bus_stop: false,
   has_bike_lane: true,
   bus_status_before: 'In Service',

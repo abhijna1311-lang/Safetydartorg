@@ -7,6 +7,8 @@ import { ModeVehicleFields } from './ModeVehicleSection';
 import { RAIL_LINE_STATUSES, TRAIN_STATUS_OPTIONS } from './RailVehicleFields';
 import { HI_RAIL_FLEET } from './operatorVehicleFleets';
 import type { AccidentReportData } from '../../../types/accident-report';
+import { AddressLocationFields } from '../../location/AddressLocationFields';
+import { OPERATOR_RAIL_LOCATION } from '../../location/locationFields';
 
 interface Props {
   data: AccidentReportData;
@@ -175,20 +177,7 @@ export function DerailmentSection({ data, onUpdate, narrativeReadOnly = false, s
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Field label="Street On" required>
-            <input type="text" value={data.street_on || data.address_of_event || ''} onChange={e => onUpdate({ street_on: e.target.value, address_of_event: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
-          </Field>
-          <Field label="Cross Street" required>
-            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
-          </Field>
-          <Field label="City" required>
-            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
-          </Field>
-          <Field label="ZIP Code" required>
-            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
-          </Field>
-        </div>
+        <AddressLocationFields data={data} onUpdate={onUpdate} config={OPERATOR_RAIL_LOCATION} showErrors={showErrors} />
       </Section>
 
       <Section title="Weather And Conditions" help="The environment and track conditions at the time of the derailment.">

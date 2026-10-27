@@ -18,10 +18,13 @@ import { RAIL_LINE_STATUSES } from './sections/RailVehicleFields';
 import { ScheduleSection, hasScheduleAnswers } from './sections/ScheduleSection';
 import { DatePickerInput } from '../DatePickerInput';
 import { TimePickerInput } from '../TimePickerInput';
+import { CustomSelect } from '../CustomSelect';
 import type { AccidentReportData } from '../../types/accident-report';
 import type { UserRole } from '../../context/UserRoleContext';
 import type { WorkflowSectionKey, WorkflowSections } from '../../types/workflow-report';
 import { isFutureDateTime } from '../../utils/date-time';
+import { AddressLocationFields } from '../location/AddressLocationFields';
+import { INTAKE_LRV_LOCATION, INTAKE_NRV_LOCATION } from '../location/locationFields';
 
 interface Props {
   data: AccidentReportData;
@@ -449,36 +452,27 @@ export function Step2VehicleLocation({
                     {BUS_ROUTE_STATUSES.has(data.bus_status_before || '') && <IntakeField label="Route">
                       <input type="text" value={data.route_number || ''} onChange={(e) => onUpdate({ route_number: e.target.value })} placeholder="Enter route" className={inputCls} />
                     </IntakeField>}
-                    <IntakeField label="Street On" required>
-                      <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
-                    </IntakeField>
-                    <IntakeField label="Cross Street" required>
-                      <input type="text" value={data.cross_street || ''} onChange={(e) => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
-                    </IntakeField>
-                    <IntakeField label="City" required>
-                      <input type="text" value={data.city || ''} onChange={(e) => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
-                    </IntakeField>
-                    <IntakeField label="ZIP Code" required>
-                      <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={(e) => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
-                    </IntakeField>
+                    <div className="md:col-span-2">
+                      <AddressLocationFields data={data} onUpdate={onUpdate} />
+                    </div>
                   </>
                 ) : isNRV ? (
                   <>
                     <IntakeField label="NRV number" required>
                       <input type="text" value={data.vehicle_number || ''} onChange={(e) => onUpdate({ vehicle_number: e.target.value })} placeholder="Enter NRV number" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="Event location" required>
-                      <input type="text" value={data.street_on || ''} onChange={(e) => onUpdate({ street_on: e.target.value })} placeholder="Enter street address" className={inputCls} />
-                    </IntakeField>
+                    <div className="md:col-span-2">
+                      <AddressLocationFields data={data} onUpdate={onUpdate} config={INTAKE_NRV_LOCATION} />
+                    </div>
                   </>
                 ) : (
                   <>
                     <IntakeField label="LRV number" required>
                       <input type="text" value={data.train_number || ''} onChange={(e) => onUpdate({ train_number: e.target.value })} placeholder="Enter LRV number" className={inputCls} />
                     </IntakeField>
-                    <IntakeField label="Event location" required>
-                      <input type="text" value={data.address_of_event || ''} onChange={(e) => onUpdate({ address_of_event: e.target.value })} placeholder="Enter location" className={inputCls} />
-                    </IntakeField>
+                    <div className="md:col-span-2">
+                      <AddressLocationFields data={data} onUpdate={onUpdate} config={INTAKE_LRV_LOCATION} />
+                    </div>
                   </>
                 )}
               </div>

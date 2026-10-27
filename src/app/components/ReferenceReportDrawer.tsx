@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { OperatorReferenceRail } from './steps/sections/OperatorReferenceRail';
 import { CaseTimeline } from './CaseTimeline';
 import { VehicleImpactDiagram } from './VehicleImpactDiagram';
+import { LocationMapPreview } from './location/LocationMapPreview';
+import { supervisorLocationLabel } from './location/locationFields';
 import type { AccidentReportData } from '../types/accident-report';
 import type { WorkflowReport, WorkflowSectionState, WorkflowSectionStatus } from '../types/workflow-report';
 
@@ -89,6 +91,7 @@ const SUPERVISOR_STEPS: SupervisorStep[] = [
 
           <div>
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 font-['Poppins']">Location as recorded</p>
+            <LocationMapPreview lat={data.supervisor_location_lat} lng={data.supervisor_location_lng} label={supervisorLocationLabel(data)} className="mb-4" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Street on" value={data.supervisor_street_on} />
               <Field label="Cross street" value={data.supervisor_cross_street} />

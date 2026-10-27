@@ -1,6 +1,7 @@
 import { RotateCcw } from 'lucide-react';
 import type { AccidentReportData } from '../types/accident-report';
 import { getReportLocation, type WorkflowSectionKey } from '../types/workflow-report';
+import { AddressLocationFields } from './location/AddressLocationFields';
 
 interface CorrectionResolutionScreenProps {
   caseId?: string;
@@ -63,10 +64,9 @@ export function CorrectionResolutionScreen({ caseId, data, sectionKey, sectionLa
           <p className="text-sm font-semibold text-slate-900 font-['Poppins']">Returned field: Location and event description</p>
           <p className="mt-1 text-xs text-slate-500 font-['Poppins']">Original submitted value: {getReportLocation(data)}</p>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <input value={data.street_on || ''} onChange={(event) => onUpdate({ street_on: event.target.value })} placeholder="Street on" className={inputCls} />
-            <input value={data.cross_street || ''} onChange={(event) => onUpdate({ cross_street: event.target.value })} placeholder="Cross street" className={inputCls} />
-            <input value={data.city || ''} onChange={(event) => onUpdate({ city: event.target.value })} placeholder="City" className={inputCls} />
-            <input value={data.zip || ''} onChange={(event) => onUpdate({ zip: event.target.value })} placeholder="ZIP" className={inputCls} />
+            <div className="md:col-span-2">
+              <AddressLocationFields data={data} onUpdate={onUpdate} required={false} />
+            </div>
             <textarea value={data.description_of_event || ''} onChange={(event) => onUpdate({ description_of_event: event.target.value })} placeholder="Updated event description" rows={3} className={`${inputCls} md:col-span-2 resize-none`} />
           </div>
         </div>

@@ -7,6 +7,8 @@ import { WeatherSection } from './WeatherSection';
 import { ModeVehicleSection } from './ModeVehicleSection';
 import { BUS_STOP_OPTIONS } from '../../../data/busStops';
 import type { AccidentReportData } from '../../../types/accident-report';
+import { AddressLocationFields } from '../../location/AddressLocationFields';
+import { OPERATOR_LOCATION } from '../../location/locationFields';
 
 interface Props {
   data: AccidentReportData;
@@ -103,20 +105,7 @@ export function BasicIncidentSection({ data, onUpdate, compactMode = false, narr
 
       {/* 3 — Where it happened: location + the conditions there */}
       <Section title="Where It Happened" help="The location and the conditions there — where it was, and what the environment was like.">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Field label="Street On" required error={showErrors && !data.street_on}>
-            <input type="text" value={data.street_on || ''} onChange={e => onUpdate({ street_on: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
-          </Field>
-          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
-            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
-          </Field>
-          <Field label="City" required error={showErrors && !data.city}>
-            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
-          </Field>
-          <Field label="ZIP Code" required error={showErrors && !data.zip}>
-            <input type="text" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value })} placeholder="e.g. 75201" className={inputCls} />
-          </Field>
-        </div>
+        <AddressLocationFields data={data} onUpdate={onUpdate} config={OPERATOR_LOCATION} showErrors={showErrors} />
 
         <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
           <BoolRow label="Did the event occur at a bus stop?" required>

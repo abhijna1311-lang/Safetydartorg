@@ -6,6 +6,8 @@ import { ModeVehicleFields } from './ModeVehicleSection';
 import { DART_STATION_OPTIONS } from './DerailmentSection';
 import { WeatherSection } from './WeatherSection';
 import type { AccidentReportData } from '../../../types/accident-report';
+import { AddressLocationFields } from '../../location/AddressLocationFields';
+import { OPERATOR_FIRE_LOCATION } from '../../location/locationFields';
 
 interface Props {
   data: AccidentReportData;
@@ -122,20 +124,7 @@ export function FireSection({ data, onUpdate, narrativeReadOnly = false, showErr
             <CustomSelect value={data.fire_station_transit_center || ''} onChange={value => onUpdate({ fire_station_transit_center: value })} options={DART_STATION_OPTIONS} placeholder="Select station or transit center" />
           </Field>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Field label="Street On" required error={showErrors && !(data.street_on || data.fire_address)}>
-            <input className="dart-input-base" value={data.street_on || data.fire_address || ''} onChange={event => onUpdate({ street_on: event.target.value, fire_address: event.target.value })} placeholder="e.g. Main St" />
-          </Field>
-          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
-            <input className="dart-input-base" value={data.cross_street || ''} onChange={event => onUpdate({ cross_street: event.target.value })} placeholder="e.g. Elm Ave" />
-          </Field>
-          <Field label="City" required error={showErrors && !data.city}>
-            <input className="dart-input-base" value={data.city || ''} onChange={event => onUpdate({ city: event.target.value })} placeholder="e.g. Dallas" />
-          </Field>
-          <Field label="ZIP Code" required error={showErrors && !data.zip}>
-            <input className="dart-input-base" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={event => onUpdate({ zip: event.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" />
-          </Field>
-        </div>
+        <AddressLocationFields data={data} onUpdate={onUpdate} config={OPERATOR_FIRE_LOCATION} showErrors={showErrors} />
 
         <AnimatePresence initial={false}>
           {noPossessionOnTransitVehicle && (

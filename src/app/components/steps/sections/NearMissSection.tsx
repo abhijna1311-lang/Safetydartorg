@@ -9,6 +9,8 @@ import { ModeVehicleSection } from './ModeVehicleSection';
 import { OtherVehiclesEditor } from '../../OtherVehiclesEditor';
 import { DART_VEHICLE_ACTIONS } from './BusCollisionSection';
 import type { AccidentReportData, NearMissPedestrianRecord, OtherVehicle, Person } from '../../../types/accident-report';
+import { AddressLocationFields } from '../../location/AddressLocationFields';
+import { NEAR_MISS_LOCATION } from '../../location/locationFields';
 
 interface Step2Props {
   data: AccidentReportData;
@@ -230,20 +232,7 @@ export function NearMissSection({ data, onUpdate, showErrors, narrativeReadOnly 
         <Field label="Location Category of Near Miss" required error={showErrors && !data.near_miss_location_category}>
           <CustomSelect value={data.near_miss_location_category || ''} onChange={value => onUpdate({ near_miss_location_category: value })} options={locationOptions} placeholder="Select category" />
         </Field>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Street On" required error={showErrors && !data.near_miss_street_on?.trim()}>
-            <input className="dart-input-base" value={data.near_miss_street_on || ''} onChange={event => onUpdate({ near_miss_street_on: event.target.value })} placeholder="e.g. Main St" />
-          </Field>
-          <Field label="Cross Street" required error={showErrors && !data.near_miss_cross_street?.trim()}>
-            <input className="dart-input-base" value={data.near_miss_cross_street || ''} onChange={event => onUpdate({ near_miss_cross_street: event.target.value })} placeholder="e.g. Elm Ave" />
-          </Field>
-          <Field label="City" required error={showErrors && !data.near_miss_city?.trim()}>
-            <input className="dart-input-base" value={data.near_miss_city || ''} onChange={event => onUpdate({ near_miss_city: event.target.value })} placeholder="e.g. Dallas" />
-          </Field>
-          <Field label="ZIP Code" required error={showErrors && !data.near_miss_zip?.trim()}>
-            <input className="dart-input-base" value={data.near_miss_zip || ''} onChange={event => onUpdate({ near_miss_zip: event.target.value })} placeholder="e.g. 75201" inputMode="numeric" />
-          </Field>
-        </div>
+        <AddressLocationFields data={data} onUpdate={onUpdate} config={NEAR_MISS_LOCATION} showErrors={showErrors} />
       </Section>
 
       <Section title="Weather and conditions" help="Record the environment at the time of the near miss.">

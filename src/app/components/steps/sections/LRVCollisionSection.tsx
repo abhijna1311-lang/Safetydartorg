@@ -8,6 +8,8 @@ import { WeatherSection } from './WeatherSection';
 import { ModeVehicleFields } from './ModeVehicleSection';
 import { RAIL_LINE_STATUSES } from './RailVehicleFields';
 import type { AccidentReportData } from '../../../types/accident-report';
+import { AddressLocationFields } from '../../location/AddressLocationFields';
+import { OPERATOR_RAIL_LOCATION } from '../../location/locationFields';
 
 interface Props {
   data: AccidentReportData;
@@ -342,20 +344,7 @@ export function LRVCollisionSection({ data, onUpdate, narrativeReadOnly = false,
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Field label="Street On" required error={showErrors && !(data.street_on || data.address_of_event)}>
-            <input type="text" value={data.street_on || data.address_of_event || ''} onChange={e => onUpdate({ street_on: e.target.value, address_of_event: e.target.value })} placeholder="e.g. Main St" className={inputCls} />
-          </Field>
-          <Field label="Cross Street" required error={showErrors && !data.cross_street}>
-            <input type="text" value={data.cross_street || ''} onChange={e => onUpdate({ cross_street: e.target.value })} placeholder="e.g. Elm Ave" className={inputCls} />
-          </Field>
-          <Field label="City" required error={showErrors && !data.city}>
-            <input type="text" value={data.city || ''} onChange={e => onUpdate({ city: e.target.value })} placeholder="e.g. Dallas" className={inputCls} />
-          </Field>
-          <Field label="ZIP Code" required error={showErrors && !data.zip}>
-            <input type="text" inputMode="numeric" maxLength={5} value={data.zip || ''} onChange={e => onUpdate({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="e.g. 75201" className={inputCls} />
-          </Field>
-        </div>
+        <AddressLocationFields data={data} onUpdate={onUpdate} config={OPERATOR_RAIL_LOCATION} showErrors={showErrors} />
       </Section>
 
       {/* 4 — Weather and conditions: the environment at the time of the event */}

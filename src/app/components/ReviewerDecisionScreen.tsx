@@ -6,6 +6,8 @@ import type { WorkflowSectionState } from '../types/workflow-report';
 import type { UserRole } from '../context/UserRoleContext';
 import { getReportLocation } from '../types/workflow-report';
 import { EMPLOYEE_DB } from '../data/employeeDatabase';
+import { LocationMapPreview } from './location/LocationMapPreview';
+import { supervisorLocationLabel } from './location/locationFields';
 
 export type ReviewerActionKey = 'approve' | 'return' | 'reassign' | 'reject';
 
@@ -440,6 +442,7 @@ export function ReviewerDecisionScreen({
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 font-['Poppins']">Location as recorded by supervisor</p>
+            <LocationMapPreview lat={data.supervisor_location_lat} lng={data.supervisor_location_lng} label={supervisorLocationLabel(data)} className="mt-2" />
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Street on" value={data.supervisor_street_on} />
               <Field label="Cross street" value={data.supervisor_cross_street} />

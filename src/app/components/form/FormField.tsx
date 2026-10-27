@@ -16,12 +16,15 @@ export function FormField({
   required,
   helper,
   error,
+  labelAdornment,
   children,
 }: {
   label: string;
   required?: boolean;
   helper?: string;
   error?: boolean;
+  /** Small inline tag after the label, e.g. "From map". */
+  labelAdornment?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -29,6 +32,7 @@ export function FormField({
       <label className="dart-field-label">
         {label}
         {required && <span className="dart-req ml-1">*</span>}
+        {labelAdornment}
       </label>
       <div className={error ? 'dart-field-error' : ''}>{children}</div>
       {error ? (

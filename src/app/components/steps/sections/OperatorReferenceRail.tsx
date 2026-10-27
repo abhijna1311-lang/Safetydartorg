@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, Printer, ShieldCheck } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { VehicleImpactDiagram } from '../../VehicleImpactDiagram';
+import { LocationMapPreview } from '../../location/LocationMapPreview';
+import { eventLocationLabel } from '../../location/locationFields';
 import type { AccidentReportData, PedestrianRecord } from '../../../types/accident-report';
 import type { WorkflowSectionStatus } from '../../../types/workflow-report';
 
@@ -1469,6 +1471,15 @@ export function OperatorReferenceRail({ data, operatorStatus, className = '', sh
                                 {count} {count === 1 ? 'answer' : 'answers'}
                               </p>
                             </div>
+                          )}
+
+                          {(subSection.title === 'Location' || subSection.title === 'Near Miss Details') && (
+                            <LocationMapPreview
+                              lat={data.location_lat}
+                              lng={data.location_lng}
+                              label={eventLocationLabel(data)}
+                              className="mb-2"
+                            />
                           )}
 
                           {isAttachmentSlot ? (

@@ -229,6 +229,11 @@ export interface AccidentReportData {
   cross_street?: string;
   city?: string;
   zip?: string;
+  // Pinned on the map (Mapbox). Coordinates are WGS84.
+  location_lat?: number;
+  location_lng?: number;
+  // Address fields last filled from the map pin; a manual edit removes the role so re-pinning won't overwrite it.
+  location_autofilled_fields?: Array<'street' | 'cross' | 'city' | 'zip'>;
   bus_status_before?: string;
   bus_status_after?: string;
   fleet_type?: string;
@@ -504,6 +509,10 @@ export interface AccidentReportData {
   supervisor_cross_street?: string;
   supervisor_city?: string;
   supervisor_zip?: string;
+  // Field Supervisor's own map pin (independent of the operator's).
+  supervisor_location_lat?: number;
+  supervisor_location_lng?: number;
+  supervisor_location_autofilled_fields?: Array<'street' | 'cross' | 'city' | 'zip'>;
   supervisor_event_at_bus_stop?: boolean;
   supervisor_bus_stop_name?: string;
   supervisor_has_bike_lane?: boolean;
